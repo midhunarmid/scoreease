@@ -28,10 +28,12 @@ class LandingBloc extends Bloc<LandingEvent, LandingState> {
             ),
           );
 
-          ScoreBoardUseCase scoreBoardUseCase = GetIt.instance<ScoreBoardUseCase>();
-          ScoreBoardModel scoreBoardModel = await scoreBoardUseCase
-              .getScoreBoard(event.id);
-          await delayedEmit(emit, LandingScoreCardReceivedState(scoreBoardModel));
+          ScoreBoardUseCase scoreBoardUseCase =
+              GetIt.instance<ScoreBoardUseCase>();
+          ScoreBoardModel scoreBoardModel =
+              await scoreBoardUseCase.getScoreBoard(event.id);
+          await delayedEmit(
+              emit, LandingScoreCardReceivedState(scoreBoardModel));
         }
       } on MyAppException catch (ae) {
         appLogger.e(ae);

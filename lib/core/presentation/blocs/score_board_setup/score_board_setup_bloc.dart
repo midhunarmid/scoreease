@@ -11,7 +11,8 @@ import 'package:get_it/get_it.dart';
 part 'score_board_setup_event.dart';
 part 'score_board_setup_state.dart';
 
-class ScoreBoardSetupBloc extends Bloc<ScoreBoardSetupEvent, ScoreBoardSetupState> {
+class ScoreBoardSetupBloc
+    extends Bloc<ScoreBoardSetupEvent, ScoreBoardSetupState> {
   ScoreBoardSetupBloc() : super(ScoreBoardSetupInitial()) {
     on<ScoreBoardSetupEvent>((event, emit) async {
       try {
@@ -28,9 +29,10 @@ class ScoreBoardSetupBloc extends Bloc<ScoreBoardSetupEvent, ScoreBoardSetupStat
             ),
           );
 
-          ScoreBoardUseCase scoreBoardUseCase = GetIt.instance<ScoreBoardUseCase>();
-          ScoreBoardModel scoreBoardModel = await scoreBoardUseCase
-              .getScoreBoard(event.id);
+          ScoreBoardUseCase scoreBoardUseCase =
+              GetIt.instance<ScoreBoardUseCase>();
+          ScoreBoardModel scoreBoardModel =
+              await scoreBoardUseCase.getScoreBoard(event.id);
           await delayedEmit(emit, ScoreBoardSetupSuccessState());
         }
       } on MyAppException catch (ae) {

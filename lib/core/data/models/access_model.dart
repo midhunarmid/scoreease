@@ -4,57 +4,55 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
 @immutable
-class AccessModel {
-  final String? readPassword;
-  final String? writePassword;
+class Access {
+  final String? read;
+  final String? write;
 
-  const AccessModel({this.readPassword, this.writePassword});
+  const Access({this.read, this.write});
 
   @override
-  String toString() {
-    return 'Access(readPassword: $readPassword, writePassword: $writePassword)';
-  }
+  String toString() => 'Access(read: $read, write: $write)';
 
-  factory AccessModel.fromMap(Map<String, dynamic> data) => AccessModel(
-        readPassword: data['readPassword'] as String?,
-        writePassword: data['writePassword'] as String?,
+  factory Access.fromMap(Map<String, dynamic> data) => Access(
+        read: data['read'] as String?,
+        write: data['write'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
-        'readPassword': readPassword,
-        'writePassword': writePassword,
+        'read': read,
+        'write': write,
       };
 
   /// `dart:convert`
   ///
-  /// Parses the string and returns the resulting Json object as [AccessModel].
-  factory AccessModel.fromJson(String data) {
-    return AccessModel.fromMap(json.decode(data) as Map<String, dynamic>);
+  /// Parses the string and returns the resulting Json object as [Access].
+  factory Access.fromJson(String data) {
+    return Access.fromMap(json.decode(data) as Map<String, dynamic>);
   }
 
   /// `dart:convert`
   ///
-  /// Converts [AccessModel] to a JSON string.
+  /// Converts [Access] to a JSON string.
   String toJson() => json.encode(toMap());
 
-  AccessModel copyWith({
-    String? readPassword,
-    String? writePassword,
+  Access copyWith({
+    String? read,
+    String? write,
   }) {
-    return AccessModel(
-      readPassword: readPassword ?? this.readPassword,
-      writePassword: writePassword ?? this.writePassword,
+    return Access(
+      read: read ?? this.read,
+      write: write ?? this.write,
     );
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    if (other is! AccessModel) return false;
+    if (other is! Access) return false;
     final mapEquals = const DeepCollectionEquality().equals;
     return mapEquals(other.toMap(), toMap());
   }
 
   @override
-  int get hashCode => readPassword.hashCode ^ writePassword.hashCode;
+  int get hashCode => read.hashCode ^ write.hashCode;
 }

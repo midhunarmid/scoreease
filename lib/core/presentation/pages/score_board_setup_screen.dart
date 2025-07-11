@@ -23,11 +23,12 @@ class ScoreBoardSetupScreen extends StatefulWidget {
 }
 
 class _ScoreBoardSetupScreenState extends State<ScoreBoardSetupScreen> {
-  final TextEditingController _scoreCardNameTextController = TextEditingController();
+  final TextEditingController _scoreCardNameTextController =
+      TextEditingController();
 
   final ScoreBoardSetupBloc _bloc = ScoreBoardSetupBloc();
   ProgressDialog? pr;
-  
+
   @override
   void initState() {
     super.initState();
@@ -132,7 +133,8 @@ class _ScoreBoardSetupScreenState extends State<ScoreBoardSetupScreen> {
                               hintText:
                                   MessageGenerator.getLabel('messi-ronaldo'),
                               label: Text(
-                                MessageGenerator.getLabel('type in scoreboard name'),
+                                MessageGenerator.getLabel(
+                                    'type in scoreboard name'),
                                 style: Theme.of(context)
                                     .textTheme
                                     .labelSmall
@@ -153,7 +155,8 @@ class _ScoreBoardSetupScreenState extends State<ScoreBoardSetupScreen> {
                         Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: AnimatedClickableTextContainer(
-                            title: MessageGenerator.getLabel('Create Scoreboard'),
+                            title:
+                                MessageGenerator.getLabel('Create Scoreboard'),
                             iconSrc: '',
                             isActive: false,
                             bgColor: appColors.pleasantButtonBg,
@@ -173,7 +176,8 @@ class _ScoreBoardSetupScreenState extends State<ScoreBoardSetupScreen> {
                                 ?.copyWith(),
                             children: <TextSpan>[
                               TextSpan(
-                                  text: MessageGenerator.getLabel('Use Existing Scoreboard'),
+                                  text: MessageGenerator.getLabel(
+                                      'Use Existing Scoreboard'),
                                   style: Theme.of(context)
                                       .textTheme
                                       .labelSmall

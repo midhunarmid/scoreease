@@ -140,7 +140,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             bgColor: appColors.pleasantButtonBg,
                             bgColorHover: appColors.pleasantButtonBgHover,
                             press: () {
-                              submitCredentials();
+                              onSubmitScoreBoardId();
                             },
                           ),
                         ),
@@ -195,7 +195,7 @@ class _LandingScreenState extends State<LandingScreen> {
     );
   }
 
-  void submitCredentials() {
+  void onSubmitScoreBoardId() {
     _bloc.add(LandingGetScoreBoardEvent(_scoreCardNameTextController.text));
   }
 }

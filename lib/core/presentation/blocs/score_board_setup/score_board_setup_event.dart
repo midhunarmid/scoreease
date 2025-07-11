@@ -5,6 +5,6 @@ sealed class ScoreBoardSetupEvent {}
 
 class ScoreBoardSetupSubmitEvent extends ScoreBoardSetupEvent {
   final String id;
-  
+
   ScoreBoardSetupSubmitEvent(this.id);
 }

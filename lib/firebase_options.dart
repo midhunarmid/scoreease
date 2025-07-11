@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'scoreease-98ed8.firebasestorage.app',
     measurementId: 'G-E7Y35XB986',
   );
-
 }

@@ -3,7 +3,8 @@ class MessageGenerator {
     "en": {
       "un-expected-error": "Some un expected error happened!",
       "un-expected-error-message": "Some un expected error happened!",
-      "landing-welcome": "Welcome! Let’s set up your scoreboard. Please enter a name to get started.",
+      "landing-welcome":
+          "Welcome! Let’s set up your scoreboard. Please enter a name to get started.",
       "landing-visit-site-guide":
           "To get started with this open-source Scoreboard app, visit https://github.com/midhunarmid/scoreease for setup instructions and full documentation.",
     }

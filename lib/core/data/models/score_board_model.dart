@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
@@ -10,42 +11,62 @@ class ScoreBoardModel {
   final String? id;
   final String? title;
   final String? description;
-  final String? createdAt;
-  final int? playerCount;
-  final AccessModel? access;
+  final String? author;
+  final int? createdAt;
+  final int? lastUpdated;
+  final Access? access;
+  final Map<String, int>? players;
 
   const ScoreBoardModel({
     this.id,
     this.title,
     this.description,
+    this.author,
     this.createdAt,
-    this.playerCount,
+    this.lastUpdated,
     this.access,
+    this.players,
   });
 
   @override
   String toString() {
-    return 'ScoreBoard(id: $id, title: $title, description: $description, createdAt: $createdAt, playerCount: $playerCount, access: $access)';
+    return 'ScoreBoardModel(id: $id, title: $title, description: $description, author: $author, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
   }
 
-  factory ScoreBoardModel.fromMap(Map<String, dynamic> data) => ScoreBoardModel(
-        id: data['id'] as String?,
-        title: data['title'] as String?,
-        description: data['description'] as String?,
-        createdAt: data['createdAt'] as String?,
-        playerCount: data['playerCount'] as int?,
-        access: data['access'] == null
-            ? null
-            : AccessModel.fromMap(data['access'] as Map<String, dynamic>),
-      );
+  factory ScoreBoardModel.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> snapshot,
+    SnapshotOptions? options,
+  ) {
+    final data = snapshot.data() ?? {};
+    return ScoreBoardModel.fromMap(data);
+  }
+
+  factory ScoreBoardModel.fromMap(Map<String, dynamic> data) {
+    return ScoreBoardModel(
+      id: data['id'] as String?,
+      title: data['title'] as String?,
+      description: data['description'] as String?,
+      author: data['author'] as String?,
+      createdAt: data['createdAt'] as int?,
+      lastUpdated: data['lastUpdated'] as int?,
+      access: data['access'] == null
+          ? null
+          : Access.fromMap(data['access'] as Map<String, dynamic>),
+      players: data['players'] == null
+          ? null
+          : Map<String, int>.from(data['players'] as Map<dynamic, dynamic>),
+    );
+  }
 
   Map<String, dynamic> toMap() => {
         'id': id,
         'title': title,
         'description': description,
+        'author': author,
         'createdAt': createdAt,
-        'playerCount': playerCount,
+        'lastUpdated': lastUpdated,
         'access': access?.toMap(),
+        'players': players,
       };
 
   /// `dart:convert`
@@ -64,17 +85,21 @@ class ScoreBoardModel {
     String? id,
     String? title,
     String? description,
-    String? createdAt,
-    int? playerCount,
-    AccessModel? access,
+    String? author,
+    int? createdAt,
+    int? lastUpdated,
+    Access? access,
+    Map<String, int>? players,
   }) {
     return ScoreBoardModel(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
+      author: author ?? this.author,
       createdAt: createdAt ?? this.createdAt,
-      playerCount: playerCount ?? this.playerCount,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
       access: access ?? this.access,
+      players: players ?? this.players,
     );
   }
 
@@ -91,7 +116,9 @@ class ScoreBoardModel {
       id.hashCode ^
       title.hashCode ^
       description.hashCode ^
+      author.hashCode ^
       createdAt.hashCode ^
-      playerCount.hashCode ^
-      access.hashCode;
+      lastUpdated.hashCode ^
+      access.hashCode ^
+      players.hashCode;
 }
