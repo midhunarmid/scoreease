@@ -24,6 +24,28 @@ class ScoreboardEntity {
     this.players,
   });
 
+  ScoreboardEntity copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? author,
+    int? createdAt,
+    int? lastUpdated,
+    AccessEntity? access,
+    Map<String, int>? players,
+  }) {
+    return ScoreboardEntity(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      author: author ?? this.author,
+      createdAt: createdAt ?? this.createdAt,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      access: access ?? this.access,
+      players: players ?? this.players,
+    );
+  }
+
   @override
   String toString() {
     return 'ScoreboardEntity(id: $id, title: $title, description: $description, author: $author, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';

@@ -17,7 +17,14 @@ class MessageGenerator {
       "scoreboard-author-empty": "Who’s Keeping Score?",
       "scoreboard-author-empty-message": "Please enter your name or team name to take credit for this scoreboard!",
       "scoreboard-author-too-short": "Name’s Too Short!",
-      "scoreboard-author-too-short-message": "Your name should be at least 3 characters long. Make it memorable!"
+      "scoreboard-author-too-short-message": "Your name should be at least 3 characters long. Make it memorable!",
+      "scoreboard-setup-players-empty-message": "Where's the competition?\nAdd some players to get the game started!",
+      "scoreboard-setup-access-read-description": "Let the crowd in! Leave the read password empty to open your scoreboard to everyone.",
+      "scoreboard-setup-access-write-description": "Write access needs a strong defense! Don’t leave this blank—set a password to prevent score tampering.",
+      "scoreboard-players-empty": "Where are the players?",
+      "scoreboard-players-empty-message": "Add at least one player to your scoreboard. Let the games begin!",
+      "scoreboard-players-empty-name": "Player names can't be empty!",
+      "scoreboard-players-empty-name-message": "Please enter a name for each player. No nameless heroes allowed!",
     }
   };
 

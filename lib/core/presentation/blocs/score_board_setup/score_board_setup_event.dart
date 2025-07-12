@@ -9,6 +9,12 @@ class ScoreboardSetupBasicSubmitEvent extends ScoreboardSetupEvent {
   ScoreboardSetupBasicSubmitEvent(this.scoreboardEntity);
 }
 
+class ScoreboardSetupPlayerNamesSubmitEvent extends ScoreboardSetupEvent {
+  final ScoreboardEntity scoreboardEntity;
+
+  ScoreboardSetupPlayerNamesSubmitEvent(this.scoreboardEntity);
+}
+
 class ScoreboardSetupFinalSubmitEvent extends ScoreboardSetupEvent {
   final ScoreboardEntity scoreboardEntity;
 

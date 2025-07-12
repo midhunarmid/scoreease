@@ -26,7 +26,7 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           } else if ((event.scoreboardEntity.id?.length ?? 0) < 3) {
             errorTitle = MessageGenerator.getMessage("scoreboard-name-too-short");
             errorMessage = MessageGenerator.getMessage("scoreboard-name-too-short-message");
-          } else if(event.scoreboardEntity.author?.isEmpty ?? true) {
+          } else if (event.scoreboardEntity.author?.isEmpty ?? true) {
             errorTitle = MessageGenerator.getMessage("scoreboard-author-empty");
             errorMessage = MessageGenerator.getMessage("scoreboard-author-empty-message");
           } else if ((event.scoreboardEntity.author?.length ?? 0) < 3) {
@@ -35,14 +35,29 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           }
 
           if (errorTitle.isNotEmpty) {
-            await delayedEmit(
-              emit,
-              ScoreboardSetupErrorState(errorTitle, errorMessage, StatusInfoIconEnum.error),
-            );
+            emit.call(ScoreboardSetupErrorState(errorTitle, errorMessage, StatusInfoIconEnum.error));
             return;
           }
 
-          await delayedEmit(emit, ScoreboardSetupBasicSuccessState(event.scoreboardEntity));
+          emit.call(ScoreboardSetupBasicSuccessState(event.scoreboardEntity));
+        } if (event is ScoreboardSetupPlayerNamesSubmitEvent) {
+          String errorTitle = "";
+          String errorMessage = "";
+
+          if (event.scoreboardEntity.players?.isEmpty ?? true) {
+            errorTitle = MessageGenerator.getMessage("scoreboard-players-empty");
+            errorMessage = MessageGenerator.getMessage("scoreboard-players-empty-message");
+          } else if (event.scoreboardEntity.players?.keys.any((name) => name.isEmpty) ?? true) {
+            errorTitle = MessageGenerator.getMessage("scoreboard-players-empty-name");
+            errorMessage = MessageGenerator.getMessage("scoreboard-players-empty-name-message");
+          }
+
+          if (errorTitle.isNotEmpty) {
+            emit.call(ScoreboardSetupErrorState(errorTitle, errorMessage, StatusInfoIconEnum.error));
+            return;
+          }
+
+          emit.call(ScoreboardSetupPlayerNamesSuccessState(event.scoreboardEntity));
         } else if (event is ScoreboardSetupFinalSubmitEvent) {
           emit.call(
             LoadingState(

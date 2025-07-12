@@ -16,6 +16,11 @@ class ScoreboardSetupBasicSuccessState extends ScoreboardSetupState {
   ScoreboardSetupBasicSuccessState(this.scoreboardEntity);
 }
 
+class ScoreboardSetupPlayerNamesSuccessState extends ScoreboardSetupState {
+  final ScoreboardEntity scoreboardEntity;
+  ScoreboardSetupPlayerNamesSuccessState(this.scoreboardEntity);
+}
+
 class ScoreboardSetupSuccessState extends ScoreboardSetupState {
   final String id;
   ScoreboardSetupSuccessState(this.id);
