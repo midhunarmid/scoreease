@@ -1,12 +1,12 @@
-import 'package:scoreease/core/data/models/score_board_model.dart';
+import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/domain/repositories/score_board_repository.dart';
 
-class ScoreBoardUseCase {
-  final ScoreBoardRepository _scoreBoardRepository;
+class ScoreboardUseCase {
+  final ScoreboardRepository _scoreboardRepository;
 
-  ScoreBoardUseCase(this._scoreBoardRepository);
+  ScoreboardUseCase(this._scoreboardRepository);
 
-  Future<ScoreBoardModel> getScoreBoard(String id) async {
-    return await _scoreBoardRepository.getScoreBoard(id);
+  Future<ScoreboardEntity> getScoreboard(String id) async {
+    return await _scoreboardRepository.getScoreboard(id);
   }
 }

@@ -57,12 +57,12 @@ showTwoButtonAlertDialog({
   DialogType dialogType = DialogType.question,
   String positiveButton = "",
   String negativeButton = "",
-  required VoidCallback positiveAction,
-  required VoidCallback negativeAction,
-  required Color positiveButtonBg,
-  required Color positiveButtonBgHover,
-  required Color negativeButtonBg,
-  required Color negativeButtonBgHover,
+  VoidCallback? positiveAction,
+  VoidCallback? negativeAction,
+  Color? positiveButtonBg,
+  Color? positiveButtonBgHover,
+  Color? negativeButtonBg,
+  Color? negativeButtonBgHover,
 }) {
   AwesomeDialog(
     context: context,
@@ -87,11 +87,11 @@ showTwoButtonAlertDialog({
           : MessageGenerator.getLabel(positiveButton),
       iconSrc: '',
       isActive: false,
-      bgColor: positiveButtonBg,
-      bgColorHover: positiveButtonBgHover,
+      bgColor: positiveButtonBg ?? appColors.pleasantButtonBg,
+      bgColorHover: positiveButtonBgHover ?? appColors.pleasantButtonBgHover,
       press: () {
         Navigator.pop(context);
-        positiveAction.call();
+        positiveAction?.call();
       },
     ),
     btnCancel: AnimatedClickableTextContainer(
@@ -100,11 +100,11 @@ showTwoButtonAlertDialog({
           : MessageGenerator.getLabel(negativeButton),
       iconSrc: '',
       isActive: false,
-      bgColor: negativeButtonBg,
-      bgColorHover: negativeButtonBgHover,
+      bgColor: negativeButtonBg ?? appColors.negativeButtonBg,
+      bgColorHover: negativeButtonBgHover ?? appColors.negativeButtonBgHover,
       press: () {
         Navigator.pop(context);
-        negativeAction.call();
+        negativeAction?.call();
       },
     ),
     desc: message,

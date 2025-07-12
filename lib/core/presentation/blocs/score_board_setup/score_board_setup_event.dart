@@ -1,10 +1,10 @@
 part of 'score_board_setup_bloc.dart';
 
 @immutable
-sealed class ScoreBoardSetupEvent {}
+sealed class ScoreboardSetupEvent {}
 
-class ScoreBoardSetupSubmitEvent extends ScoreBoardSetupEvent {
+class ScoreboardSetupSubmitEvent extends ScoreboardSetupEvent {
   final String id;
 
-  ScoreBoardSetupSubmitEvent(this.id);
+  ScoreboardSetupSubmitEvent(this.id);
 }

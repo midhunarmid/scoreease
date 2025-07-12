@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:scoreease/core/data/models/plain_response_model.dart';
-import 'package:scoreease/core/data/models/score_board_model.dart';
+import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/domain/usecases/score_board_usecase.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/message_generator.dart';
@@ -16,24 +16,24 @@ class LandingBloc extends Bloc<LandingEvent, LandingState> {
     on<LandingEvent>((event, emit) async {
       try {
         appLogger.i(event);
-        if (event is LandingGetScoreBoardEvent) {
+        if (event is LandingGetScoreboardEvent) {
           emit.call(
             LoadingState(
               LoadingInfo(
                 icon: LoadingIconEnum.submitting,
-                title: MessageGenerator.getLabel("Checking Score Board"),
+                title: MessageGenerator.getLabel("Checking Scoreboard"),
                 message: MessageGenerator.getMessage(
                     "Please wait while we check the score board..."),
               ),
             ),
           );
 
-          ScoreBoardUseCase scoreBoardUseCase =
-              GetIt.instance<ScoreBoardUseCase>();
-          ScoreBoardModel scoreBoardModel =
-              await scoreBoardUseCase.getScoreBoard(event.id);
+          ScoreboardUseCase scoreboardUseCase =
+              GetIt.instance<ScoreboardUseCase>();
+          ScoreboardEntity scoreboardEntity =
+              await scoreboardUseCase.getScoreboard(event.id);
           await delayedEmit(
-              emit, LandingScoreCardReceivedState(scoreBoardModel));
+              emit, LandingScoreCardReceivedState(scoreboardEntity));
         }
       } on MyAppException catch (ae) {
         appLogger.e(ae);

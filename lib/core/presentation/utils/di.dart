@@ -6,11 +6,11 @@ import 'package:scoreease/core/domain/usecases/score_board_usecase.dart';
 import 'package:get_it/get_it.dart';
 
 void setupDependencies() {
-  // Register the ScoreBoardRepository and RemoteDataSource with GetIt
-  GetIt.instance.registerLazySingleton<ScoreBoardRepository>(
-      () => ScoreBoardRepositoryImpl(RemoteDataSource(), LocalDataSource()));
+  // Register the ScoreboardRepository and RemoteDataSource with GetIt
+  GetIt.instance.registerLazySingleton<ScoreboardRepository>(
+      () => ScoreboardRepositoryImpl(RemoteDataSource(), LocalDataSource()));
 
-  // Register the ScoreBoardUseCase with GetIt, initializing it with ScoreBoardRepository
-  GetIt.instance.registerLazySingleton<ScoreBoardUseCase>(
-      () => ScoreBoardUseCase(GetIt.instance<ScoreBoardRepository>()));
+  // Register the ScoreboardUseCase with GetIt, initializing it with ScoreboardRepository
+  GetIt.instance.registerLazySingleton<ScoreboardUseCase>(
+      () => ScoreboardUseCase(GetIt.instance<ScoreboardRepository>()));
 }

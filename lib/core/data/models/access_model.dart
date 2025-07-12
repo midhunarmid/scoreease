@@ -4,16 +4,16 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
 @immutable
-class Access {
+class AccessModel {
   final String? read;
   final String? write;
 
-  const Access({this.read, this.write});
+  const AccessModel({this.read, this.write});
 
   @override
-  String toString() => 'Access(read: $read, write: $write)';
+  String toString() => 'AccessModel(read: $read, write: $write)';
 
-  factory Access.fromMap(Map<String, dynamic> data) => Access(
+  factory AccessModel.fromMap(Map<String, dynamic> data) => AccessModel(
         read: data['read'] as String?,
         write: data['write'] as String?,
       );
@@ -25,21 +25,21 @@ class Access {
 
   /// `dart:convert`
   ///
-  /// Parses the string and returns the resulting Json object as [Access].
-  factory Access.fromJson(String data) {
-    return Access.fromMap(json.decode(data) as Map<String, dynamic>);
+  /// Parses the string and returns the resulting Json object as [AccessModel].
+  factory AccessModel.fromJson(String data) {
+    return AccessModel.fromMap(json.decode(data) as Map<String, dynamic>);
   }
 
   /// `dart:convert`
   ///
-  /// Converts [Access] to a JSON string.
+  /// Converts [AccessModel] to a JSON string.
   String toJson() => json.encode(toMap());
 
-  Access copyWith({
+  AccessModel copyWith({
     String? read,
     String? write,
   }) {
-    return Access(
+    return AccessModel(
       read: read ?? this.read,
       write: write ?? this.write,
     );
@@ -48,7 +48,7 @@ class Access {
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    if (other is! Access) return false;
+    if (other is! AccessModel) return false;
     final mapEquals = const DeepCollectionEquality().equals;
     return mapEquals(other.toMap(), toMap());
   }

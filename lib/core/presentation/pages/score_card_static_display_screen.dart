@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:scoreease/core/data/models/score_board_model.dart';
+import 'package:scoreease/core/data/models/scoreboard_model.dart';
 
 class ScoreCardStaticDisplayScreen extends StatelessWidget {
-  final ScoreBoardModel scoreBoardModel;
+  final ScoreboardModel scoreboardModel;
   const ScoreCardStaticDisplayScreen(
-      {super.key, required this.scoreBoardModel});
+      {super.key, required this.scoreboardModel});
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,5 @@
-import 'package:scoreease/core/data/models/score_board_model.dart';
+import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 
-abstract class ScoreBoardRepository {
-  Future<ScoreBoardModel> getScoreBoard(String id);
+abstract class ScoreboardRepository {
+  Future<ScoreboardEntity> getScoreboard(String id);
 }

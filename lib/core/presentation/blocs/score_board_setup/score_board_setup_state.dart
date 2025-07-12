@@ -1,24 +1,24 @@
 part of 'score_board_setup_bloc.dart';
 
 @immutable
-sealed class ScoreBoardSetupState {}
+sealed class ScoreboardSetupState {}
 
-final class ScoreBoardSetupInitial extends ScoreBoardSetupState {}
+final class ScoreboardSetupInitial extends ScoreboardSetupState {}
 
-class LoadingState extends ScoreBoardSetupState {
+class LoadingState extends ScoreboardSetupState {
   final LoadingInfo loadingInfo;
 
   LoadingState(this.loadingInfo);
 }
 
-class ScoreBoardSetupSuccessState extends ScoreBoardSetupState {
-  ScoreBoardSetupSuccessState();
+class ScoreboardSetupSuccessState extends ScoreboardSetupState {
+  ScoreboardSetupSuccessState();
 }
 
-class ScoreBoardSetupErrorState extends ScoreBoardSetupState {
+class ScoreboardSetupErrorState extends ScoreboardSetupState {
   final String title;
   final String message;
   final StatusInfoIconEnum icon;
 
-  ScoreBoardSetupErrorState(this.title, this.message, this.icon);
+  ScoreboardSetupErrorState(this.title, this.message, this.icon);
 }

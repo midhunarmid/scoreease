@@ -12,9 +12,9 @@ class LoadingState extends LandingState {
 }
 
 class LandingScoreCardReceivedState extends LandingState {
-  final ScoreBoardModel scoreBoard;
+  final ScoreboardEntity scoreboard;
 
-  LandingScoreCardReceivedState(this.scoreBoard);
+  LandingScoreCardReceivedState(this.scoreboard);
 }
 
 class LandingErrorState extends LandingState {

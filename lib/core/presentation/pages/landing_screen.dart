@@ -1,10 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:scoreease/core/presentation/blocs/landing/landing_bloc.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/message_generator.dart';
 import 'package:scoreease/core/presentation/utils/theme.dart';
+import 'package:scoreease/core/presentation/utils/input_case_text_formatter.dart';
 import 'package:scoreease/core/presentation/utils/widget_helper.dart';
 import 'package:scoreease/core/presentation/widgets/animated_container.dart';
 import 'package:scoreease/core/presentation/widgets/web_optimised_widget.dart';
@@ -23,8 +25,7 @@ class LandingScreen extends StatefulWidget {
 }
 
 class _LandingScreenState extends State<LandingScreen> {
-  final TextEditingController _scoreCardNameTextController =
-      TextEditingController();
+  final TextEditingController _scoreCardIdTextController = TextEditingController();
 
   final LandingBloc _bloc = LandingBloc();
   ProgressDialog? pr;
@@ -36,7 +37,7 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   void dispose() {
-    _scoreCardNameTextController.dispose();
+    _scoreCardIdTextController.dispose();
     super.dispose();
   }
 
@@ -62,10 +63,7 @@ class _LandingScreenState extends State<LandingScreen> {
             message: state.loadingInfo.message,
             widgetAboveTheDialog: Text(
               state.loadingInfo.title,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             progressWidget: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -77,19 +75,19 @@ class _LandingScreenState extends State<LandingScreen> {
                 pathBackgroundColor: appColors.screenBg,
               ),
             ),
-            progressTextStyle: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(fontWeight: FontWeight.w400),
-            messageTextStyle: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(fontWeight: FontWeight.w400),
+            progressTextStyle: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w400),
+            messageTextStyle: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w400),
           );
           pr?.show();
         } else if (state is LandingErrorState) {
-          showSingleButtonAlertDialog(
-              context: context, title: state.title, message: state.message);
+          showTwoButtonAlertDialog(
+            context: context,
+            title: state.title,
+            message: state.message,
+            positiveButton: MessageGenerator.getLabel("Create New"),
+            positiveAction: onCreateNewScoreboardButtonClick,
+            negativeButton: MessageGenerator.getLabel("Cancel"),
+          );
         } else if (state is LandingScoreCardReceivedState) {
           context.go("/home");
         }
@@ -112,21 +110,22 @@ class _LandingScreenState extends State<LandingScreen> {
                         Text(
                           MessageGenerator.getMessage("landing-welcome"),
                           textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(color: Colors.blue),
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.blue),
                         ),
                         SizedBox(height: 32.h),
                         getTextInputWidget(
                           context: context,
-                          label: MessageGenerator.getLabel(
-                              'type in scoreboard name'),
-                          hint: MessageGenerator.getLabel('messi-ronaldo'),
-                          controller: _scoreCardNameTextController,
-                          keyboardType: TextInputType.name,
+                          label: MessageGenerator.getLabel('type in scoreboard name'),
+                          hint: MessageGenerator.getLabel('messironaldo'),
+                          controller: _scoreCardIdTextController,
+                          keyboardType: TextInputType.text,
                           textInputAction: TextInputAction.go,
-                          prefixIcon: const Icon(Icons.email_outlined),
+                          prefixIcon: const Icon(Icons.edit_outlined),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                            LengthLimitingTextInputFormatter(10),
+                            LowerCaseTextFormatter(),
+                          ],
                         ),
                         SizedBox(
                           height: 8.h,
@@ -140,7 +139,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             bgColor: appColors.pleasantButtonBg,
                             bgColorHover: appColors.pleasantButtonBgHover,
                             press: () {
-                              onSubmitScoreBoardId();
+                              onSubmitScoreboardId();
                             },
                           ),
                         ),
@@ -148,18 +147,11 @@ class _LandingScreenState extends State<LandingScreen> {
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(),
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(),
                             children: <TextSpan>[
                               TextSpan(
-                                  text: MessageGenerator.getLabel(
-                                      'Create New Scoreboard'),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.copyWith(color: Colors.red),
+                                  text: MessageGenerator.getLabel('Create New Scoreboard'),
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.red),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
                                       context.go("/create");
@@ -172,17 +164,10 @@ class _LandingScreenState extends State<LandingScreen> {
                           onOpen: (link) async {
                             if (!await launchUrl(Uri.parse(link.url))) {}
                           },
-                          text: MessageGenerator.getMessage(
-                              "landing-visit-site-guide"),
+                          text: MessageGenerator.getMessage("landing-visit-site-guide"),
                           textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(),
-                          linkStyle: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(color: appColors.linkTextColor),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+                          linkStyle: Theme.of(context).textTheme.labelSmall?.copyWith(color: appColors.linkTextColor),
                         ),
                         SizedBox(height: 32.h),
                       ],
@@ -195,7 +180,11 @@ class _LandingScreenState extends State<LandingScreen> {
     );
   }
 
-  void onSubmitScoreBoardId() {
-    _bloc.add(LandingGetScoreBoardEvent(_scoreCardNameTextController.text));
+  void onSubmitScoreboardId() {
+    _bloc.add(LandingGetScoreboardEvent(_scoreCardIdTextController.text));
+  }
+
+  void onCreateNewScoreboardButtonClick() {
+    context.go("/create");
   }
 }
