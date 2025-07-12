@@ -1,7 +1,10 @@
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:scoreease/core/domain/entities/access_entity.dart';
+import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/input_case_text_formatter.dart';
@@ -29,9 +32,12 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
   final TextEditingController _scoreCardTitleTextController = TextEditingController();
   final TextEditingController _scoreCardDescriptionTextController = TextEditingController();
   final TextEditingController _scoreCardAuthorTextController = TextEditingController();
+  final TextEditingController _scoreCardPlayerTextController = TextEditingController();
 
   final ScoreboardSetupBloc _bloc = ScoreboardSetupBloc();
-  ProgressDialog? pr;
+  ProgressDialog? _pr;
+  ScoreboardSetupStage _currentStage = ScoreboardSetupStage.basic;
+  ScoreboardEntity _scoreboardEntity = const ScoreboardEntity();
 
   @override
   void initState() {
@@ -54,16 +60,16 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       listener: (ctx, state) {
         appLogger.i(state);
 
-        if (pr?.isShowing() ?? false) {
-          pr?.hide();
+        if (_pr?.isShowing() ?? false) {
+          _pr?.hide();
         }
         if (state is LoadingState) {
-          pr = ProgressDialog(
+          _pr = ProgressDialog(
             context,
             type: ProgressDialogType.normal,
             isDismissible: false,
           );
-          pr?.style(
+          _pr?.style(
             backgroundColor: appColors.screenBg,
             padding: WebOptimisedWidget.getWebOptimisedHorizonatalPadding(),
             message: state.loadingInfo.message,
@@ -84,11 +90,20 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
             progressTextStyle: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w400),
             messageTextStyle: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w400),
           );
-          pr?.show();
+          _pr?.show();
         } else if (state is ScoreboardSetupErrorState) {
           showSingleButtonAlertDialog(context: context, title: state.title, message: state.message);
         } else if (state is ScoreboardSetupSuccessState) {
-          context.go("/home");
+          showSingleButtonAlertDialog(
+            context: context,
+            dialogType: DialogType.success,
+            title: MessageGenerator.getLabel('Success'),
+            message: MessageGenerator.getLabel('Scoreboard created successfully!'),
+            positiveAction: () => context.go("/home"),
+          );
+        } else if (state is ScoreboardSetupBasicSuccessState) {
+          _currentStage = ScoreboardSetupStage.players;
+          _scoreboardEntity = state.scoreboardEntity;
         }
       },
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
@@ -107,84 +122,75 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                       children: [
                         SizedBox(height: 32.h),
                         Text(
-                          MessageGenerator.getMessage("landing-welcome"),
+                          MessageGenerator.getMessage("scoreboard-welcome"),
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.blue),
                         ),
                         SizedBox(height: 32.h),
-                        getTextInputWidget(
-                          context: context,
-                          label: MessageGenerator.getLabel('type in scoreboard name'),
-                          hint: MessageGenerator.getLabel('messironaldo'),
-                          controller: _scoreCardIdTextController,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(Icons.key),
-                          maxLength: 10,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                            LengthLimitingTextInputFormatter(10),
-                            LowerCaseTextFormatter(),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        getTextInputWidget(
-                          context: context,
-                          label: MessageGenerator.getLabel('type in title'),
-                          hint: MessageGenerator.getLabel('Messi vs Ronaldo'),
-                          controller: _scoreCardTitleTextController,
-                          keyboardType: TextInputType.name,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(Icons.title),
-                          maxLength: 20,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(20),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        getTextInputWidget(
-                          context: context,
-                          label: MessageGenerator.getLabel('type in description'),
-                          hint: MessageGenerator.getLabel('Track the eternal rivalry between Lionel Messi and Cristiano Ronaldo with this simple, real-time scoreboard. Update scores, log moments, and settle debates — who\'s leading in your books?'),
-                          controller: _scoreCardDescriptionTextController,
-                          keyboardType: TextInputType.multiline,
-                          textInputAction: TextInputAction.newline,
-                          minLines: 5,
-                          maxLines: 5,
-                          prefixIcon: const Icon(Icons.description),
-                          maxLength: 100,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(100),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        getTextInputWidget(
-                          context: context,
-                          label: MessageGenerator.getLabel('type in author'),
-                          hint: MessageGenerator.getLabel('Midhun Mohanan'),
-                          controller: _scoreCardDescriptionTextController,
-                          keyboardType: TextInputType.name,
-                          textInputAction: TextInputAction.next,
-                          prefixIcon: const Icon(Icons.description),
-                          maxLength: 20,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(20),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        Padding(
+                        Container(
                           padding: const EdgeInsets.all(8.0),
-                          child: AnimatedClickableTextContainer(
-                            title: MessageGenerator.getLabel('Create Scoreboard'),
-                            iconSrc: '',
-                            isActive: false,
-                            bgColor: appColors.pleasantButtonBg,
-                            bgColorHover: appColors.pleasantButtonBgHover,
-                            press: () {
-                              onCreateScoreboardPressed();
-                            },
+                          decoration: BoxDecoration(
+                            color: appColors.screenBg,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 1.0,
+                                offset: const Offset(2, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            MessageGenerator.getMessage("scoreboard-setup-basic-title"),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
                           ),
                         ),
+                        if (_currentStage == ScoreboardSetupStage.basic) scoreboardSetupBasicArea(context),
+                        SizedBox(height: 8.h),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                            color: (_currentStage == ScoreboardSetupStage.players ||
+                                    _currentStage == ScoreboardSetupStage.access)
+                                ? appColors.screenBg
+                                : appColors.screenBg.withValues(alpha: 0.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 1.0,
+                                offset: const Offset(2, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            MessageGenerator.getMessage("scoreboard-setup-players-title"),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        if (_currentStage == ScoreboardSetupStage.players) scoreboardSetupPlayersArea(context),
+                        SizedBox(height: 8.h),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                            color: (_currentStage == ScoreboardSetupStage.access)
+                                ? appColors.screenBg
+                                : appColors.screenBg.withValues(alpha: 0.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 1.0,
+                                offset: const Offset(2, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            MessageGenerator.getMessage("scoreboard-setup-access-title"),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        if (_currentStage == ScoreboardSetupStage.access) scoreboardSetupPlayersArea(context),
                         SizedBox(height: 16.h),
                         RichText(
                           textAlign: TextAlign.center,
@@ -222,7 +228,194 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
     );
   }
 
-  void onCreateScoreboardPressed() {
-    _bloc.add(ScoreboardSetupSubmitEvent(_scoreCardIdTextController.text));
+  Widget scoreboardSetupBasicArea(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(height: 8.h),
+        getTextInputWidget(
+          context: context,
+          label: MessageGenerator.getLabel('type in scoreboard name'),
+          hint: MessageGenerator.getLabel('messironaldo'),
+          controller: _scoreCardIdTextController,
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.next,
+          prefixIcon: const Icon(Icons.key),
+          maxLength: 10,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+            LengthLimitingTextInputFormatter(10),
+            LowerCaseTextFormatter(),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        getTextInputWidget(
+          context: context,
+          label: MessageGenerator.getLabel('type in title'),
+          hint: MessageGenerator.getLabel('Messi vs Ronaldo'),
+          controller: _scoreCardTitleTextController,
+          keyboardType: TextInputType.name,
+          textInputAction: TextInputAction.next,
+          prefixIcon: const Icon(Icons.title),
+          maxLength: 20,
+          inputFormatters: [
+            LengthLimitingTextInputFormatter(20),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        getTextInputWidget(
+          context: context,
+          label: MessageGenerator.getLabel('type in description'),
+          hint: MessageGenerator.getLabel(
+              'Track the eternal rivalry between Lionel Messi and Cristiano Ronaldo with this simple, real-time scoreboard. Update scores, log moments, and settle debates — who\'s leading in your books?'),
+          controller: _scoreCardDescriptionTextController,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          minLines: 5,
+          maxLines: 5,
+          prefixIcon: const Icon(Icons.description),
+          maxLength: 100,
+          inputFormatters: [
+            LengthLimitingTextInputFormatter(100),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        getTextInputWidget(
+          context: context,
+          label: MessageGenerator.getLabel('type in author'),
+          hint: MessageGenerator.getLabel('Midhun Mohanan'),
+          controller: _scoreCardAuthorTextController,
+          keyboardType: TextInputType.name,
+          textInputAction: TextInputAction.next,
+          prefixIcon: const Icon(Icons.person_2_outlined),
+          maxLength: 20,
+          inputFormatters: [
+            LengthLimitingTextInputFormatter(20),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: AnimatedClickableTextContainer(
+                  title: MessageGenerator.getLabel('Previous'),
+                  iconSrc: '',
+                  isActive: false,
+                  bgColor: appColors.sideMenuBg,
+                  bgColorHover: appColors.sideMenuHighlight,
+                  press: () {
+                    setState(() {
+                      _currentStage = ScoreboardSetupStage.basic;
+                    });
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: AnimatedClickableTextContainer(
+                  title: MessageGenerator.getLabel('Next'),
+                  iconSrc: '',
+                  isActive: false,
+                  bgColor: appColors.pleasantButtonBg,
+                  bgColorHover: appColors.pleasantButtonBgHover,
+                  press: () {
+                    onScoreboardBasicNextButtonPressed();
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 16.h),
+      ],
+    );
   }
+
+  Widget scoreboardSetupPlayersArea(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(height: 8.h),
+        getTextInputWidget(
+          context: context,
+          label: MessageGenerator.getLabel('player name'),
+          hint: MessageGenerator.getLabel('Messi'),
+          controller: _scoreCardPlayerTextController,
+          keyboardType: TextInputType.name,
+          textInputAction: TextInputAction.go,
+          prefixIcon: const Icon(Icons.key),
+          inputFormatters: [
+            LengthLimitingTextInputFormatter(20),
+          ],
+          icon: Icons.add,
+          onPressed: () {
+            _scoreboardEntity.players?[_scoreCardPlayerTextController.text] = 0;
+          },
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: AnimatedClickableTextContainer(
+                  title: MessageGenerator.getLabel('Previous'),
+                  iconSrc: '',
+                  isActive: false,
+                  bgColor: appColors.sideMenuBg,
+                  bgColorHover: appColors.sideMenuHighlight,
+                  press: () {
+                    setState(() {
+                      _currentStage = ScoreboardSetupStage.basic;
+                    });
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: AnimatedClickableTextContainer(
+                  title: MessageGenerator.getLabel('Next'),
+                  iconSrc: '',
+                  isActive: false,
+                  bgColor: appColors.pleasantButtonBg,
+                  bgColorHover: appColors.pleasantButtonBgHover,
+                  press: () {
+                    onScoreboardBasicNextButtonPressed();
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 16.h),
+      ],
+    );
+  }
+
+  void onScoreboardBasicNextButtonPressed() {
+    ScoreboardEntity scoreboard = ScoreboardEntity(
+      id: _scoreCardIdTextController.text,
+      title: _scoreCardTitleTextController.text,
+      description: _scoreCardDescriptionTextController.text,
+      author: _scoreCardAuthorTextController.text,
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+      lastUpdated: DateTime.now().millisecondsSinceEpoch,
+      players: const {},
+      access: const AccessEntity(
+        read: "",
+        write: "",
+      ),
+    );
+    _bloc.add(ScoreboardSetupBasicSubmitEvent(scoreboard));
+  }
+}
+
+enum ScoreboardSetupStage {
+  basic,
+  players,
+  access,
 }

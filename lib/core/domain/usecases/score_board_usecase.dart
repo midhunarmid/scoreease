@@ -9,4 +9,8 @@ class ScoreboardUseCase {
   Future<ScoreboardEntity> getScoreboard(String id) async {
     return await _scoreboardRepository.getScoreboard(id);
   }
+
+    Future<String> saveScoreboard(ScoreboardEntity scoreboardEntity) async {
+    return await _scoreboardRepository.saveScoreboard(scoreboardEntity);
+  }
 }

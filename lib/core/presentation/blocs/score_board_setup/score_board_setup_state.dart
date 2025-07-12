@@ -11,8 +11,14 @@ class LoadingState extends ScoreboardSetupState {
   LoadingState(this.loadingInfo);
 }
 
+class ScoreboardSetupBasicSuccessState extends ScoreboardSetupState {
+  final ScoreboardEntity scoreboardEntity;
+  ScoreboardSetupBasicSuccessState(this.scoreboardEntity);
+}
+
 class ScoreboardSetupSuccessState extends ScoreboardSetupState {
-  ScoreboardSetupSuccessState();
+  final String id;
+  ScoreboardSetupSuccessState(this.id);
 }
 
 class ScoreboardSetupErrorState extends ScoreboardSetupState {

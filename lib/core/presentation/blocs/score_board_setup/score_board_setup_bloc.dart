@@ -11,29 +11,52 @@ import 'package:get_it/get_it.dart';
 part 'score_board_setup_event.dart';
 part 'score_board_setup_state.dart';
 
-class ScoreboardSetupBloc
-    extends Bloc<ScoreboardSetupEvent, ScoreboardSetupState> {
+class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupState> {
   ScoreboardSetupBloc() : super(ScoreboardSetupInitial()) {
     on<ScoreboardSetupEvent>((event, emit) async {
       try {
         appLogger.i(event);
-        if (event is ScoreboardSetupSubmitEvent) {
+        if (event is ScoreboardSetupBasicSubmitEvent) {
+          String errorTitle = "";
+          String errorMessage = "";
+
+          if (event.scoreboardEntity.id?.isEmpty ?? true) {
+            errorTitle = MessageGenerator.getMessage("scoreboard-name-empty");
+            errorMessage = MessageGenerator.getMessage("scoreboard-name-empty-message");
+          } else if ((event.scoreboardEntity.id?.length ?? 0) < 3) {
+            errorTitle = MessageGenerator.getMessage("scoreboard-name-too-short");
+            errorMessage = MessageGenerator.getMessage("scoreboard-name-too-short-message");
+          } else if(event.scoreboardEntity.author?.isEmpty ?? true) {
+            errorTitle = MessageGenerator.getMessage("scoreboard-author-empty");
+            errorMessage = MessageGenerator.getMessage("scoreboard-author-empty-message");
+          } else if ((event.scoreboardEntity.author?.length ?? 0) < 3) {
+            errorTitle = MessageGenerator.getMessage("scoreboard-author-too-short");
+            errorMessage = MessageGenerator.getMessage("scoreboard-author-too-short-message");
+          }
+
+          if (errorTitle.isNotEmpty) {
+            await delayedEmit(
+              emit,
+              ScoreboardSetupErrorState(errorTitle, errorMessage, StatusInfoIconEnum.error),
+            );
+            return;
+          }
+
+          await delayedEmit(emit, ScoreboardSetupBasicSuccessState(event.scoreboardEntity));
+        } else if (event is ScoreboardSetupFinalSubmitEvent) {
           emit.call(
             LoadingState(
               LoadingInfo(
                 icon: LoadingIconEnum.submitting,
                 title: MessageGenerator.getLabel("Creating Scoreboard"),
-                message: MessageGenerator.getMessage(
-                    "Please wait while we create the score board for you..."),
+                message: MessageGenerator.getMessage("Please wait while we create the score board for you..."),
               ),
             ),
           );
 
-          ScoreboardUseCase scoreboardUseCase =
-              GetIt.instance<ScoreboardUseCase>();
-          ScoreboardEntity scoreboardModel =
-              await scoreboardUseCase.getScoreboard(event.id);
-          await delayedEmit(emit, ScoreboardSetupSuccessState());
+          ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+          String scoreboardId = await scoreboardUseCase.saveScoreboard(event.scoreboardEntity);
+          await delayedEmit(emit, ScoreboardSetupSuccessState(scoreboardId));
         }
       } on MyAppException catch (ae) {
         appLogger.e(ae);
@@ -59,8 +82,7 @@ class ScoreboardSetupBloc
     });
   }
 
-  Future<void> delayedEmit(
-      Emitter<ScoreboardSetupState> emitter, ScoreboardSetupState state) async {
+  Future<void> delayedEmit(Emitter<ScoreboardSetupState> emitter, ScoreboardSetupState state) async {
     await Future.delayed(const Duration(milliseconds: 500));
     emitter.call(state);
   }

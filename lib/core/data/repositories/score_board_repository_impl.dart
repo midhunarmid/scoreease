@@ -15,8 +15,7 @@ class ScoreboardRepositoryImpl implements ScoreboardRepository {
   @override
   Future<ScoreboardEntity> getScoreboard(String id) async {
     ScoreboardModel? cachedItems = await _localDataSource.getScoreboard(id: id);
-    ScoreboardModel? serverItems =
-        await _remoteDataSource.getScoreboard(id: id);
+    ScoreboardModel? serverItems = await _remoteDataSource.getScoreboard(id: id);
     if (serverItems == null && cachedItems == null) {
       throw const MyAppException(
         title: "Scoreboard Not Found",
@@ -25,6 +24,21 @@ class ScoreboardRepositoryImpl implements ScoreboardRepository {
     } else {
       // The null assertion below is safe because the previous check ensures that at least one of serverItems or cachedItems is non-null.
       return ScoreboardMapper.toEntity((serverItems ?? cachedItems)!);
+    }
+  }
+
+  @override
+  Future<String> saveScoreboard(ScoreboardEntity scoreboardEntity) async {
+    ScoreboardModel scoreboardModel = ScoreboardMapper.fromEntity(scoreboardEntity);
+    String? savedDocId = await _remoteDataSource.saveScoreboard(scoreboardModel: scoreboardModel);
+
+    if (savedDocId == null) {
+      throw const MyAppException(
+        title: "Scoreboard Save Error",
+        message: "Failed to save the scoreboard",
+      );
+    } else {
+      return savedDocId;
     }
   }
 }
