@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:scoreease/core/presentation/blocs/landing/landing_bloc.dart';
+import 'package:scoreease/core/presentation/pages/score_board_setup_screen.dart';
+import 'package:scoreease/core/presentation/pages/scoreboard_update_screen.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/message_generator.dart';
 import 'package:scoreease/core/presentation/utils/theme.dart';
@@ -19,6 +21,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({Key? key}) : super(key: key);
+  static const routeName = 'home';
 
   @override
   State<LandingScreen> createState() => _LandingScreenState();
@@ -89,7 +92,7 @@ class _LandingScreenState extends State<LandingScreen> {
             negativeButton: MessageGenerator.getLabel("Cancel"),
           );
         } else if (state is LandingScoreCardReceivedState) {
-          context.go("/home");
+          context.go("/${ScoreboardScoreUpdateScreen.routeName}", extra: state.scoreboard);
         }
       },
       child: BlocBuilder<LandingBloc, LandingState>(
@@ -123,7 +126,7 @@ class _LandingScreenState extends State<LandingScreen> {
                           prefixIcon: const Icon(Icons.edit_outlined),
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                            LengthLimitingTextInputFormatter(10),
+                            LengthLimitingTextInputFormatter(50),
                             LowerCaseTextFormatter(),
                           ],
                         ),
@@ -147,14 +150,14 @@ class _LandingScreenState extends State<LandingScreen> {
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+                            style: Theme.of(context).textTheme.labelSmall,
                             children: <TextSpan>[
                               TextSpan(
                                   text: MessageGenerator.getLabel('Create New Scoreboard'),
                                   style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.red),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      context.go("/create");
+                                      context.go("/${ScoreboardSetupScreen.routeName}");
                                     }),
                             ],
                           ),
@@ -166,7 +169,7 @@ class _LandingScreenState extends State<LandingScreen> {
                           },
                           text: MessageGenerator.getMessage("landing-visit-site-guide"),
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+                          style: Theme.of(context).textTheme.labelSmall,
                           linkStyle: Theme.of(context).textTheme.labelSmall?.copyWith(color: appColors.linkTextColor),
                         ),
                         SizedBox(height: 32.h),
@@ -185,6 +188,6 @@ class _LandingScreenState extends State<LandingScreen> {
   }
 
   void onCreateNewScoreboardButtonClick() {
-    context.go("/create");
+    context.go("/${ScoreboardSetupScreen.routeName}");
   }
 }

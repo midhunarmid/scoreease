@@ -70,28 +70,30 @@ class _AnimatedClickableTextContainerState
   Widget getMenuItem() {
     return Container(
       padding: const EdgeInsets.only(bottom: 5, right: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (widget.iconSrc.isNotEmpty)
-            Image.asset(
-              widget.iconSrc,
-              height: 24,
-              fit: BoxFit.contain,
-              color: (widget.isActive || isHover)
-                  ? appColors.sideMenuHighlight
-                  : appColors.sideMenuNormal,
-            ),
-          if (widget.iconSrc.isNotEmpty) const SizedBox(width: 15),
-          Text(
-            widget.title,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+      child: Center(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (widget.iconSrc.isNotEmpty)
+              Image.asset(
+                widget.iconSrc,
+                height: 24,
+                fit: BoxFit.contain,
                 color: (widget.isActive || isHover)
-                    ? appColors.buttonTextColorHover
-                    : appColors.buttonTextColor),
-          ),
-        ],
+                    ? appColors.sideMenuHighlight
+                    : appColors.sideMenuNormal,
+              ),
+           const SizedBox(width: 15),
+            Text(
+              widget.title,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: (widget.isActive || isHover)
+                      ? appColors.buttonTextColorHover
+                      : appColors.buttonTextColor),
+            ),
+          ],
+        ),
       ),
     );
   }

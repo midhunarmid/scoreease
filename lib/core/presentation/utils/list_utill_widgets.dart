@@ -12,7 +12,7 @@ Widget getEmptyListWidget(context, errorInfo) => Column(
         SelectableText(
           errorInfo.message,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+          style: Theme.of(context).textTheme.labelSmall,
         ),
       ],
     );
@@ -36,7 +36,7 @@ Widget getLoadingListWidget(context, loadingInfo) => Padding(
           Text(
             loadingInfo.message,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+            style: Theme.of(context).textTheme.labelSmall,
           ),
         ],
       ),

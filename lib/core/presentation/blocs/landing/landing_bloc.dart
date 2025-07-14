@@ -22,18 +22,14 @@ class LandingBloc extends Bloc<LandingEvent, LandingState> {
               LoadingInfo(
                 icon: LoadingIconEnum.submitting,
                 title: MessageGenerator.getLabel("Checking Scoreboard"),
-                message: MessageGenerator.getMessage(
-                    "Please wait while we check the score board..."),
+                message: MessageGenerator.getMessage("Please wait while we check the score board..."),
               ),
             ),
           );
 
-          ScoreboardUseCase scoreboardUseCase =
-              GetIt.instance<ScoreboardUseCase>();
-          ScoreboardEntity scoreboardEntity =
-              await scoreboardUseCase.getScoreboard(event.id);
-          await delayedEmit(
-              emit, LandingScoreCardReceivedState(scoreboardEntity));
+          ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+          ScoreboardEntity scoreboardEntity = await scoreboardUseCase.getScoreboard(event.id);
+          await delayedEmit(emit, LandingScoreCardReceivedState(scoreboardEntity));
         }
       } on MyAppException catch (ae) {
         appLogger.e(ae);
@@ -59,8 +55,7 @@ class LandingBloc extends Bloc<LandingEvent, LandingState> {
     });
   }
 
-  Future<void> delayedEmit(
-      Emitter<LandingState> emitter, LandingState state) async {
+  Future<void> delayedEmit(Emitter<LandingState> emitter, LandingState state) async {
     await Future.delayed(const Duration(milliseconds: 500));
     emitter.call(state);
   }

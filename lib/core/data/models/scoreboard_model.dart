@@ -11,8 +11,8 @@ class ScoreboardModel {
   final String? title;
   final String? description;
   final String? author;
-  final int? createdAt;
-  final int? lastUpdated;
+  final Timestamp? createdAt;
+  final Timestamp? lastUpdated;
   final AccessModel? access;
   final Map<String, int>? players;
 
@@ -46,8 +46,8 @@ class ScoreboardModel {
       title: data['title'] as String?,
       description: data['description'] as String?,
       author: data['author'] as String?,
-      createdAt: data['createdAt'] as int?,
-      lastUpdated: data['lastUpdated'] as int?,
+      createdAt: data['createdAt'] as Timestamp?,
+      lastUpdated: data['lastUpdated'] as Timestamp?,
       access: data['access'] == null ? null : AccessModel.fromMap(data['access'] as Map<String, dynamic>),
       players: data['players'] == null ? null : Map<String, int>.from(data['players'] as Map<dynamic, dynamic>),
     );
@@ -59,7 +59,7 @@ class ScoreboardModel {
         'description': description,
         'author': author,
         'createdAt': createdAt,
-        'lastUpdated': lastUpdated,
+        'lastUpdated': FieldValue.serverTimestamp(),
         'access': access?.toMap(),
         'players': players,
       };
@@ -81,8 +81,8 @@ class ScoreboardModel {
     String? title,
     String? description,
     String? author,
-    int? createdAt,
-    int? lastUpdated,
+    Timestamp? createdAt,
+    Timestamp? lastUpdated,
     AccessModel? access,
     Map<String, int>? players,
   }) {

@@ -8,8 +8,8 @@ class ScoreboardEntity {
   final String? title;
   final String? description;
   final String? author;
-  final int? createdAt;
-  final int? lastUpdated;
+  final DateTime? createdAt;
+  final DateTime? lastUpdated;
   final AccessEntity? access;
   final Map<String, int>? players;
 
@@ -29,8 +29,8 @@ class ScoreboardEntity {
     String? title,
     String? description,
     String? author,
-    int? createdAt,
-    int? lastUpdated,
+    DateTime? createdAt,
+    DateTime? lastUpdated,
     AccessEntity? access,
     Map<String, int>? players,
   }) {

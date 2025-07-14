@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:scoreease/core/domain/entities/access_entity.dart';
 import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
+import 'package:scoreease/core/presentation/pages/landing_screen.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/input_case_text_formatter.dart';
 import 'package:scoreease/core/presentation/utils/message_generator.dart';
@@ -22,6 +23,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class ScoreboardSetupScreen extends StatefulWidget {
   const ScoreboardSetupScreen({Key? key}) : super(key: key);
+  static const routeName = 'setup';
 
   @override
   State<ScoreboardSetupScreen> createState() => _ScoreboardSetupScreenState();
@@ -56,7 +58,11 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
     _scoreboardTitleTextController.dispose();
     _scoreboardDescriptionTextController.dispose();
     _scoreboardAuthorTextController.dispose();
+    _scoreboardPlayerTextController.dispose();
+    _scoreboardAccessReadTextController.dispose();
+    _scoreboardAccessWriteTextController.dispose();
     _playerNameAddFocuNode.dispose();
+    _bloc.close();
     super.dispose();
   }
 
@@ -106,7 +112,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
             dialogType: DialogType.success,
             title: MessageGenerator.getLabel('Success'),
             message: MessageGenerator.getLabel('Scoreboard created successfully!'),
-            positiveAction: () => context.go("/home"),
+            positiveAction: () => context.go("/${LandingScreen.routeName}"),
           );
         } else if (state is ScoreboardSetupBasicSuccessState) {
           _currentStage = ScoreboardSetupStage.players;
@@ -205,14 +211,14 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+                            style: Theme.of(context).textTheme.labelSmall,
                             children: <TextSpan>[
                               TextSpan(
                                   text: MessageGenerator.getLabel('Use Existing Scoreboard'),
                                   style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.red),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      context.go("/home");
+                                      context.replace("/${LandingScreen.routeName}");
                                     }),
                             ],
                           ),
@@ -224,7 +230,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                           },
                           text: MessageGenerator.getMessage("landing-visit-site-guide"),
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+                          style: Theme.of(context).textTheme.labelSmall,
                           linkStyle: Theme.of(context).textTheme.labelSmall?.copyWith(color: appColors.linkTextColor),
                         ),
                         SizedBox(height: 32.h),
@@ -250,10 +256,10 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           keyboardType: TextInputType.text,
           textInputAction: TextInputAction.next,
           prefixIcon: const Icon(Icons.key),
-          maxLength: 10,
+          maxLength: 50,
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-            LengthLimitingTextInputFormatter(10),
+            LengthLimitingTextInputFormatter(50),
             LowerCaseTextFormatter(),
           ],
         ),
@@ -266,9 +272,9 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           keyboardType: TextInputType.name,
           textInputAction: TextInputAction.next,
           prefixIcon: const Icon(Icons.title),
-          maxLength: 20,
+          maxLength: 100,
           inputFormatters: [
-            LengthLimitingTextInputFormatter(20),
+            LengthLimitingTextInputFormatter(100),
           ],
         ),
         SizedBox(height: 8.h),
@@ -283,9 +289,9 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           minLines: 5,
           maxLines: 5,
           prefixIcon: const Icon(Icons.description),
-          maxLength: 100,
+          maxLength: 500,
           inputFormatters: [
-            LengthLimitingTextInputFormatter(100),
+            LengthLimitingTextInputFormatter(500),
           ],
         ),
         SizedBox(height: 8.h),
@@ -424,7 +430,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
         SizedBox(height: 8.h),
         Text(
           MessageGenerator.getMessage("scoreboard-setup-access-read-description"),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+          style: Theme.of(context).textTheme.labelSmall,
           textAlign: TextAlign.center,
         ),
         SizedBox(height: 4.h),
@@ -443,7 +449,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
         SizedBox(height: 8.h),
         Text(
           MessageGenerator.getMessage("scoreboard-setup-access-write-description"),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+          style: Theme.of(context).textTheme.labelSmall,
           textAlign: TextAlign.center,
         ),
         SizedBox(height: 4.h),
@@ -507,8 +513,6 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       title: _scoreboardTitleTextController.text,
       description: _scoreboardDescriptionTextController.text,
       author: _scoreboardAuthorTextController.text,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      lastUpdated: DateTime.now().millisecondsSinceEpoch,
       players: const {},
       access: const AccessEntity(
         read: "",
@@ -523,8 +527,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       players: _playerNameList.asMap().map((index, player) => MapEntry(player, 0)),
     );
     _bloc.add(ScoreboardSetupPlayerNamesSubmitEvent(_scoreboardEntity));
-  }  
-  
+  }
+
   void onScoreboardAccessNextButtonPressed() {
     _scoreboardEntity = _scoreboardEntity.copyWith(
       access: AccessEntity(

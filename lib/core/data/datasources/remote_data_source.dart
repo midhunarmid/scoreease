@@ -20,6 +20,7 @@ class RemoteDataSource {
     query = query.where("id", isEqualTo: id);
 
     int lastUpdated = await GlobalValues.getLastUpdatedTime(collection: collection);
+    DateTime lastUpdatedTime = DateTime.fromMillisecondsSinceEpoch(lastUpdated);
     MyApp.debugPrint("getLastUpdatedTime $lastUpdated");
 
     QuerySnapshot<ScoreboardModel> querySnapshotServer = await query
@@ -27,7 +28,7 @@ class RemoteDataSource {
           fromFirestore: ScoreboardModel.fromFirestore,
           toFirestore: (ScoreboardModel data, _) => data.toMap(),
         )
-        .where("lastUpdated", isGreaterThan: lastUpdated)
+        .where("lastUpdated", isGreaterThan: lastUpdatedTime)
         .get(const GetOptions(source: Source.server));
 
     List<ScoreboardModel> resultList = [];
@@ -46,14 +47,17 @@ class RemoteDataSource {
   }
 
   Future<String?> saveScoreboard({required ScoreboardModel scoreboardModel}) async {
-    if (scoreboardModel.id?.isEmpty ?? true) {
+    String id = scoreboardModel.id ?? "";
+    if (id.isEmpty) {
       MyApp.debugPrint("ID is empty, returning null");
       return null;
     }
 
     String collection = FireStoreCollection.scoreboards.name;
-    DocumentReference doc = await _db.collection(collection).add(scoreboardModel.toMap());
-    MyApp.debugPrint("Scoreboard saved with id ${doc.id}");
-    return doc.id;
+    // DocumentReference doc = await _db.collection(collection).add(scoreboardModel.toMap());
+    await _db.collection(collection).doc(id).set(scoreboardModel.toMap());
+
+    MyApp.debugPrint("Scoreboard saved with id $id");
+    return id;
   }
 }

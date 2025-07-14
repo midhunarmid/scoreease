@@ -26,6 +26,11 @@ class ScoreboardSetupSuccessState extends ScoreboardSetupState {
   ScoreboardSetupSuccessState(this.id);
 }
 
+class ScoreboardScoreUpdateSuccessState extends ScoreboardSetupState {
+  final ScoreboardEntity scoreboardEntity;
+  ScoreboardScoreUpdateSuccessState(this.scoreboardEntity);
+}
+
 class ScoreboardSetupErrorState extends ScoreboardSetupState {
   final String title;
   final String message;

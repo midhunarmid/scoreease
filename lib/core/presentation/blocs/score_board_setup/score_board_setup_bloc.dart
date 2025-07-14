@@ -40,7 +40,8 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           }
 
           emit.call(ScoreboardSetupBasicSuccessState(event.scoreboardEntity));
-        } if (event is ScoreboardSetupPlayerNamesSubmitEvent) {
+        }
+        if (event is ScoreboardSetupPlayerNamesSubmitEvent) {
           String errorTitle = "";
           String errorMessage = "";
 
@@ -70,8 +71,31 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           );
 
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
-          String scoreboardId = await scoreboardUseCase.saveScoreboard(event.scoreboardEntity);
+          String scoreboardId = await scoreboardUseCase.saveScoreboard(event.scoreboardEntity.copyWith(
+            createdAt: DateTime.now(),
+            ));
           await delayedEmit(emit, ScoreboardSetupSuccessState(scoreboardId));
+        } else if (event is ScoreboardUpdatePlayerScoreEvent) {
+          emit.call(
+            LoadingState(
+              LoadingInfo(
+                icon: LoadingIconEnum.submitting,
+                title: MessageGenerator.getMessage("scoreboard-score-update-title"),
+                message: MessageGenerator.getMessage("scoreboard-score-update-message"),
+              ),
+            ),
+          );
+
+          ScoreboardEntity scoreboardEntity = event.scoreboardEntity;
+          String playerName = event.playerName;
+          ScoreboardEntity updatedScoreboardEntity = scoreboardEntity.copyWith(players: {
+            ...?scoreboardEntity.players,
+            playerName: (scoreboardEntity.players?[playerName] ?? 1) + 1,
+          });
+
+          ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+          await scoreboardUseCase.saveScoreboard(updatedScoreboardEntity);
+          await delayedEmit(emit, ScoreboardScoreUpdateSuccessState(updatedScoreboardEntity));
         }
       } on MyAppException catch (ae) {
         appLogger.e(ae);

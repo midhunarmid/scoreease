@@ -196,7 +196,7 @@ Widget getTextInputWidget({
               hintText: MessageGenerator.getLabel(hint),
               label: Text(
                 MessageGenerator.getLabel(label),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(),
+                style: Theme.of(context).textTheme.labelSmall,
               ),
               filled: true,
               fillColor: appColors.inputBgFill,

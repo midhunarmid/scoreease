@@ -1,22 +1,30 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/presentation/pages/dummy_screen.dart';
 import 'package:scoreease/core/presentation/pages/landing_screen.dart';
 import 'package:scoreease/core/presentation/pages/score_board_setup_screen.dart';
+import 'package:scoreease/core/presentation/pages/scoreboard_update_screen.dart';
 import 'package:scoreease/core/presentation/utils/widget_helper.dart';
 import 'package:go_router/go_router.dart';
 
 final GoRouter router = GoRouter(
   errorBuilder: (context, state) => const DummyScreen(text: "Error Screen"),
   redirect: (BuildContext context, GoRouterState state) {
-    if (!["/home", "/signin", "/forgotPassword", "/signup"]
-        .contains(state.fullPath)) {
+    if (![
+      "/${LandingScreen.routeName}",
+      "/${ScoreboardSetupScreen.routeName}",
+      "/${ScoreboardScoreUpdateScreen.routeName}",
+      "/signin",
+      "/forgotPassword",
+      "/signup",
+    ].contains(state.fullPath)) {
       // if any routes which needs auth, check for auth
       bool auth = Random().nextBool();
       if (!auth) {
         // if not authenticated, show signin screen
-        return '/home';
+        return "/${LandingScreen.routeName}";
       } else {
         // if authenticated, proceed
         return null;
@@ -34,7 +42,7 @@ final GoRouter router = GoRouter(
       },
       routes: <RouteBase>[
         GoRoute(
-          path: 'home',
+          path: LandingScreen.routeName,
           pageBuilder: (context, state) => buildPageWithDefaultTransition<void>(
             context: context,
             state: state,
@@ -42,11 +50,19 @@ final GoRouter router = GoRouter(
           ),
         ),
         GoRoute(
-          path: 'create',
+          path: ScoreboardSetupScreen.routeName,
           pageBuilder: (context, state) => buildPageWithDefaultTransition<void>(
             context: context,
             state: state,
             child: const ScoreboardSetupScreen(),
+          ),
+        ),
+        GoRoute(
+          path: ScoreboardScoreUpdateScreen.routeName,
+          pageBuilder: (context, state) => buildPageWithDefaultTransition<void>(
+            context: context,
+            state: state,
+            child: ScoreboardScoreUpdateScreen(state.extra as ScoreboardEntity),
           ),
         ),
         GoRoute(

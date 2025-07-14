@@ -3,7 +3,7 @@ class MessageGenerator {
     "en": {
       "un-expected-error": "Some un expected error happened!",
       "un-expected-error-message": "Some un expected error happened!",
-      "landing-welcome": "Welcome! Let’s set up your scoreboard. Please enter a name to get started.",
+      "landing-welcome": "Welcome to ScoreEase! Your scoreboard awaits.",
       "landing-visit-site-guide":
           "To get started with this open-source Scoreboard app, visit https://github.com/midhunarmid/scoreease for setup instructions and full documentation.",
       "scoreboard-welcome": "Game on! Name your scoreboard and rally your players!",
@@ -25,6 +25,8 @@ class MessageGenerator {
       "scoreboard-players-empty-message": "Add at least one player to your scoreboard. Let the games begin!",
       "scoreboard-players-empty-name": "Player names can't be empty!",
       "scoreboard-players-empty-name-message": "Please enter a name for each player. No nameless heroes allowed!",
+      "scoreboard-score-update-title": "Scoring the Goal...",
+      "scoreboard-score-update-message": "Hang tight — we’re updating the scoreboard!",
     }
   };
 
