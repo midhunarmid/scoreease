@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:scoreease/core/data/models/plain_response_model.dart';
@@ -12,6 +14,8 @@ part 'score_board_setup_event.dart';
 part 'score_board_setup_state.dart';
 
 class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupState> {
+  StreamSubscription? _subscription;
+
   ScoreboardSetupBloc() : super(ScoreboardSetupInitial()) {
     on<ScoreboardSetupEvent>((event, emit) async {
       try {
@@ -73,7 +77,7 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
           String scoreboardId = await scoreboardUseCase.saveScoreboard(event.scoreboardEntity.copyWith(
             createdAt: DateTime.now(),
-            ));
+          ));
           await delayedEmit(emit, ScoreboardSetupSuccessState(scoreboardId));
         } else if (event is ScoreboardUpdatePlayerScoreEvent) {
           emit.call(
@@ -96,6 +100,33 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
           await scoreboardUseCase.saveScoreboard(updatedScoreboardEntity);
           await delayedEmit(emit, ScoreboardScoreUpdateSuccessState(updatedScoreboardEntity));
+        } else if (event is ScoreboardListenPlayerScoreEvent) {
+          ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+          await emit.forEach<ScoreboardEntity>(
+            scoreboardUseCase.getScoreboardStream(event.id),
+            onData: (scoreboard) => ScoreboardReceivedSuccessState(scoreboard),
+            onError: (e, _) => ScoreboardSetupErrorState(
+              MessageGenerator.getMessage("Failed to listen to scoreboard"),
+              MessageGenerator.getMessage(e.toString()),
+              StatusInfoIconEnum.error,
+            ),
+          );
+        } else if (event is ScoreboardStopListenPlayerScoreEvent) {
+          _subscription?.cancel();
+        } else if (event is ScoreboardGetEvent) {
+          emit.call(
+            LoadingState(
+              LoadingInfo(
+                icon: LoadingIconEnum.submitting,
+                title: MessageGenerator.getLabel("Geetting Scoreboard"),
+                message: MessageGenerator.getMessage("Please wait while we get the score board..."),
+              ),
+            ),
+          );
+
+          ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+          ScoreboardEntity scoreboardEntity = await scoreboardUseCase.getScoreboard(event.id);
+          await delayedEmit(emit, ScoreboardReceivedSuccessState(scoreboardEntity));
         }
       } on MyAppException catch (ae) {
         appLogger.e(ae);
@@ -119,6 +150,12 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
         );
       }
     });
+  }
+
+  @override
+  Future<void> close() {
+    _subscription?.cancel();
+    return super.close();
   }
 
   Future<void> delayedEmit(Emitter<ScoreboardSetupState> emitter, ScoreboardSetupState state) async {

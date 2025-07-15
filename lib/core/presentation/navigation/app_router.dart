@@ -5,6 +5,7 @@ import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/presentation/pages/dummy_screen.dart';
 import 'package:scoreease/core/presentation/pages/landing_screen.dart';
 import 'package:scoreease/core/presentation/pages/score_board_setup_screen.dart';
+import 'package:scoreease/core/presentation/pages/scoreboard_score_display_screen.dart';
 import 'package:scoreease/core/presentation/pages/scoreboard_update_screen.dart';
 import 'package:scoreease/core/presentation/utils/widget_helper.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +17,7 @@ final GoRouter router = GoRouter(
       "/${LandingScreen.routeName}",
       "/${ScoreboardSetupScreen.routeName}",
       "/${ScoreboardScoreUpdateScreen.routeName}",
+      "/${ScoreboardScoreDisplayScreen.routeName}",
       "/signin",
       "/forgotPassword",
       "/signup",
@@ -62,7 +64,15 @@ final GoRouter router = GoRouter(
           pageBuilder: (context, state) => buildPageWithDefaultTransition<void>(
             context: context,
             state: state,
-            child: ScoreboardScoreUpdateScreen(state.extra as ScoreboardEntity),
+            child: ScoreboardScoreUpdateScreen(state.uri.queryParameters['id'] ?? "", state.extra as ScoreboardEntity?),
+          ),
+        ),
+        GoRoute(
+          path: ScoreboardScoreDisplayScreen.routeName,
+          pageBuilder: (context, state) => buildPageWithDefaultTransition<void>(
+            context: context,
+            state: state,
+            child: ScoreboardScoreDisplayScreen(state.uri.queryParameters['id'] ?? ""),
           ),
         ),
         GoRoute(

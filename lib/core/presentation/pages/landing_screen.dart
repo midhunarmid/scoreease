@@ -92,7 +92,7 @@ class _LandingScreenState extends State<LandingScreen> {
             negativeButton: MessageGenerator.getLabel("Cancel"),
           );
         } else if (state is LandingScoreCardReceivedState) {
-          context.go("/${ScoreboardScoreUpdateScreen.routeName}", extra: state.scoreboard);
+          context.go("/${ScoreboardScoreUpdateScreen.routeName}?id=${state.scoreboard.id}", extra: state.scoreboard);
         }
       },
       child: BlocBuilder<LandingBloc, LandingState>(

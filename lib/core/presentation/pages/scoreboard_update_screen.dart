@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
+import 'package:scoreease/core/presentation/pages/scoreboard_score_display_screen.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/theme.dart';
 import 'package:scoreease/core/presentation/utils/widget_helper.dart';
@@ -12,8 +14,9 @@ import 'package:scoreease/core/presentation/widgets/animated_container.dart';
 import 'package:scoreease/core/presentation/widgets/web_optimised_widget.dart';
 
 class ScoreboardScoreUpdateScreen extends StatefulWidget {
-  final ScoreboardEntity _scoreboardEntity;
-  const ScoreboardScoreUpdateScreen(this._scoreboardEntity, {Key? key}) : super(key: key);
+  final ScoreboardEntity? _scoreboardEntity;
+  final String _id;
+  const ScoreboardScoreUpdateScreen(this._id, this._scoreboardEntity, {Key? key}) : super(key: key);
   static const routeName = 'update';
 
   @override
@@ -23,12 +26,15 @@ class ScoreboardScoreUpdateScreen extends StatefulWidget {
 class _ScoreboardScoreUpdateScreenState extends State<ScoreboardScoreUpdateScreen> {
   final ScoreboardSetupBloc _bloc = ScoreboardSetupBloc();
   ProgressDialog? _pr;
-  late ScoreboardEntity _scoreboardEntity;
+  ScoreboardEntity? _scoreboardEntity;
 
   @override
   void initState() {
     super.initState();
     _scoreboardEntity = widget._scoreboardEntity;
+    if (_scoreboardEntity == null) {
+      _bloc.add(ScoreboardGetEvent(widget._id));
+    }
   }
 
   @override
@@ -79,23 +85,42 @@ class _ScoreboardScoreUpdateScreenState extends State<ScoreboardScoreUpdateScree
           showSingleButtonAlertDialog(context: context, title: state.title, message: state.message);
         } else if (state is ScoreboardScoreUpdateSuccessState) {
           _scoreboardEntity = state.scoreboardEntity;
+        } else if (state is ScoreboardReceivedSuccessState) {
+          _scoreboardEntity = state.scoreboardEntity;
         }
       },
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
         bloc: _bloc,
         builder: (ctx, state) {
-          List<String> playersList = _scoreboardEntity.players?.keys.toList() ?? [];
+          List<String> playersList = _scoreboardEntity?.players?.keys.toList() ?? [];
           return Scaffold(
             body: Padding(
               padding: WebOptimisedWidget.getWebOptimisedHorizonatalPadding(),
-              child: playersList.isNotEmpty
-                  ? getGridLayout(playersList)
-                  : Center(
-                      child: Text(
-                        "No players found in this scoreboard. Please add players to update scores.",
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.red),
-                      ),
-                    ),
+              child: Column(
+                children: [
+                  AnimatedClickableTextContainer(
+                    isActive: false,
+                    iconSrc: "",
+                    title: "Open Scoreboard",
+                    press: () {
+                      context.go("/${ScoreboardScoreDisplayScreen.routeName}?id=${_scoreboardEntity?.id}");
+                    },
+                    bgColor: appColors.pleasantButtonBg,
+                    bgColorHover: appColors.pleasantButtonBgHover,
+                  ),
+                  SizedBox(height: 20.h),
+                  Expanded(
+                    child: playersList.isNotEmpty
+                        ? getGridLayout(playersList)
+                        : Center(
+                            child: Text(
+                              "No players found in this scoreboard. Please add players to update scores.",
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.red),
+                            ),
+                          ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -114,7 +139,7 @@ class _ScoreboardScoreUpdateScreenState extends State<ScoreboardScoreUpdateScree
       ),
       itemBuilder: (context, index) {
         String playerName = playersList[index];
-        String playerScore = _scoreboardEntity.players?[playerName]?.toString() ?? '0';
+        String playerScore = _scoreboardEntity?.players?[playerName]?.toString() ?? '0';
         return Container(
           decoration: BoxDecoration(
             color: appColors.pleasantButtonBg,
@@ -155,6 +180,6 @@ class _ScoreboardScoreUpdateScreenState extends State<ScoreboardScoreUpdateScree
   }
 
   void onPlayerScoreAddButtonClicked(String playerName) {
-    _bloc.add(ScoreboardUpdatePlayerScoreEvent(playerName, _scoreboardEntity));
+    _bloc.add(ScoreboardUpdatePlayerScoreEvent(playerName, _scoreboardEntity!));
   }
 }

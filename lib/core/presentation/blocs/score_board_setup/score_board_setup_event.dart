@@ -27,3 +27,17 @@ class ScoreboardUpdatePlayerScoreEvent extends ScoreboardSetupEvent {
 
   ScoreboardUpdatePlayerScoreEvent(this.playerName, this.scoreboardEntity);
 }
+
+class ScoreboardListenPlayerScoreEvent extends ScoreboardSetupEvent {
+  final String id;
+
+  ScoreboardListenPlayerScoreEvent(this.id);
+}
+
+class ScoreboardGetEvent extends ScoreboardSetupEvent {
+  final String id;
+
+  ScoreboardGetEvent(this.id);
+}
+
+class ScoreboardStopListenPlayerScoreEvent extends ScoreboardSetupEvent {}

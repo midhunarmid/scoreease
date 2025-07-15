@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scoreease/core/data/datasources/firebase_collections.dart';
 import 'package:scoreease/core/data/models/scoreboard_model.dart';
 import 'package:scoreease/core/presentation/utils/global.dart';
+import 'package:scoreease/core/presentation/utils/my_app_exception.dart';
 import 'package:scoreease/main.dart';
 
 class RemoteDataSource {
@@ -38,7 +39,8 @@ class RemoteDataSource {
         resultList.add(docSnapshot.data() as ScoreboardModel);
       }
 
-      await GlobalValues.setLastUpdatedTime(collection: collection, lastUpdateTime: DateTime.now().millisecondsSinceEpoch);
+      await GlobalValues.setLastUpdatedTime(
+          collection: collection, lastUpdateTime: DateTime.now().millisecondsSinceEpoch);
     }
 
     MyApp.debugPrint("Server items ${resultList.toString()}");
@@ -59,5 +61,18 @@ class RemoteDataSource {
 
     MyApp.debugPrint("Scoreboard saved with id $id");
     return id;
+  }
+
+  Stream<ScoreboardModel> listenToScoreboard(String id) {
+    String collection = FireStoreCollection.scoreboards.name;
+    if (id.isEmpty) {
+      MyApp.debugPrint("ID is empty, returning null");
+      throw const MyAppException(
+        title: "Scoreboard ID is empty",
+        message: "Scoreboard ID cannot be empty. Please provide a valid ID to listen to the scoreboard.",
+      );
+    }
+
+    return _db.collection(collection).doc(id).snapshots().map((snapshot) => ScoreboardModel.fromMap(snapshot.data()!));
   }
 }
