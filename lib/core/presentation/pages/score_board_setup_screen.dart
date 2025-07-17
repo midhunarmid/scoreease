@@ -7,6 +7,7 @@ import 'package:scoreease/core/domain/entities/access_entity.dart';
 import 'package:scoreease/core/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/core/presentation/pages/landing_screen.dart';
+import 'package:scoreease/core/presentation/pages/settings_screen.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/input_case_text_formatter.dart';
 import 'package:scoreease/core/presentation/utils/message_generator.dart';
@@ -126,6 +127,12 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           bloc: _bloc,
           builder: (ctx, state) {
             return Scaffold(
+              floatingActionButton: FloatingActionButton(
+                onPressed: () {
+                  context.go("/${SettingsScreen.routeName}");
+                },
+                child: const Icon(Icons.settings),
+              ),
               body: Center(
                 child: Container(
                   padding: const EdgeInsets.all(20),

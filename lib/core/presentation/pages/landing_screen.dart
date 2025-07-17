@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:scoreease/core/presentation/blocs/landing/landing_bloc.dart';
 import 'package:scoreease/core/presentation/pages/score_board_setup_screen.dart';
 import 'package:scoreease/core/presentation/pages/scoreboard_update_screen.dart';
+import 'package:scoreease/core/presentation/pages/settings_screen.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/message_generator.dart';
 import 'package:scoreease/core/presentation/utils/theme.dart';
@@ -99,6 +100,12 @@ class _LandingScreenState extends State<LandingScreen> {
           bloc: _bloc,
           builder: (ctx, state) {
             return Scaffold(
+              floatingActionButton: FloatingActionButton(
+                onPressed: () {
+                  context.go("/${SettingsScreen.routeName}");
+                },
+                child: const Icon(Icons.settings),
+              ),
               body: Center(
                 child: Container(
                   padding: const EdgeInsets.all(20),
