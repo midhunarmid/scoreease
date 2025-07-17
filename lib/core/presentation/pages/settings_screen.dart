@@ -1,7 +1,10 @@
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:scoreease/core/presentation/utils/constants.dart';
 import 'package:scoreease/core/presentation/utils/theme.dart';
+import 'package:scoreease/core/presentation/utils/version_story.dart';
+import 'package:scoreease/core/presentation/utils/widget_helper.dart';
 import 'package:scoreease/core/presentation/widgets/web_optimised_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -86,6 +89,8 @@ class SettingsListItem extends StatelessWidget {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 List<SettingsItem> getSettingsItems(BuildContext context) {
+  ScoreEaseVersionStory? versionStory;
+
   return [
     SettingsItem(
       title: 'Switch Theme',
@@ -108,13 +113,24 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
     SettingsItem(
       title: 'Version',
       description: 'Current installed app version.',
-      valueBuilder: (_) => FutureBuilder<String>(
+      valueBuilder: (_) => FutureBuilder<ScoreEaseVersionStory?>(
         future: getAppVersion(),
         builder: (context, snapshot) {
-          return Text(snapshot.data ?? '-', style: appTheme.textTheme.bodyMedium);
+          versionStory = snapshot.data;
+          return Text(versionStory?.versionDisplay ?? '-', style: appTheme.textTheme.bodyMedium);
         },
       ),
-      onTap: () {},
+      onTap: () {
+        showSingleButtonAlertDialog(
+          context: context,
+          dialogType: DialogType.info,
+          title: "Version: ${versionStory?.versionName}",
+          message: "${versionStory?.tagline}\n\n"
+              "Build Number: ${versionStory?.versionSemantic} (${versionStory?.buildNumber})\n"
+              "Build Date: ${versionStory?.buildDate}\n\n"
+              "Features:\n${versionStory?.features.map((e) => e).join('\n')}",
+        );
+      },
       type: SettingsItemType.info,
     ),
     SettingsItem(
@@ -147,9 +163,9 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Future<String> getAppVersion() async {
+Future<ScoreEaseVersionStory?> getAppVersion() async {
   final packageInfo = await PackageInfo.fromPlatform();
-  return '${packageInfo.version} (${packageInfo.buildNumber})';
+  return ScoreEaseVersionStory.versionStoryMap[packageInfo.buildNumber];
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
