@@ -18,6 +18,19 @@ class ScoreEaseVersionStory {
   String get versionDisplay => versionName;
 
   static Map<String, ScoreEaseVersionStory> versionStoryMap = {
+    "2": ScoreEaseVersionStory(
+      versionSemantic: "2.0.0",
+      versionName: "Dhoni",
+      buildNumber: "2",
+      buildDate: "30-May-2026",
+      tagline: "Finishing it off in style. Modern, fast, and smooth.",
+      features: [
+        "Modern Revamp - A complete overhaul of the UI for a sleeker, modern look.",
+        "Smooth Animations - Added micro-animations and transitions for better user experience.",
+        "Performance Boost - Faster interactions and improved responsiveness.",
+        "Refreshed Colors - New vibrant color themes introduced.",
+      ],
+    ),
     "1": ScoreEaseVersionStory(
       versionSemantic: "1.0.0",
       versionName: "Sachin",

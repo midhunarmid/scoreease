@@ -80,22 +80,33 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           ));
           await delayedEmit(emit, ScoreboardSetupSuccessState(scoreboardId));
         } else if (event is ScoreboardUpdatePlayerScoreEvent) {
+          ScoreboardEntity scoreboardEntity = event.scoreboardEntity;
+          String playerName = event.playerName;
+          ScoreboardEntity updatedScoreboardEntity = scoreboardEntity.copyWith(players: {
+            ...?scoreboardEntity.players,
+            playerName: (scoreboardEntity.players?[playerName] ?? 0) + event.delta,
+          });
+
+          ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+          await scoreboardUseCase.saveScoreboard(updatedScoreboardEntity);
+          emit.call(ScoreboardScoreUpdateSuccessState(updatedScoreboardEntity));
+        } else if (event is ScoreboardResetScoresEvent) {
           emit.call(
             LoadingState(
               LoadingInfo(
                 icon: LoadingIconEnum.submitting,
-                title: MessageGenerator.getMessage("scoreboard-score-update-title"),
-                message: MessageGenerator.getMessage("scoreboard-score-update-message"),
+                title: MessageGenerator.getLabel("Resetting Scores"),
+                message: MessageGenerator.getMessage("Please wait while we reset the scores..."),
               ),
             ),
           );
 
           ScoreboardEntity scoreboardEntity = event.scoreboardEntity;
-          String playerName = event.playerName;
-          ScoreboardEntity updatedScoreboardEntity = scoreboardEntity.copyWith(players: {
-            ...?scoreboardEntity.players,
-            playerName: (scoreboardEntity.players?[playerName] ?? 1) + 1,
+          Map<String, int> resetPlayers = {};
+          scoreboardEntity.players?.forEach((key, value) {
+            resetPlayers[key] = 0;
           });
+          ScoreboardEntity updatedScoreboardEntity = scoreboardEntity.copyWith(players: resetPlayers);
 
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
           await scoreboardUseCase.saveScoreboard(updatedScoreboardEntity);
