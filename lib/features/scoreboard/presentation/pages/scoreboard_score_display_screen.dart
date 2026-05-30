@@ -11,6 +11,7 @@ import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/animated_container.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ScoreboardScoreDisplayScreen extends StatefulWidget {
   final String _id;
@@ -366,30 +367,18 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
               ),
             ],
           ),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 350),
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              return ScaleTransition(
-                scale: animation,
-                child: FadeTransition(
-                  opacity: animation,
-                  child: child,
+          Text(
+            playerScore,
+            key: ValueKey<String>(playerScore),
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  fontSize: 64.sp,
+                  fontWeight: FontWeight.w900,
+                  color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
                 ),
-              );
-            },
-            child: Text(
-              playerScore,
-              key: ValueKey<String>(playerScore),
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    fontSize: 38.sp,
-                    fontWeight: FontWeight.w900,
-                    color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
-                  ),
-            ),
-          ),
+          ).animate(key: ValueKey(playerScore)).fade().scaleXY(begin: 1.5, end: 1.0, duration: 400.ms, curve: Curves.easeOutBack),
         ],
       ),
-    );
+    ).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
   }
 
   Widget _buildRankBadge(int rank) {

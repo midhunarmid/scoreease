@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -19,6 +18,7 @@ import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({Key? key}) : super(key: key);
@@ -29,7 +29,8 @@ class LandingScreen extends StatefulWidget {
 }
 
 class _LandingScreenState extends State<LandingScreen> {
-  final TextEditingController _scoreCardIdTextController = TextEditingController();
+  final TextEditingController _scoreCardIdTextController =
+      TextEditingController();
 
   final LandingBloc _bloc = LandingBloc();
   ProgressDialog? pr;
@@ -67,7 +68,10 @@ class _LandingScreenState extends State<LandingScreen> {
             message: state.loadingInfo.message,
             widgetAboveTheDialog: Text(
               state.loadingInfo.title,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
             progressWidget: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -79,8 +83,14 @@ class _LandingScreenState extends State<LandingScreen> {
                 pathBackgroundColor: appColors.screenBg,
               ),
             ),
-            progressTextStyle: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w400),
-            messageTextStyle: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w400),
+            progressTextStyle: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(fontWeight: FontWeight.w400),
+            messageTextStyle: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(fontWeight: FontWeight.w400),
           );
           pr?.show();
         } else if (state is LandingErrorState) {
@@ -93,91 +103,175 @@ class _LandingScreenState extends State<LandingScreen> {
             negativeButton: MessageGenerator.getLabel("Cancel"),
           );
         } else if (state is LandingScoreCardReceivedState) {
-          context.go("/${ScoreboardScoreUpdateScreen.routeName}?id=${state.scoreboard.id}", extra: state.scoreboard);
+          context.go(
+              "/${ScoreboardScoreUpdateScreen.routeName}?id=${state.scoreboard.id}",
+              extra: state.scoreboard);
         }
       },
       child: BlocBuilder<LandingBloc, LandingState>(
           bloc: _bloc,
           builder: (ctx, state) {
             return Scaffold(
-              floatingActionButton: FloatingActionButton(
-                onPressed: () {
-                  context.go("/${SettingsScreen.routeName}");
-                },
-                child: const Icon(Icons.settings),
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.settings),
+                    color: Theme.of(context).iconTheme.color,
+                    onPressed: () {
+                      context.go("/${SettingsScreen.routeName}");
+                    },
+                  ),
+                ],
               ),
               body: Center(
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   width: maxScreenWidth,
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SizedBox(height: 32.h),
+                        Image.asset(
+                          'assets/images/brand_icon.png',
+                          height: 100.h,
+                        )
+                            .animate(
+                                onPlay: (controller) =>
+                                    controller.repeat(reverse: true))
+                            .scale(
+                                begin: const Offset(1, 1),
+                                end: const Offset(1.05, 1.05),
+                                duration: 2.seconds,
+                                curve: Curves.easeInOut),
+                        SizedBox(height: 24.h),
                         Text(
                           MessageGenerator.getMessage("landing-welcome"),
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.blue),
-                        ),
-                        SizedBox(height: 32.h),
-                        getTextInputWidget(
-                          context: context,
-                          label: MessageGenerator.getLabel('type in scoreboard name'),
-                          hint: MessageGenerator.getLabel('messironaldo'),
-                          controller: _scoreCardIdTextController,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.go,
-                          prefixIcon: const Icon(Icons.edit_outlined),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                            LengthLimitingTextInputFormatter(50),
-                            LowerCaseTextFormatter(),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 8.h,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: AnimatedClickableTextContainer(
-                            title: MessageGenerator.getLabel('Get Scoreboard'),
-                            iconSrc: '',
-                            isActive: false,
-                            bgColor: appColors.pleasantButtonBg,
-                            bgColorHover: appColors.pleasantButtonBgHover,
-                            press: () {
-                              onSubmitScoreboardId();
-                            },
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
+                                color: appColors.primaryColor,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ).animate().fade(duration: 500.ms).slideY(
+                            begin: 0.3, end: 0, curve: Curves.easeOutQuad),
+                        SizedBox(height: 48.h),
+                        Card(
+                          elevation: 8,
+                          shadowColor: Colors.black12,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                getTextInputWidget(
+                                  context: context,
+                                  label: MessageGenerator.getLabel(
+                                      'type in scoreboard name'),
+                                  hint:
+                                      MessageGenerator.getLabel('messironaldo'),
+                                  controller: _scoreCardIdTextController,
+                                  keyboardType: TextInputType.text,
+                                  textInputAction: TextInputAction.go,
+                                  prefixIcon: const Icon(Icons.edit_outlined),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                        RegExp(r'[a-zA-Z0-9]')),
+                                    LengthLimitingTextInputFormatter(50),
+                                    LowerCaseTextFormatter(),
+                                  ],
+                                ),
+                                SizedBox(height: 24.h),
+                                AnimatedClickableTextContainer(
+                                  title: MessageGenerator.getLabel(
+                                      'Get Scoreboard'),
+                                  iconSrc: '',
+                                  isActive: false,
+                                  bgColor: appColors.pleasantButtonBg,
+                                  bgColorHover: appColors.pleasantButtonBgHover,
+                                  press: () {
+                                    onSubmitScoreboardId();
+                                  },
+                                ),
+                                SizedBox(height: 24.h),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                        child: Divider(
+                                            color: appColors.listDividerColor)),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16),
+                                      child: Text(
+                                        "OR",
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                        child: Divider(
+                                            color: appColors.listDividerColor)),
+                                  ],
+                                ),
+                                SizedBox(height: 24.h),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    context.go(
+                                        "/${ScoreboardSetupScreen.routeName}");
+                                  },
+                                  icon: const Icon(Icons.add_circle_outline),
+                                  label: Text(MessageGenerator.getLabel(
+                                      'Create New Scoreboard')),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    side: BorderSide(
+                                        color: appColors.primaryColor,
+                                        width: 2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    foregroundColor: appColors.primaryColor,
+                                    textStyle:
+                                        Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 16.h),
-                        RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: Theme.of(context).textTheme.labelSmall,
-                            children: <TextSpan>[
-                              TextSpan(
-                                  text: MessageGenerator.getLabel('Create New Scoreboard'),
-                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.red),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      context.go("/${ScoreboardSetupScreen.routeName}");
-                                    }),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 32.h),
+                        ).animate().fade(delay: 200.ms, duration: 500.ms).scale(
+                            begin: const Offset(0.9, 0.9),
+                            curve: Curves.easeOutBack),
+                        SizedBox(height: 48.h),
                         Linkify(
                           onOpen: (link) async {
                             if (!await launchUrl(Uri.parse(link.url))) {}
                           },
-                          text: MessageGenerator.getMessage("landing-visit-site-guide"),
+                          text: MessageGenerator.getMessage(
+                              "landing-visit-site-guide"),
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelSmall,
-                          linkStyle: Theme.of(context).textTheme.labelSmall?.copyWith(color: appColors.linkTextColor),
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelMedium
+                              ?.copyWith(color: Colors.grey),
+                          linkStyle:
+                              Theme.of(context).textTheme.labelMedium?.copyWith(
+                                    color: appColors.linkTextColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                         ),
                         SizedBox(height: 32.h),
                       ],

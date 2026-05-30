@@ -176,7 +176,7 @@ Widget getTextInputWidget({
             autofocus: true,
             controller: controller,
             keyboardType: keyboardType,
-            style: Theme.of(context).textTheme.labelSmall,
+            style: Theme.of(context).textTheme.labelMedium?.merge(appColors.textInputStyle),
             minLines: minLines,
             maxLines: maxLines,
             maxLength: maxLength,
@@ -191,18 +191,19 @@ Widget getTextInputWidget({
             decoration: InputDecoration(
               hintStyle: Theme.of(context)
                   .textTheme
-                  .labelSmall
-                  ?.copyWith(color: appColors.disableBgColor),
+                  .labelMedium
+                  ?.merge(appColors.textInputLabelStyle)
+                  .copyWith(fontWeight: FontWeight.w400, color: appColors.textInputLabelStyle.color?.withValues(alpha: 0.6)),
               hintText: MessageGenerator.getLabel(hint),
               label: Text(
                 MessageGenerator.getLabel(label),
-                style: Theme.of(context).textTheme.labelSmall,
+                style: Theme.of(context).textTheme.labelMedium?.merge(appColors.textInputLabelStyle),
               ),
               filled: true,
               fillColor: appColors.inputBgFill,
               border: OutlineInputBorder(
                   borderSide: BorderSide.none,
-                  borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(12)),
               prefixIcon: prefixIcon,
             ),
           ),

@@ -12,28 +12,34 @@ ThemeData appTheme = getLightTheme();
 
 ThemeData getLightTheme() {
   return ThemeData(
+    scaffoldBackgroundColor: const Color(0xFFF0FDF4),
     applyElevationOverlayColor: false,
-    dividerColor: const Color(0xFFECEDF1),
+    dividerColor: const Color(0xFFE5E7EB),
     brightness: Brightness.light,
-    primaryColor: const Color(0xFF246BFD),
+    primaryColor: const Color(0xFF10B981),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF10B981),
+      foregroundColor: Colors.white,
+      elevation: 0,
+    ),
     textTheme: TextTheme(
-      titleSmall: GoogleFonts.caveat(
+      titleSmall: GoogleFonts.oswald(
         textStyle: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
             color: appColors.textColor),
       ),
-      headlineLarge: GoogleFonts.urbanist(
+      headlineLarge: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 22.sp,
               color: appColors.textColor,
               fontWeight: FontWeight.bold)),
-      headlineMedium: GoogleFonts.urbanist(
+      headlineMedium: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 20.sp,
               color: appColors.textColor,
               fontWeight: FontWeight.bold)),
-      headlineSmall: GoogleFonts.urbanist(
+      headlineSmall: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 18.sp,
               color: appColors.textColor,
@@ -59,28 +65,34 @@ ThemeData getLightTheme() {
 
 ThemeData getDarkTheme() {
   return ThemeData(
+    scaffoldBackgroundColor: const Color(0xFF111827),
     applyElevationOverlayColor: true,
-    dividerColor: const Color(0xFFECEDF1),
+    dividerColor: const Color(0xFF374151),
     brightness: Brightness.dark,
-    primaryColor: const Color(0xFF246BFD),
+    primaryColor: const Color(0xFF10B981),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF111827),
+      foregroundColor: Colors.white,
+      elevation: 0,
+    ),
     textTheme: TextTheme(
-      titleSmall: GoogleFonts.caveat(
+      titleSmall: GoogleFonts.oswald(
         textStyle: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
             color: appColors.textColor),
       ),
-      headlineLarge: GoogleFonts.urbanist(
+      headlineLarge: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 22.sp,
               color: appColors.textColor,
               fontWeight: FontWeight.bold)),
-      headlineMedium: GoogleFonts.urbanist(
+      headlineMedium: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 20.sp,
               color: appColors.textColor,
               fontWeight: FontWeight.bold)),
-      headlineSmall: GoogleFonts.urbanist(
+      headlineSmall: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 18.sp,
               color: appColors.textColor,
@@ -180,46 +192,46 @@ abstract class AppColors {
 class AppColorsLight extends AppColors {
   AppColorsLight()
       : super(
-          screenBg: Colors.white,
-          appBarBg: const Color.fromRGBO(255, 255, 255, 1),
-          progressCircleBg: Colors.black,
-          pleasantButtonBg: const Color.fromRGBO(36, 107, 253, 1),
-          pleasantButtonBgHover: const Color.fromRGBO(2, 67, 199, 1.0),
-          negativeButtonBg: const Color.fromARGB(255, 248, 53, 95),
-          negativeButtonBgHover: const Color.fromARGB(255, 255, 42, 42),
-          buttonTextColor: const Color.fromRGBO(255, 255, 255, 1),
-          buttonTextColorHover: const Color.fromRGBO(200, 200, 200, 1),
-          textColor: Colors.black87,
-          textInputEnabledBorder: OutlineInputBorder(
-            borderRadius: const BorderRadius.all(Radius.circular(30)),
+          screenBg: const Color(0xFFF0FDF4),
+          appBarBg: const Color(0xFF10B981),
+          progressCircleBg: const Color(0xFFF59E0B),
+          pleasantButtonBg: const Color(0xFF10B981),
+          pleasantButtonBgHover: const Color(0xFF059669),
+          negativeButtonBg: const Color(0xFFEF4444),
+          negativeButtonBgHover: const Color(0xFFDC2626),
+          buttonTextColor: Colors.white,
+          buttonTextColorHover: const Color(0xFFF3F4F6),
+          textColor: const Color(0xFF111827),
+          textInputEnabledBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
             borderSide: BorderSide(
-              color: Colors.grey[200] ?? Colors.grey,
+              color: Color(0xFFD1FAE5),
             ),
           ),
-          textInputFocusedBorder: OutlineInputBorder(
-            borderRadius: const BorderRadius.all(Radius.circular(30)),
+          textInputFocusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
             borderSide: BorderSide(
-              color: Colors.grey[300] ?? Colors.grey,
+              color: Color(0xFF10B981),
             ),
           ),
-          textInputFillColor: Colors.grey[100] ?? Colors.grey,
-          textInputStyle: const TextStyle(color: Colors.black87),
-          textInputLabelStyle: const TextStyle(color: Colors.black87),
-          pleasantButtonTextStyle: const TextStyle(color: Colors.white),
-          appBarTextStyle: GoogleFonts.righteous(
-              textStyle: const TextStyle(color: Colors.black)),
-          listDividerColor: Colors.grey[400] ?? Colors.grey,
+          textInputFillColor: Colors.white,
+          textInputStyle: const TextStyle(color: Color(0xFF111827)),
+          textInputLabelStyle: const TextStyle(color: Color(0xFF4B5563)),
+          pleasantButtonTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          appBarTextStyle: GoogleFonts.oswald(
+              textStyle: const TextStyle(color: Colors.white)),
+          listDividerColor: const Color(0xFFD1FAE5),
           appBarIconTheme: const IconThemeData(
-            color: Colors.black,
+            color: Colors.white,
           ),
-          appBarElevation: 8,
-          primaryColor: const Color.fromRGBO(36, 107, 253, 1),
-          disableBgColor: Colors.black54,
-          sideMenuHighlight: Colors.black,
-          sideMenuNormal: Colors.white38,
-          sideMenuDisable: Colors.white24,
-          sideMenuBg: const Color.fromARGB(255, 12, 16, 36),
-          inputBgFill: const Color.fromRGBO(230, 230, 230, 1),
+          appBarElevation: 0,
+          primaryColor: const Color(0xFF10B981),
+          disableBgColor: Colors.black26,
+          sideMenuHighlight: const Color(0xFF111827),
+          sideMenuNormal: Colors.black45,
+          sideMenuDisable: Colors.black12,
+          sideMenuBg: Colors.white,
+          inputBgFill: const Color(0xFFE5E7EB),
           rainbowColors: [
             Colors.red,
             Colors.orange,
@@ -229,57 +241,57 @@ class AppColorsLight extends AppColors {
             Colors.indigo,
             Colors.purple,
           ],
-          linkTextColor: Colors.red,
+          linkTextColor: const Color(0xFFF59E0B),
           tileBgColor: Colors.white,
-          tileBgColorHover: const Color.fromRGBO(2, 67, 199, 1.0),
-          tileTextColor: Colors.black87,
-          tileTextColorHover: Colors.white,
+          tileBgColorHover: const Color(0xFFD1FAE5),
+          tileTextColor: const Color(0xFF111827),
+          tileTextColorHover: const Color(0xFF059669),
         );
 }
 
 class AppColorsDark extends AppColors {
   AppColorsDark()
       : super(
-          screenBg: Colors.black,
-          appBarBg: Colors.black,
-          progressCircleBg: Colors.white,
-          pleasantButtonBg: const Color.fromRGBO(36, 107, 253, 1),
-          pleasantButtonBgHover: const Color.fromRGBO(2, 67, 199, 1.0),
-          negativeButtonBg: const Color.fromARGB(255, 248, 53, 95),
-          negativeButtonBgHover: const Color.fromARGB(255, 255, 42, 42),
-          buttonTextColor: const Color.fromRGBO(255, 255, 255, 1),
-          buttonTextColorHover: const Color.fromRGBO(200, 200, 200, 1),
-          textColor: Colors.white70,
-          textInputEnabledBorder: OutlineInputBorder(
-            borderRadius: const BorderRadius.all(Radius.circular(30)),
+          screenBg: const Color(0xFF111827),
+          appBarBg: const Color(0xFF111827),
+          progressCircleBg: const Color(0xFF10B981),
+          pleasantButtonBg: const Color(0xFF10B981),
+          pleasantButtonBgHover: const Color(0xFF34D399),
+          negativeButtonBg: const Color(0xFFEF4444),
+          negativeButtonBgHover: const Color(0xFFF87171),
+          buttonTextColor: Colors.white,
+          buttonTextColorHover: const Color(0xFFF3F4F6),
+          textColor: const Color(0xFFF3F4F6),
+          textInputEnabledBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
             borderSide: BorderSide(
-              color: Colors.grey[200] ?? Colors.grey,
+              color: Color(0xFF374151),
             ),
           ),
-          textInputFocusedBorder: OutlineInputBorder(
-            borderRadius: const BorderRadius.all(Radius.circular(30)),
+          textInputFocusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
             borderSide: BorderSide(
-              color: Colors.grey[300] ?? Colors.grey,
+              color: Color(0xFF10B981),
             ),
           ),
-          textInputFillColor: Colors.grey[800] ?? Colors.grey,
-          textInputStyle: const TextStyle(color: Colors.white70),
-          textInputLabelStyle: const TextStyle(color: Colors.white70),
-          pleasantButtonTextStyle: const TextStyle(color: Colors.white),
-          appBarTextStyle: GoogleFonts.righteous(
+          textInputFillColor: const Color(0xFF1F2937),
+          textInputStyle: const TextStyle(color: Color(0xFFF3F4F6)),
+          textInputLabelStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+          pleasantButtonTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          appBarTextStyle: GoogleFonts.oswald(
               textStyle: const TextStyle(color: Colors.white)),
-          listDividerColor: Colors.grey[200] ?? Colors.grey,
+          listDividerColor: const Color(0xFF374151),
           appBarIconTheme: const IconThemeData(
             color: Colors.white,
           ),
-          appBarElevation: 8,
-          primaryColor: const Color.fromRGBO(36, 107, 253, 1),
-          disableBgColor: Colors.white54,
+          appBarElevation: 0,
+          primaryColor: const Color(0xFF10B981),
+          disableBgColor: Colors.white24,
           sideMenuHighlight: Colors.white,
-          sideMenuNormal: Colors.white38,
+          sideMenuNormal: Colors.white54,
           sideMenuDisable: Colors.white24,
-          sideMenuBg: const Color.fromARGB(255, 12, 16, 36),
-          inputBgFill: const Color.fromARGB(255, 31, 30, 30),
+          sideMenuBg: const Color(0xFF111827),
+          inputBgFill: const Color(0xFF374151),
           rainbowColors: [
             Colors.red,
             Colors.orange,
@@ -289,10 +301,10 @@ class AppColorsDark extends AppColors {
             Colors.indigo,
             Colors.purple,
           ],
-          linkTextColor: Colors.red,
-          tileBgColor: Colors.black,
-          tileBgColorHover: const Color.fromRGBO(2, 67, 199, 1.0),
-          tileTextColor: Colors.white,
-          tileTextColorHover: Colors.white70,
+          linkTextColor: const Color(0xFFF59E0B),
+          tileBgColor: const Color(0xFF1F2937),
+          tileBgColorHover: const Color(0xFF374151),
+          tileTextColor: const Color(0xFFF3F4F6),
+          tileTextColorHover: const Color(0xFF10B981),
         );
 }

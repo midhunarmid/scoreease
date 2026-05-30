@@ -21,6 +21,7 @@ import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ScoreboardSetupScreen extends StatefulWidget {
   const ScoreboardSetupScreen({Key? key}) : super(key: key);
@@ -154,11 +155,13 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                           padding: const EdgeInsets.all(8.0),
                           decoration: BoxDecoration(
                             color: appColors.screenBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: appColors.primaryColor, width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 1.0,
-                                offset: const Offset(2, 2),
+                                color: appColors.primaryColor.withValues(alpha: 0.2),
+                                blurRadius: 4.0,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
@@ -167,8 +170,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                        ),
-                        if (_currentStage == ScoreboardSetupStage.basic) scoreboardSetupBasicArea(context),
+                        ).animate().fade().scaleXY(begin: 0.9, duration: 300.ms),
+                        if (_currentStage == ScoreboardSetupStage.basic) scoreboardSetupBasicArea(context).animate().fade().slideY(begin: 0.1),
                         SizedBox(height: 8.h),
                         Container(
                           padding: const EdgeInsets.all(8.0),
@@ -177,11 +180,18 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                                     _currentStage == ScoreboardSetupStage.access)
                                 ? appColors.screenBg
                                 : appColors.screenBg.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: (_currentStage == ScoreboardSetupStage.players ||
+                                        _currentStage == ScoreboardSetupStage.access)
+                                    ? appColors.primaryColor
+                                    : Colors.transparent,
+                                width: 2),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 1.0,
-                                offset: const Offset(2, 2),
+                                blurRadius: 4.0,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
@@ -190,8 +200,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                        ),
-                        if (_currentStage == ScoreboardSetupStage.players) scoreboardSetupPlayerNamesArea(context),
+                        ).animate().fade(delay: 100.ms).scaleXY(begin: 0.9, duration: 300.ms),
+                        if (_currentStage == ScoreboardSetupStage.players) scoreboardSetupPlayerNamesArea(context).animate().fade().slideY(begin: 0.1),
                         SizedBox(height: 8.h),
                         Container(
                           padding: const EdgeInsets.all(8.0),
@@ -199,11 +209,17 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                             color: (_currentStage == ScoreboardSetupStage.access)
                                 ? appColors.screenBg
                                 : appColors.screenBg.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: (_currentStage == ScoreboardSetupStage.access)
+                                    ? appColors.primaryColor
+                                    : Colors.transparent,
+                                width: 2),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 1.0,
-                                offset: const Offset(2, 2),
+                                blurRadius: 4.0,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
@@ -212,8 +228,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                        ),
-                        if (_currentStage == ScoreboardSetupStage.access) scoreboardSetupAccessArea(context),
+                        ).animate().fade(delay: 200.ms).scaleXY(begin: 0.9, duration: 300.ms),
+                        if (_currentStage == ScoreboardSetupStage.access) scoreboardSetupAccessArea(context).animate().fade().slideY(begin: 0.1),
                         SizedBox(height: 16.h),
                         RichText(
                           textAlign: TextAlign.center,

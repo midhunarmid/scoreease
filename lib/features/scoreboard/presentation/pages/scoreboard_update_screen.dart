@@ -13,6 +13,7 @@ import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ScoreboardScoreUpdateScreen extends StatefulWidget {
   final ScoreboardEntity? _scoreboardEntity;
@@ -388,112 +389,106 @@ class _ScoreboardScoreUpdateScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: 24,
+                radius: 16,
                 backgroundColor: avatarColor,
                 child: Text(
                   firstLetter,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 14,
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                playerName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                    ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  playerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp,
+                      ),
+                ),
               ),
             ],
           ),
-          Text(
-            playerScore,
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontSize: 32.sp,
-                  fontWeight: FontWeight.w900,
-                  color: appColors.primaryColor,
-                ),
+          GestureDetector(
+            onTap: () => _showCustomScoreDialog(playerName, int.tryParse(playerScore) ?? 0),
+            child: Text(
+              playerScore,
+              key: ValueKey(playerScore),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontSize: 48.sp,
+                    fontWeight: FontWeight.w900,
+                    color: appColors.primaryColor,
+                  ),
+            ).animate(key: ValueKey(playerScore)).scaleXY(begin: 1.5, end: 1.0, duration: 250.ms, curve: Curves.easeOutBack),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildScoreControlButton(
-                icon: Icons.remove,
-                color: appColors.negativeButtonBg,
-                tooltip: "Subtract 1",
-                onTap: () {
-                  _bloc.add(ScoreboardUpdatePlayerScoreEvent(
-                    playerName,
-                    _scoreboardEntity!,
-                    delta: -1,
-                  ));
-                },
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _bloc.add(ScoreboardUpdatePlayerScoreEvent(
+                      playerName,
+                      _scoreboardEntity!,
+                      delta: -1,
+                    ));
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: appColors.negativeButtonBg.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: appColors.negativeButtonBg, width: 2),
+                    ),
+                    child: Icon(Icons.remove, color: appColors.negativeButtonBg, size: 32),
+                  ),
+                ),
               ),
-              _buildScoreControlButton(
-                icon: Icons.edit_outlined,
-                color: Colors.grey.shade600,
-                tooltip: "Edit custom score",
-                onTap: () {
-                  _showCustomScoreDialog(
-                      playerName, int.tryParse(playerScore) ?? 0);
-                },
-              ),
-              _buildScoreControlButton(
-                icon: Icons.add,
-                color: appColors.pleasantButtonBg,
-                tooltip: "Add 1",
-                onTap: () {
-                  _bloc.add(ScoreboardUpdatePlayerScoreEvent(
-                    playerName,
-                    _scoreboardEntity!,
-                    delta: 1,
-                  ));
-                },
+              const SizedBox(width: 12),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    _bloc.add(ScoreboardUpdatePlayerScoreEvent(
+                      playerName,
+                      _scoreboardEntity!,
+                      delta: 1,
+                    ));
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: appColors.pleasantButtonBg,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: appColors.pleasantButtonBg.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 32),
+                  ),
+                ),
               ),
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildScoreControlButton({
-    required IconData icon,
-    required Color color,
-    required String tooltip,
-    required VoidCallback onTap,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: color.withValues(alpha: 0.15),
-              width: 1,
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 18.sp,
-          ),
-        ),
-      ),
-    );
+    ).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
   }
 
   void _showCustomScoreDialog(String playerName, int currentScore) {
