@@ -43,7 +43,59 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
             return;
           }
 
-          emit.call(ScoreboardSetupBasicSuccessState(event.scoreboardEntity));
+          emit.call(
+            LoadingState(
+              LoadingInfo(
+                icon: LoadingIconEnum.submitting,
+                title: MessageGenerator.getLabel("Verifying ID"),
+                message: MessageGenerator.getMessage("Please wait while we verify the scoreboard ID..."),
+              ),
+            ),
+          );
+
+          try {
+            ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+            await scoreboardUseCase.getScoreboard(event.scoreboardEntity.id!);
+            
+            // If we get here, the scoreboard exists, which means the ID is taken!
+            await delayedEmit(
+              emit,
+              ScoreboardSetupErrorState(
+                MessageGenerator.getMessage("ID Unavailable"),
+                MessageGenerator.getMessage("A scoreboard with this ID already exists. Please choose a different ID."),
+                StatusInfoIconEnum.error,
+              ),
+            );
+            return;
+          } on MyAppException catch (e) {
+            // "Scoreboard Not Found" is the expected exception if the ID is available
+            if (e.title == "Scoreboard Not Found") {
+              await delayedEmit(emit, ScoreboardSetupBasicSuccessState(event.scoreboardEntity));
+              return;
+            }
+            
+            // Otherwise, it's a different error
+            await delayedEmit(
+              emit,
+              ScoreboardSetupErrorState(
+                MessageGenerator.getMessage(e.title),
+                MessageGenerator.getMessage(e.message),
+                StatusInfoIconEnum.error,
+              ),
+            );
+            return;
+          } catch (e) {
+            appLogger.e(e);
+            await delayedEmit(
+              emit,
+              ScoreboardSetupErrorState(
+                MessageGenerator.getMessage("un-expected-error"),
+                MessageGenerator.getMessage("un-expected-error-message"),
+                StatusInfoIconEnum.error,
+              ),
+            );
+            return;
+          }
         }
         if (event is ScoreboardSetupPlayerNamesSubmitEvent) {
           String errorTitle = "";

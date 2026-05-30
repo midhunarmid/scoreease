@@ -266,22 +266,24 @@ class _ScoreboardScoreUpdateScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Scoreboard ID:",
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).hintColor,
-                        ),
-                  ),
-                  Text(
-                    _scoreboardEntity?.id ?? widget._id,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Scoreboard ID:",
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).hintColor,
+                          ),
+                    ),
+                    Text(
+                      _scoreboardEntity?.id ?? widget._id,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(

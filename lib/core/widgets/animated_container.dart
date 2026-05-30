@@ -7,6 +7,8 @@ class AnimatedClickableTextContainer extends StatefulWidget {
   final String title;
   final Color bgColor;
   final Color bgColorHover;
+  final Color? textColor;
+  final Color? textColorHover;
   final VoidCallback press;
 
   const AnimatedClickableTextContainer({
@@ -17,6 +19,8 @@ class AnimatedClickableTextContainer extends StatefulWidget {
     required this.press,
     required this.bgColor,
     required this.bgColorHover,
+    this.textColor,
+    this.textColorHover,
   }) : super(key: key);
 
   @override
@@ -85,12 +89,15 @@ class _AnimatedClickableTextContainerState
                     : appColors.sideMenuNormal,
               ),
            const SizedBox(width: 15),
-            Text(
-              widget.title,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: (widget.isActive || isHover)
-                      ? appColors.buttonTextColorHover
-                      : appColors.buttonTextColor),
+            Flexible(
+              child: Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: (widget.isActive || isHover)
+                        ? (widget.textColorHover ?? appColors.buttonTextColorHover)
+                        : (widget.textColor ?? appColors.buttonTextColor)),
+              ),
             ),
           ],
         ),

@@ -233,40 +233,44 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Total Players",
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).hintColor,
-                        ),
-                  ),
-                  Text(
-                    "$totalPlayers players",
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Total Players",
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).hintColor,
+                          ),
+                    ),
+                    Text(
+                      "$totalPlayers players",
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    "Combined Score",
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).hintColor,
-                        ),
-                  ),
-                  Text(
-                    "$totalScore points",
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: appColors.primaryColor,
-                        ),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "Combined Score",
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).hintColor,
+                          ),
+                    ),
+                    Text(
+                      "$totalScore points",
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: appColors.primaryColor,
+                          ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

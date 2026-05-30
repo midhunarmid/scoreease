@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +24,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_basic_stage.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_roster_stage.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_access_stage.dart';
 
 class ScoreboardSetupScreen extends StatefulWidget {
   const ScoreboardSetupScreen({Key? key}) : super(key: key);
@@ -36,7 +41,6 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
   final TextEditingController _scoreboardTitleTextController = TextEditingController();
   final TextEditingController _scoreboardDescriptionTextController = TextEditingController();
   final TextEditingController _scoreboardAuthorTextController = TextEditingController();
-  final TextEditingController _scoreboardPlayerTextController = TextEditingController();
   final TextEditingController _scoreboardAccessReadTextController = TextEditingController();
   final TextEditingController _scoreboardAccessWriteTextController = TextEditingController();
 
@@ -46,12 +50,100 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
   ScoreboardEntity _scoreboardEntity = const ScoreboardEntity();
   final List<String> _playerNameList = [];
 
-  late FocusNode _playerNameAddFocuNode;
-
   @override
   void initState() {
     super.initState();
-    _playerNameAddFocuNode = FocusNode();
+    _loadDraft();
+  }
+
+  Future<void> _loadDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _scoreboardIdTextController.text = prefs.getString('draft_setup_id') ?? '';
+      _scoreboardTitleTextController.text = prefs.getString('draft_setup_title') ?? '';
+      _scoreboardDescriptionTextController.text = prefs.getString('draft_setup_description') ?? '';
+      _scoreboardAuthorTextController.text = prefs.getString('draft_setup_author') ?? '';
+      _scoreboardAccessReadTextController.text = prefs.getString('draft_setup_access_read') ?? '';
+      _scoreboardAccessWriteTextController.text = prefs.getString('draft_setup_access_write') ?? '';
+      
+      final playersJson = prefs.getString('draft_setup_players');
+      if (playersJson != null) {
+        try {
+          final List<dynamic> decoded = jsonDecode(playersJson);
+          _playerNameList.clear();
+          _playerNameList.addAll(decoded.map((e) => e.toString()));
+        } catch (e) {
+          appLogger.e("Failed to decode draft players", error: e);
+        }
+      }
+    });
+  }
+
+  Future<void> _saveDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('draft_setup_id', _scoreboardIdTextController.text);
+    await prefs.setString('draft_setup_title', _scoreboardTitleTextController.text);
+    await prefs.setString('draft_setup_description', _scoreboardDescriptionTextController.text);
+    await prefs.setString('draft_setup_author', _scoreboardAuthorTextController.text);
+    await prefs.setString('draft_setup_access_read', _scoreboardAccessReadTextController.text);
+    await prefs.setString('draft_setup_access_write', _scoreboardAccessWriteTextController.text);
+    await prefs.setString('draft_setup_players', jsonEncode(_playerNameList));
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Draft saved successfully!"),
+          backgroundColor: appColors.primaryColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      context.replace("/${LandingScreen.routeName}");
+    }
+  }
+
+  void _onBackPressed() {
+    showTwoButtonAlertDialog(
+      context: context,
+      title: "Save Draft?",
+      message: "Do you want to save your progress as a draft before leaving?",
+      positiveButton: "Save Draft",
+      negativeButton: "Discard",
+      positiveAction: _saveDraft,
+      negativeAction: () {
+        context.replace("/${LandingScreen.routeName}");
+      },
+    );
+  }
+
+  void _clearDraft() {
+    showTwoButtonAlertDialog(
+      context: context,
+      title: "Clear Form",
+      message: "Are you sure you want to clear the entire form and delete your draft?",
+      positiveButton: "Clear",
+      negativeButton: "Cancel",
+      positiveAction: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('draft_setup_id');
+        await prefs.remove('draft_setup_title');
+        await prefs.remove('draft_setup_description');
+        await prefs.remove('draft_setup_author');
+        await prefs.remove('draft_setup_access_read');
+        await prefs.remove('draft_setup_access_write');
+        await prefs.remove('draft_setup_players');
+        
+        setState(() {
+          _scoreboardIdTextController.clear();
+          _scoreboardTitleTextController.clear();
+          _scoreboardDescriptionTextController.clear();
+          _scoreboardAuthorTextController.clear();
+          _scoreboardAccessReadTextController.clear();
+          _scoreboardAccessWriteTextController.clear();
+          _playerNameList.clear();
+          _currentStage = ScoreboardSetupStage.basic;
+        });
+      },
+    );
   }
 
   @override
@@ -60,10 +152,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
     _scoreboardTitleTextController.dispose();
     _scoreboardDescriptionTextController.dispose();
     _scoreboardAuthorTextController.dispose();
-    _scoreboardPlayerTextController.dispose();
     _scoreboardAccessReadTextController.dispose();
     _scoreboardAccessWriteTextController.dispose();
-    _playerNameAddFocuNode.dispose();
     _bloc.close();
     super.dispose();
   }
@@ -128,11 +218,35 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           bloc: _bloc,
           builder: (ctx, state) {
             return Scaffold(
-              floatingActionButton: FloatingActionButton(
-                onPressed: () {
-                  context.go("/${SettingsScreen.routeName}");
-                },
-                child: const Icon(Icons.settings),
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
+                  onPressed: _onBackPressed,
+                ),
+                actions: [
+                  TextButton.icon(
+                    onPressed: _saveDraft,
+                    icon: const Icon(Icons.save_outlined),
+                    label: const Text("Save Draft"),
+                    style: TextButton.styleFrom(foregroundColor: appColors.primaryColor),
+                  ),
+                  IconButton(
+                    tooltip: "Clear Form",
+                    icon: const Icon(Icons.delete_sweep_outlined),
+                    color: Colors.red.shade400,
+                    onPressed: _clearDraft,
+                  ),
+                  IconButton(
+                    tooltip: "Settings",
+                    icon: const Icon(Icons.settings),
+                    color: Theme.of(context).iconTheme.color,
+                    onPressed: () {
+                      context.go("/${SettingsScreen.routeName}");
+                    },
+                  ),
+                ],
               ),
               body: Center(
                 child: Container(
@@ -146,91 +260,36 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                       children: [
                         SizedBox(height: 32.h),
                         Text(
-                          MessageGenerator.getMessage("scoreboard-welcome"),
+                          "SCOREBOARD SETUP",
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.blue),
-                        ),
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: appColors.primaryColor,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ).animate().fade().scaleXY(begin: 0.9),
                         SizedBox(height: 32.h),
-                        Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color: appColors.screenBg,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: appColors.primaryColor, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: appColors.primaryColor.withValues(alpha: 0.2),
-                                blurRadius: 4.0,
-                                offset: const Offset(0, 2),
+                        _buildProgressIndicator(),
+                        SizedBox(height: 32.h),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          transitionBuilder: (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.05, 0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
                               ),
-                            ],
+                            );
+                          },
+                          child: SizedBox(
+                            key: ValueKey(_currentStage),
+                            child: _buildCurrentStageWidget(context),
                           ),
-                          child: Text(
-                            MessageGenerator.getMessage("scoreboard-setup-basic-title"),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                        ).animate().fade().scaleXY(begin: 0.9, duration: 300.ms),
-                        if (_currentStage == ScoreboardSetupStage.basic) scoreboardSetupBasicArea(context).animate().fade().slideY(begin: 0.1),
-                        SizedBox(height: 8.h),
-                        Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color: (_currentStage == ScoreboardSetupStage.players ||
-                                    _currentStage == ScoreboardSetupStage.access)
-                                ? appColors.screenBg
-                                : appColors.screenBg.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: (_currentStage == ScoreboardSetupStage.players ||
-                                        _currentStage == ScoreboardSetupStage.access)
-                                    ? appColors.primaryColor
-                                    : Colors.transparent,
-                                width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 4.0,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            MessageGenerator.getMessage("scoreboard-setup-players-title"),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                        ).animate().fade(delay: 100.ms).scaleXY(begin: 0.9, duration: 300.ms),
-                        if (_currentStage == ScoreboardSetupStage.players) scoreboardSetupPlayerNamesArea(context).animate().fade().slideY(begin: 0.1),
-                        SizedBox(height: 8.h),
-                        Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color: (_currentStage == ScoreboardSetupStage.access)
-                                ? appColors.screenBg
-                                : appColors.screenBg.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: (_currentStage == ScoreboardSetupStage.access)
-                                    ? appColors.primaryColor
-                                    : Colors.transparent,
-                                width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 4.0,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            MessageGenerator.getMessage("scoreboard-setup-access-title"),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                        ).animate().fade(delay: 200.ms).scaleXY(begin: 0.9, duration: 300.ms),
-                        if (_currentStage == ScoreboardSetupStage.access) scoreboardSetupAccessArea(context).animate().fade().slideY(begin: 0.1),
-                        SizedBox(height: 16.h),
+                        ),
+                        SizedBox(height: 24.h),
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
@@ -240,9 +299,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                                   text: MessageGenerator.getLabel('Use Existing Scoreboard'),
                                   style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.red),
                                   recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      context.replace("/${LandingScreen.routeName}");
-                                    }),
+                                    ..onTap = _onBackPressed),
                             ],
                           ),
                         ),
@@ -267,267 +324,114 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
     );
   }
 
-  Widget scoreboardSetupBasicArea(BuildContext context) {
-    return Column(
+  Widget _buildProgressIndicator() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(height: 8.h),
-        getTextInputWidget(
-          context: context,
-          label: MessageGenerator.getLabel('type in scoreboard name'),
-          hint: MessageGenerator.getLabel('messironaldo'),
-          controller: _scoreboardIdTextController,
-          keyboardType: TextInputType.text,
-          textInputAction: TextInputAction.next,
-          prefixIcon: const Icon(Icons.key),
-          maxLength: 50,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-            LengthLimitingTextInputFormatter(50),
-            LowerCaseTextFormatter(),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        getTextInputWidget(
-          context: context,
-          label: MessageGenerator.getLabel('type in title'),
-          hint: MessageGenerator.getLabel('Messi vs Ronaldo'),
-          controller: _scoreboardTitleTextController,
-          keyboardType: TextInputType.name,
-          textInputAction: TextInputAction.next,
-          prefixIcon: const Icon(Icons.title),
-          maxLength: 100,
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(100),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        getTextInputWidget(
-          context: context,
-          label: MessageGenerator.getLabel('type in description'),
-          hint: MessageGenerator.getLabel(
-              'Track the eternal rivalry between Lionel Messi and Cristiano Ronaldo with this simple, real-time scoreboard. Update scores, log moments, and settle debates — who\'s leading in your books?'),
-          controller: _scoreboardDescriptionTextController,
-          keyboardType: TextInputType.multiline,
-          textInputAction: TextInputAction.newline,
-          minLines: 5,
-          maxLines: 5,
-          prefixIcon: const Icon(Icons.description),
-          maxLength: 500,
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(500),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        getTextInputWidget(
-          context: context,
-          label: MessageGenerator.getLabel('type in author'),
-          hint: MessageGenerator.getLabel('Midhun Mohanan'),
-          controller: _scoreboardAuthorTextController,
-          keyboardType: TextInputType.name,
-          textInputAction: TextInputAction.next,
-          prefixIcon: const Icon(Icons.person_2_outlined),
-          maxLength: 20,
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(20),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: AnimatedClickableTextContainer(
-                  title: MessageGenerator.getLabel('Next'),
-                  iconSrc: '',
-                  isActive: false,
-                  bgColor: appColors.pleasantButtonBg,
-                  bgColorHover: appColors.pleasantButtonBgHover,
-                  press: () {
-                    onScoreboardBasicNextButtonPressed();
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 16.h),
+        _buildStepIcon(ScoreboardSetupStage.basic, Icons.info_outline, "Details"),
+        _buildStepLine(ScoreboardSetupStage.players),
+        _buildStepIcon(ScoreboardSetupStage.players, Icons.people_outline, "Roster"),
+        _buildStepLine(ScoreboardSetupStage.access),
+        _buildStepIcon(ScoreboardSetupStage.access, Icons.lock_outline, "Access"),
       ],
     );
   }
 
-  Widget scoreboardSetupPlayerNamesArea(BuildContext context) {
+  Widget _buildStepLine(ScoreboardSetupStage targetStage) {
+    bool isActive = _currentStage.index >= targetStage.index;
+    return Expanded(
+      child: Container(
+        height: 2,
+        color: isActive ? appColors.primaryColor : appColors.disableBgColor,
+      ),
+    );
+  }
+
+  Widget _buildStepIcon(ScoreboardSetupStage stage, IconData icon, String label) {
+    bool isActive = _currentStage.index >= stage.index;
+    bool isCurrent = _currentStage == stage;
     return Column(
       children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isActive ? appColors.primaryColor : appColors.screenBg,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isActive ? appColors.primaryColor : appColors.disableBgColor,
+              width: 2,
+            ),
+            boxShadow: isCurrent
+                ? [
+                    BoxShadow(
+                      color: appColors.primaryColor.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    )
+                  ]
+                : [],
+          ),
+          child: Icon(
+            icon,
+            color: isActive ? Colors.white : appColors.disableBgColor,
+            size: 20.sp,
+          ),
+        ),
         SizedBox(height: 8.h),
-        getTextInputWidget(
-          context: context,
-          label: MessageGenerator.getLabel('player name'),
-          hint: MessageGenerator.getLabel('Messi'),
-          controller: _scoreboardPlayerTextController,
-          keyboardType: TextInputType.name,
-          textInputAction: TextInputAction.go,
-          prefixIcon: const Icon(Icons.person_add_alt_1_outlined),
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(20),
-          ],
-          icon: Icons.add,
-          focusNode: _playerNameAddFocuNode,
-          onPressed: () {
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: isActive ? appColors.primaryColor : appColors.disableBgColor,
+                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCurrentStageWidget(BuildContext context) {
+    switch (_currentStage) {
+      case ScoreboardSetupStage.basic:
+        return ScoreboardSetupBasicStage(
+          idController: _scoreboardIdTextController,
+          titleController: _scoreboardTitleTextController,
+          descriptionController: _scoreboardDescriptionTextController,
+          authorController: _scoreboardAuthorTextController,
+          onNext: onScoreboardBasicNextButtonPressed,
+        );
+      case ScoreboardSetupStage.players:
+        return ScoreboardSetupRosterStage(
+          players: _playerNameList,
+          onAddPlayer: (player) {
             setState(() {
-              _playerNameList.add(_scoreboardPlayerTextController.text);
-              _scoreboardPlayerTextController.clear();
-              _playerNameAddFocuNode.requestFocus();
+              _playerNameList.add(player);
             });
           },
-        ),
-        SizedBox(height: 8.h),
-        _playerNameList.isNotEmpty
-            ? Wrap(
-                spacing: 8.0,
-                runSpacing: 8.0,
-                alignment: WrapAlignment.center,
-                children: _playerNameList.map((player) {
-                  return Chip(
-                    label: Text(player),
-                    onDeleted: () {
-                      setState(() {
-                        _playerNameList.remove(player);
-                      });
-                    },
-                  );
-                }).toList(),
-              )
-            : Text(
-                MessageGenerator.getMessage('scoreboard-setup-players-empty-message'),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: appColors.disableBgColor,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-        SizedBox(height: 8.h),
-        Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: AnimatedClickableTextContainer(
-                  title: MessageGenerator.getLabel('Previous'),
-                  iconSrc: '',
-                  isActive: false,
-                  bgColor: appColors.sideMenuBg,
-                  bgColorHover: appColors.sideMenuHighlight,
-                  press: () {
-                    setState(() {
-                      _currentStage = ScoreboardSetupStage.basic;
-                    });
-                  },
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: AnimatedClickableTextContainer(
-                  title: MessageGenerator.getLabel('Next'),
-                  iconSrc: '',
-                  isActive: false,
-                  bgColor: appColors.pleasantButtonBg,
-                  bgColorHover: appColors.pleasantButtonBgHover,
-                  press: () {
-                    onScoreboardPlayerNamesNextButtonPressed();
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 16.h),
-      ],
-    );
-  }
-
-  Widget scoreboardSetupAccessArea(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(height: 8.h),
-        Text(
-          MessageGenerator.getMessage("scoreboard-setup-access-read-description"),
-          style: Theme.of(context).textTheme.labelSmall,
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 4.h),
-        getTextInputWidget(
-          context: context,
-          label: MessageGenerator.getLabel('read password'),
-          hint: MessageGenerator.getLabel('score@1234'),
-          controller: _scoreboardAccessReadTextController,
-          keyboardType: TextInputType.text,
-          textInputAction: TextInputAction.go,
-          prefixIcon: const Icon(Icons.password_outlined),
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(10),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          MessageGenerator.getMessage("scoreboard-setup-access-write-description"),
-          style: Theme.of(context).textTheme.labelSmall,
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 4.h),
-        getTextInputWidget(
-          context: context,
-          label: MessageGenerator.getLabel('write password'),
-          hint: MessageGenerator.getLabel('score@1234'),
-          controller: _scoreboardAccessWriteTextController,
-          keyboardType: TextInputType.text,
-          textInputAction: TextInputAction.go,
-          prefixIcon: const Icon(Icons.password_outlined),
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(10),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: AnimatedClickableTextContainer(
-                  title: MessageGenerator.getLabel('Previous'),
-                  iconSrc: '',
-                  isActive: false,
-                  bgColor: appColors.sideMenuBg,
-                  bgColorHover: appColors.sideMenuHighlight,
-                  press: () {
-                    setState(() {
-                      _currentStage = ScoreboardSetupStage.basic;
-                    });
-                  },
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: AnimatedClickableTextContainer(
-                  title: MessageGenerator.getLabel('Create Scoreboard'),
-                  iconSrc: '',
-                  isActive: false,
-                  bgColor: appColors.pleasantButtonBg,
-                  bgColorHover: appColors.pleasantButtonBgHover,
-                  press: () {
-                    onScoreboardAccessNextButtonPressed();
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 16.h),
-      ],
-    );
+          onRemovePlayer: (player) {
+            setState(() {
+              _playerNameList.remove(player);
+            });
+          },
+          onNext: onScoreboardPlayerNamesNextButtonPressed,
+          onPrevious: () {
+            setState(() {
+              _currentStage = ScoreboardSetupStage.basic;
+            });
+          },
+        );
+      case ScoreboardSetupStage.access:
+        return ScoreboardSetupAccessStage(
+          readController: _scoreboardAccessReadTextController,
+          writeController: _scoreboardAccessWriteTextController,
+          onNext: onScoreboardAccessNextButtonPressed,
+          onPrevious: () {
+            setState(() {
+              _currentStage = ScoreboardSetupStage.players;
+            });
+          },
+        );
+    }
   }
 
   void onScoreboardBasicNextButtonPressed() {
