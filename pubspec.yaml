@@ -2,7 +2,7 @@ name: scoreease
 description: Track. Update. Share. Score with Ease.
 publish_to: 'none'
 
-version: 2.0.0+2
+version: 3.0.0+3
 
 environment:
   sdk: '>=3.0.6 <4.0.0'
@@ -30,7 +30,7 @@ dependencies:
   get_it: ^7.6.4
   collection: ^1.19.1
   firebase_core: ^3.15.1
-  cloud_firestore: ^5.6.11
+  firebase_database: ^11.0.2
   package_info_plus: ^8.3.0
   flutter_animate: ^4.5.2
 

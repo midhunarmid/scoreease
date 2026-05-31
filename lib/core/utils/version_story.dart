@@ -18,6 +18,18 @@ class ScoreEaseVersionStory {
   String get versionDisplay => versionName;
 
   static Map<String, ScoreEaseVersionStory> versionStoryMap = {
+    "3": ScoreEaseVersionStory(
+      versionSemantic: "3.0.0",
+      versionName: "Kohli",
+      buildNumber: "3",
+      buildDate: "31-May-2026",
+      tagline: "Chasing perfection in real-time.",
+      features: [
+        "Real-Time Speed - Migrated to Firebase Realtime Database for lightning-fast score syncing.",
+        "Cost Efficiency - Optimized architecture to drastically reduce database reads and costs.",
+        "Under the Hood - Refactored data layer to utilize a single-source-of-truth model.",
+      ],
+    ),
     "2": ScoreEaseVersionStory(
       versionSemantic: "2.0.0",
       versionName: "Dhoni",

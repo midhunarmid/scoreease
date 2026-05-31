@@ -7,7 +7,7 @@ import 'package:scoreease/core/utils/di.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:url_strategy/url_strategy.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -22,10 +22,9 @@ Future<void> main() async {
 
   // Configuring firebase database settings. Enabling unlimited caching.
   // We will be clearing cache in our own way
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
+  if (!kIsWeb) {
+    FirebaseDatabase.instance.setPersistenceEnabled(true);
+  }
 
   runApp(const MyApp());
 }

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:scoreease/features/scoreboard/data/models/access_model.dart';
 
@@ -11,8 +11,8 @@ class ScoreboardModel {
   final String? title;
   final String? description;
   final String? author;
-  final Timestamp? createdAt;
-  final Timestamp? lastUpdated;
+  final int? createdAt;
+  final int? lastUpdated;
   final AccessModel? access;
   final Map<String, int>? players;
 
@@ -32,23 +32,15 @@ class ScoreboardModel {
     return 'ScoreboardModel(id: $id, title: $title, description: $description, author: $author, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
   }
 
-  factory ScoreboardModel.fromFirestore(
-    DocumentSnapshot<Map<String, dynamic>> snapshot,
-    SnapshotOptions? options,
-  ) {
-    final data = snapshot.data() ?? {};
-    return ScoreboardModel.fromMap(data);
-  }
-
   factory ScoreboardModel.fromMap(Map<String, dynamic> data) {
     return ScoreboardModel(
       id: data['id'] as String?,
       title: data['title'] as String?,
       description: data['description'] as String?,
       author: data['author'] as String?,
-      createdAt: data['createdAt'] as Timestamp?,
-      lastUpdated: data['lastUpdated'] as Timestamp?,
-      access: data['access'] == null ? null : AccessModel.fromMap(data['access'] as Map<String, dynamic>),
+      createdAt: data['createdAt'] as int?,
+      lastUpdated: data['lastUpdated'] as int?,
+      access: data['access'] == null ? null : AccessModel.fromMap(Map<String, dynamic>.from(data['access'] as Map)),
       players: data['players'] == null ? null : Map<String, int>.from(data['players'] as Map<dynamic, dynamic>),
     );
   }
@@ -59,7 +51,7 @@ class ScoreboardModel {
         'description': description,
         'author': author,
         'createdAt': createdAt,
-        'lastUpdated': FieldValue.serverTimestamp(),
+        'lastUpdated': ServerValue.timestamp,
         'access': access?.toMap(),
         'players': players,
       };
@@ -81,8 +73,8 @@ class ScoreboardModel {
     String? title,
     String? description,
     String? author,
-    Timestamp? createdAt,
-    Timestamp? lastUpdated,
+    int? createdAt,
+    int? lastUpdated,
     AccessModel? access,
     Map<String, int>? players,
   }) {
