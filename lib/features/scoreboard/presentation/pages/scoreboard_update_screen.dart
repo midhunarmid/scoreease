@@ -163,13 +163,14 @@ class _ScoreboardScoreUpdateScreenState
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
           ),
           if (subtitle.isNotEmpty)
             Text(
               subtitle,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).hintColor,
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 10.sp,
                   ),
             ),
@@ -421,7 +422,8 @@ class _ScoreboardScoreUpdateScreenState
             ],
           ),
           GestureDetector(
-            onTap: () => _showCustomScoreDialog(playerName, int.tryParse(playerScore) ?? 0),
+            onTap: () => _showCustomScoreDialog(
+                playerName, int.tryParse(playerScore) ?? 0),
             child: Text(
               playerScore,
               key: ValueKey(playerScore),
@@ -430,7 +432,11 @@ class _ScoreboardScoreUpdateScreenState
                     fontWeight: FontWeight.w900,
                     color: appColors.primaryColor,
                   ),
-            ).animate(key: ValueKey(playerScore)).scaleXY(begin: 1.5, end: 1.0, duration: 250.ms, curve: Curves.easeOutBack),
+            ).animate(key: ValueKey(playerScore)).scaleXY(
+                begin: 1.5,
+                end: 1.0,
+                duration: 250.ms,
+                curve: Curves.easeOutBack),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -451,9 +457,11 @@ class _ScoreboardScoreUpdateScreenState
                     decoration: BoxDecoration(
                       color: appColors.negativeButtonBg.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: appColors.negativeButtonBg, width: 2),
+                      border: Border.all(
+                          color: appColors.negativeButtonBg, width: 2),
                     ),
-                    child: Icon(Icons.remove, color: appColors.negativeButtonBg, size: 32),
+                    child: Icon(Icons.remove,
+                        color: appColors.negativeButtonBg, size: 32),
                   ),
                 ),
               ),
@@ -476,7 +484,8 @@ class _ScoreboardScoreUpdateScreenState
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: appColors.pleasantButtonBg.withValues(alpha: 0.4),
+                          color:
+                              appColors.pleasantButtonBg.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),

@@ -137,13 +137,14 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
           ),
           if (subtitle.isNotEmpty)
             Text(
               subtitle,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).hintColor,
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 10.sp,
                   ),
             ),
@@ -371,15 +372,18 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
               ),
             ],
           ),
-          Text(
-            playerScore,
-            key: ValueKey<String>(playerScore),
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontSize: 64.sp,
-                  fontWeight: FontWeight.w900,
-                  color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
-                ),
-          ).animate(key: ValueKey(playerScore)).fade().scaleXY(begin: 1.5, end: 1.0, duration: 400.ms, curve: Curves.easeOutBack),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              playerScore,
+              key: ValueKey<String>(playerScore),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontSize: 64.sp,
+                    fontWeight: FontWeight.w900,
+                    color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
+                  ),
+            ).animate(key: ValueKey(playerScore)).fade().scaleXY(begin: 1.5, end: 1.0, duration: 400.ms, curve: Curves.easeOutBack),
+          ),
         ],
       ),
     ).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
@@ -489,8 +493,9 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
       itemCount: playersList.length,
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 240,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.75,
         mainAxisSpacing: 16,
+
         crossAxisSpacing: 16,
       ),
       itemBuilder: (context, index) {
