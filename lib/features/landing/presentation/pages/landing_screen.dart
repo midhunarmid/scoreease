@@ -115,6 +115,9 @@ class _LandingScreenState extends State<LandingScreen> {
               appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
+                systemOverlayStyle: Theme.of(context).brightness == Brightness.light
+                    ? SystemUiOverlayStyle.dark
+                    : SystemUiOverlayStyle.light,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings),

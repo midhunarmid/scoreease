@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +12,7 @@ import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/animated_container.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ScoreboardScoreDisplayScreen extends StatefulWidget {
   final String _id;
@@ -168,18 +169,10 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
         ),
         IconButton(
           icon: const Icon(Icons.share_outlined),
-          tooltip: "Copy Link",
+          tooltip: "Share Scoreboard",
           onPressed: () {
-            final link = Uri.base.toString();
-            Clipboard.setData(ClipboardData(text: link));
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text("Scoreboard link copied to clipboard!"),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: appColors.pleasantButtonBg,
-                duration: const Duration(seconds: 2),
-              ),
-            );
+            final link = "$appBaseUrl/display?id=$_id";
+            SharePlus.instance.share(ShareParams(text: "Check out the live scores on ScoreEase!\n$link"));
           },
         ),
         IconButton(

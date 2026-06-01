@@ -16,9 +16,15 @@ Future<void> main() async {
   setPathUrlStrategy();
   setupDependencies();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    if (!e.toString().contains('duplicate-app')) {
+      rethrow;
+    }
+  }
 
   // Configuring firebase database settings. Enabling unlimited caching.
   // We will be clearing cache in our own way
