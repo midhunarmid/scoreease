@@ -1,7 +1,7 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true,
+    ".read": "auth != null",
+    ".write": "auth != null",
     "scoreboards": {
       "$scoreboardId": {
         // Here you can add specific validation later

@@ -8,6 +8,7 @@ class ScoreboardEntity {
   final String? title;
   final String? description;
   final String? author;
+  final String? ownerId;
   final DateTime? createdAt;
   final DateTime? lastUpdated;
   final AccessEntity? access;
@@ -18,6 +19,7 @@ class ScoreboardEntity {
     this.title,
     this.description,
     this.author,
+    this.ownerId,
     this.createdAt,
     this.lastUpdated,
     this.access,
@@ -29,6 +31,7 @@ class ScoreboardEntity {
     String? title,
     String? description,
     String? author,
+    String? ownerId,
     DateTime? createdAt,
     DateTime? lastUpdated,
     AccessEntity? access,
@@ -39,6 +42,7 @@ class ScoreboardEntity {
       title: title ?? this.title,
       description: description ?? this.description,
       author: author ?? this.author,
+      ownerId: ownerId ?? this.ownerId,
       createdAt: createdAt ?? this.createdAt,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       access: access ?? this.access,
@@ -48,7 +52,7 @@ class ScoreboardEntity {
 
   @override
   String toString() {
-    return 'ScoreboardEntity(id: $id, title: $title, description: $description, author: $author, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
+    return 'ScoreboardEntity(id: $id, title: $title, description: $description, author: $author, ownerId: $ownerId, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
   }
 
   @override

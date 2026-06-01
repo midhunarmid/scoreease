@@ -486,7 +486,7 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
       itemCount: playersList.length,
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 240,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.70,
         mainAxisSpacing: 16,
 
         crossAxisSpacing: 16,

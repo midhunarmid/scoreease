@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
@@ -25,7 +25,7 @@ final GoRouter router = GoRouter(
       "/signup",
     ].contains(state.fullPath)) {
       // if any routes which needs auth, check for auth
-      bool auth = Random().nextBool();
+      bool auth = FirebaseAuth.instance.currentUser != null;
       if (!auth) {
         // if not authenticated, show signin screen
         return "/${LandingScreen.routeName}";

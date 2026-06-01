@@ -11,6 +11,7 @@ class ScoreboardModel {
   final String? title;
   final String? description;
   final String? author;
+  final String? ownerId;
   final int? createdAt;
   final int? lastUpdated;
   final AccessModel? access;
@@ -21,6 +22,7 @@ class ScoreboardModel {
     this.title,
     this.description,
     this.author,
+    this.ownerId,
     this.createdAt,
     this.lastUpdated,
     this.access,
@@ -29,7 +31,7 @@ class ScoreboardModel {
 
   @override
   String toString() {
-    return 'ScoreboardModel(id: $id, title: $title, description: $description, author: $author, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
+    return 'ScoreboardModel(id: $id, title: $title, description: $description, author: $author, ownerId: $ownerId, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
   }
 
   factory ScoreboardModel.fromMap(Map<String, dynamic> data) {
@@ -38,6 +40,7 @@ class ScoreboardModel {
       title: data['title'] as String?,
       description: data['description'] as String?,
       author: data['author'] as String?,
+      ownerId: data['ownerId'] as String?,
       createdAt: data['createdAt'] as int?,
       lastUpdated: data['lastUpdated'] as int?,
       access: data['access'] == null ? null : AccessModel.fromMap(Map<String, dynamic>.from(data['access'] as Map)),
@@ -50,6 +53,7 @@ class ScoreboardModel {
         'title': title,
         'description': description,
         'author': author,
+        'ownerId': ownerId,
         'createdAt': createdAt,
         'lastUpdated': ServerValue.timestamp,
         'access': access?.toMap(),
@@ -73,6 +77,7 @@ class ScoreboardModel {
     String? title,
     String? description,
     String? author,
+    String? ownerId,
     int? createdAt,
     int? lastUpdated,
     AccessModel? access,
@@ -83,6 +88,7 @@ class ScoreboardModel {
       title: title ?? this.title,
       description: description ?? this.description,
       author: author ?? this.author,
+      ownerId: ownerId ?? this.ownerId,
       createdAt: createdAt ?? this.createdAt,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       access: access ?? this.access,

@@ -14,6 +14,7 @@ import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/score_change_indicator.dart';
 
 class ScoreboardScoreUpdateScreen extends StatefulWidget {
   final ScoreboardEntity? _scoreboardEntity;
@@ -35,6 +36,7 @@ class _ScoreboardScoreUpdateScreenState
   ScoreboardEntity? _scoreboardEntity;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
+  final Map<String, GlobalKey<ScoreChangeIndicatorState>> _indicatorKeys = {};
 
   @override
   void initState() {
@@ -371,16 +373,20 @@ class _ScoreboardScoreUpdateScreenState
     final avatarColor = _getAvatarColor(playerName);
     final firstLetter =
         playerName.isNotEmpty ? playerName[0].toUpperCase() : "?";
+    final indicatorKey = _indicatorKeys.putIfAbsent(
+        playerName, () => GlobalKey<ScoreChangeIndicatorState>());
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: appColors.primaryColor.withValues(alpha: 0.12),
-          width: 1.5,
-        ),
+    return ScoreChangeIndicator(
+      key: indicatorKey,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: appColors.primaryColor.withValues(alpha: 0.12),
+            width: 1.5,
+          ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -423,7 +429,7 @@ class _ScoreboardScoreUpdateScreenState
           ),
           GestureDetector(
             onTap: () => _showCustomScoreDialog(
-                playerName, int.tryParse(playerScore) ?? 0),
+                playerName, int.tryParse(playerScore) ?? 0, indicatorKey),
             child: Text(
               playerScore,
               key: ValueKey(playerScore),
@@ -445,6 +451,7 @@ class _ScoreboardScoreUpdateScreenState
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.lightImpact();
+                    indicatorKey.currentState?.showDelta(-1);
                     _bloc.add(ScoreboardUpdatePlayerScoreEvent(
                       playerName,
                       _scoreboardEntity!,
@@ -470,6 +477,7 @@ class _ScoreboardScoreUpdateScreenState
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.mediumImpact();
+                    indicatorKey.currentState?.showDelta(1);
                     _bloc.add(ScoreboardUpdatePlayerScoreEvent(
                       playerName,
                       _scoreboardEntity!,
@@ -499,10 +507,10 @@ class _ScoreboardScoreUpdateScreenState
           ),
         ],
       ),
-    ).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
+    )).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
   }
 
-  void _showCustomScoreDialog(String playerName, int currentScore) {
+  void _showCustomScoreDialog(String playerName, int currentScore, GlobalKey<ScoreChangeIndicatorState> indicatorKey) {
     final controller = TextEditingController(text: currentScore.toString());
     showDialog(
       context: context,
@@ -555,6 +563,7 @@ class _ScoreboardScoreUpdateScreenState
                 final newScore = int.tryParse(controller.text) ?? currentScore;
                 final delta = newScore - currentScore;
                 if (delta != 0) {
+                  indicatorKey.currentState?.showDelta(delta);
                   _bloc.add(ScoreboardUpdatePlayerScoreEvent(
                     playerName,
                     _scoreboardEntity!,

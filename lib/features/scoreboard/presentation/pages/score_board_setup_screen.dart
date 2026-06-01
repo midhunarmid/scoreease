@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/gestures.dart';
@@ -437,6 +438,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       title: _scoreboardTitleTextController.text,
       description: _scoreboardDescriptionTextController.text,
       author: _scoreboardAuthorTextController.text,
+      ownerId: FirebaseAuth.instance.currentUser?.uid,
       players: const {},
       access: const AccessEntity(
         read: "",
