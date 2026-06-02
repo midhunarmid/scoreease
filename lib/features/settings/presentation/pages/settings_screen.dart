@@ -7,6 +7,7 @@ import 'package:scoreease/core/utils/version_story.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:scoreease/core/utils/global.dart';
 
 class SettingsScreen extends StatefulWidget {
   static const routeName = 'settings';
@@ -156,6 +157,33 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
         launchUrl(Uri.parse('https://github.com/midhunarmid/scoreease/graphs/contributors'));
       },
       type: SettingsItemType.link,
+    ),
+    SettingsItem(
+      title: 'Clear Saved Passwords',
+      description: 'Clear all locally saved scoreboard passwords.',
+      onTap: () {
+        showTwoButtonAlertDialog(
+          context: context,
+          title: "Clear Passwords",
+          message: "Are you sure you want to clear all locally saved scoreboard accesses? You will have to enter passwords again.",
+          positiveButton: "Clear",
+          negativeButton: "Cancel",
+          positiveAction: () async {
+            await GlobalValues.clearAllScoreboardAccesses();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("All saved passwords cleared successfully!"),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: appColors.pleasantButtonBg,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+        );
+      },
+      type: SettingsItemType.info, // You can use a specific type if you want
     ),
   ];
 }

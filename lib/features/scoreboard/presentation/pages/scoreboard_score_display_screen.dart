@@ -6,10 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
+import 'package:scoreease/core/utils/global.dart';
 import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/animated_container.dart';
+import 'package:scoreease/core/widgets/password_prompt_widget.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
@@ -28,12 +30,23 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
   ScoreboardEntity? _scoreboardEntity;
   late String _id;
   bool _sortByScore = true; // Default to sort by score/rank
+  bool _isReadUnlocked = false;
 
   @override
   void initState() {
     super.initState();
     _id = widget._id;
+    _checkSavedAccess();
     _bloc.add(ScoreboardListenPlayerScoreEvent(_id));
+  }
+
+  Future<void> _checkSavedAccess() async {
+    final hasAccess = await GlobalValues.hasScoreboardAccess(scoreboardId: _id, type: 'read');
+    if (hasAccess && mounted) {
+      setState(() {
+        _isReadUnlocked = true;
+      });
+    }
   }
 
   @override
@@ -58,6 +71,24 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
         bloc: _bloc,
         builder: (ctx, state) {
+          if (_scoreboardEntity != null) {
+            final readPass = _scoreboardEntity!.access?.read;
+            if (readPass != null && readPass.isNotEmpty && !_isReadUnlocked) {
+              return PasswordPromptWidget(
+                expectedPassword: readPass,
+                title: "Protected Scoreboard",
+                message: "Enter the read password to view this scoreboard.",
+                onSuccess: () {
+                  GlobalValues.unlockScoreboardAccess(scoreboardId: _id, type: 'read');
+                  setState(() {
+                    _isReadUnlocked = true;
+                  });
+                },
+                onCancel: () => context.go('/'),
+              );
+            }
+          }
+
           List<String> playersList = _scoreboardEntity?.players?.keys.toList() ?? [];
 
           // Sort players based on current preference
@@ -179,7 +210,7 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
           icon: const Icon(Icons.edit_note_outlined),
           tooltip: "Update Scores",
           onPressed: () {
-            context.go("/${ScoreboardScoreUpdateScreen.routeName}?id=$_id", extra: _scoreboardEntity);
+            context.push("/${ScoreboardScoreUpdateScreen.routeName}?id=$_id", extra: _scoreboardEntity);
           },
         ),
       ],

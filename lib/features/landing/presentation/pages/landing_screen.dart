@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:scoreease/features/landing/presentation/blocs/landing/landing_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/score_board_setup_screen.dart';
-import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
+
+import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
 import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/message_generator.dart';
@@ -104,8 +105,7 @@ class _LandingScreenState extends State<LandingScreen> {
           );
         } else if (state is LandingScoreCardReceivedState) {
           context.go(
-              "/${ScoreboardScoreUpdateScreen.routeName}?id=${state.scoreboard.id}",
-              extra: state.scoreboard);
+              "/${ScoreboardScoreDisplayScreen.routeName}?id=${state.scoreboard.id}");
         }
       },
       child: BlocBuilder<LandingBloc, LandingState>(

@@ -25,6 +25,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_basic_stage.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_roster_stage.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_access_stage.dart';
+import 'package:scoreease/core/utils/security_helper.dart';
 
 class ScoreboardSetupScreen extends StatefulWidget {
   const ScoreboardSetupScreen({Key? key}) : super(key: key);
@@ -458,8 +459,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
   void onScoreboardAccessNextButtonPressed() {
     _scoreboardEntity = _scoreboardEntity.copyWith(
       access: AccessEntity(
-        read: _scoreboardAccessReadTextController.text,
-        write: _scoreboardAccessWriteTextController.text,
+        read: SecurityHelper.hashPassword(_scoreboardAccessReadTextController.text),
+        write: SecurityHelper.hashPassword(_scoreboardAccessWriteTextController.text),
       ),
     );
     _bloc.add(ScoreboardSetupFinalSubmitEvent(_scoreboardEntity));

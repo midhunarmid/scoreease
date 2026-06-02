@@ -8,10 +8,12 @@ import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
+import 'package:scoreease/core/utils/global.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
 import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
+import 'package:scoreease/core/widgets/password_prompt_widget.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/score_change_indicator.dart';
@@ -37,13 +39,24 @@ class _ScoreboardScoreUpdateScreenState
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
   final Map<String, GlobalKey<ScoreChangeIndicatorState>> _indicatorKeys = {};
+  bool _isWriteUnlocked = false;
 
   @override
   void initState() {
     super.initState();
     _scoreboardEntity = widget._scoreboardEntity;
+    _checkSavedAccess();
     if (_scoreboardEntity == null) {
       _bloc.add(ScoreboardGetEvent(widget._id));
+    }
+  }
+
+  Future<void> _checkSavedAccess() async {
+    final hasAccess = await GlobalValues.hasScoreboardAccess(scoreboardId: widget._id, type: 'write');
+    if (hasAccess && mounted) {
+      setState(() {
+        _isWriteUnlocked = true;
+      });
     }
   }
 
@@ -113,6 +126,30 @@ class _ScoreboardScoreUpdateScreenState
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
         bloc: _bloc,
         builder: (ctx, state) {
+          if (_scoreboardEntity != null) {
+            final writePass = _scoreboardEntity!.access?.write;
+            if (writePass != null && writePass.isNotEmpty && !_isWriteUnlocked) {
+              return PasswordPromptWidget(
+                expectedPassword: writePass,
+                title: "Update Protected Scoreboard",
+                message: "Enter the write password to update scores.",
+                onSuccess: () {
+                  GlobalValues.unlockScoreboardAccess(scoreboardId: widget._id, type: 'write');
+                  setState(() {
+                    _isWriteUnlocked = true;
+                  });
+                },
+                onCancel: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/display?id=${widget._id}');
+                  }
+                },
+              );
+            }
+          }
+
           List<String> playersList =
               _scoreboardEntity?.players?.keys.toList() ?? [];
           playersList.sort(); // Sort players alphabetically for consistency
@@ -181,7 +218,11 @@ class _ScoreboardScoreUpdateScreenState
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () {
-          context.go("/");
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/display?id=${widget._id}');
+          }
         },
       ),
       actions: [
