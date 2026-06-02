@@ -1,9 +1,9 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/access_entity.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
@@ -11,11 +11,9 @@ import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_set
 import 'package:scoreease/features/landing/presentation/pages/landing_screen.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
 import 'package:scoreease/core/utils/constants.dart';
-import 'package:scoreease/core/utils/input_case_text_formatter.dart';
 import 'package:scoreease/core/utils/message_generator.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
-import 'package:scoreease/core/widgets/animated_container.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loading_indicator/loading_indicator.dart';
@@ -27,6 +25,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_basic_stage.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_roster_stage.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_access_stage.dart';
+import 'package:scoreease/core/utils/security_helper.dart';
 
 class ScoreboardSetupScreen extends StatefulWidget {
   const ScoreboardSetupScreen({Key? key}) : super(key: key);
@@ -440,6 +439,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       title: _scoreboardTitleTextController.text,
       description: _scoreboardDescriptionTextController.text,
       author: _scoreboardAuthorTextController.text,
+      ownerId: FirebaseAuth.instance.currentUser?.uid,
       players: const {},
       access: const AccessEntity(
         read: "",
@@ -459,8 +459,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
   void onScoreboardAccessNextButtonPressed() {
     _scoreboardEntity = _scoreboardEntity.copyWith(
       access: AccessEntity(
-        read: _scoreboardAccessReadTextController.text,
-        write: _scoreboardAccessWriteTextController.text,
+        read: SecurityHelper.hashPassword(_scoreboardAccessReadTextController.text),
+        write: SecurityHelper.hashPassword(_scoreboardAccessWriteTextController.text),
       ),
     );
     _bloc.add(ScoreboardSetupFinalSubmitEvent(_scoreboardEntity));

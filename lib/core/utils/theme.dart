@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/* Light theme default */
+/* Global dynamic theme objects */
 AppColors appColors = AppColorsLight();
 ThemeData appTheme = getLightTheme();
 
-/* Dark theme default */
-// AppColors appColors = AppColorsDark();
-// ThemeData appTheme = getDarkTheme();
-
 ThemeData getLightTheme() {
+  final AppColorsLight colors = AppColorsLight();
   return ThemeData(
     scaffoldBackgroundColor: const Color(0xFFF0FDF4),
     applyElevationOverlayColor: false,
@@ -27,43 +24,44 @@ ThemeData getLightTheme() {
         textStyle: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
-            color: appColors.textColor),
+            color: colors.textColor),
       ),
       headlineLarge: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 22.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.bold)),
       headlineMedium: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 20.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.bold)),
       headlineSmall: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 18.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.bold)),
       labelLarge: GoogleFonts.urbanist(
           textStyle: TextStyle(
               fontSize: 16.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.bold)),
       labelMedium: GoogleFonts.urbanist(
           textStyle: TextStyle(
               fontSize: 14.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.w500)),
       labelSmall: GoogleFonts.urbanist(
           textStyle: TextStyle(
               fontSize: 12.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.w400)),
     ),
   );
 }
 
 ThemeData getDarkTheme() {
+  final AppColorsDark colors = AppColorsDark();
   return ThemeData(
     scaffoldBackgroundColor: const Color(0xFF111827),
     applyElevationOverlayColor: true,
@@ -80,37 +78,37 @@ ThemeData getDarkTheme() {
         textStyle: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
-            color: appColors.textColor),
+            color: colors.textColor),
       ),
       headlineLarge: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 22.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.bold)),
       headlineMedium: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 20.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.bold)),
       headlineSmall: GoogleFonts.oswald(
           textStyle: TextStyle(
               fontSize: 18.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.bold)),
       labelLarge: GoogleFonts.urbanist(
           textStyle: TextStyle(
               fontSize: 16.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.bold)),
       labelMedium: GoogleFonts.urbanist(
           textStyle: TextStyle(
               fontSize: 14.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.w500)),
       labelSmall: GoogleFonts.urbanist(
           textStyle: TextStyle(
               fontSize: 12.sp,
-              color: appColors.textColor,
+              color: colors.textColor,
               fontWeight: FontWeight.w400)),
     ),
   );

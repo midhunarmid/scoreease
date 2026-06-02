@@ -5,9 +5,11 @@ import 'package:scoreease/core/navigation/app_router.dart';
 import 'package:scoreease/features/landing/presentation/pages/landing_screen.dart';
 import 'package:scoreease/core/utils/di.dart';
 import 'package:scoreease/core/utils/theme.dart';
+import 'package:scoreease/core/utils/theme_provider.dart';
 import 'package:url_strategy/url_strategy.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -16,16 +18,24 @@ Future<void> main() async {
   setPathUrlStrategy();
   setupDependencies();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+    }
+  } catch (e) {
+    if (!e.toString().contains('duplicate-app')) {
+      rethrow;
+    }
+  }
 
   // Configuring firebase database settings. Enabling unlimited caching.
   // We will be clearing cache in our own way
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
+  if (!kIsWeb) {
+    FirebaseDatabase.instance.setPersistenceEnabled(true);
+  }
 
   runApp(const MyApp());
 }
@@ -42,12 +52,18 @@ class MyApp extends StatelessWidget {
       minTextAdapt: false,
       fontSizeResolver: FontSizeResolvers.radius,
       builder: (context, child) {
-        return MaterialApp.router(
-          routerConfig: router,
-          title: "scoreease",
-          debugShowCheckedModeBanner: false,
-          theme: appTheme,
-          darkTheme: appTheme,
+        return ListenableBuilder(
+          listenable: themeProvider,
+          builder: (context, _) {
+            return MaterialApp.router(
+              routerConfig: router,
+              title: "scoreease",
+              debugShowCheckedModeBanner: false,
+              theme: getLightTheme(),
+              darkTheme: getDarkTheme(),
+              themeMode: themeProvider.themeMode,
+            );
+          },
         );
       },
       child: const LandingScreen(),

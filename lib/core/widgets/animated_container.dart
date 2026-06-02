@@ -66,7 +66,10 @@ class _AnimatedClickableTextContainerState
         onTapCancel: () => setState(() {
           isHover = false;
         }),
-        child: ListTile(onTap: widget.press, title: getMenuItem()),
+        child: Material(
+          type: MaterialType.transparency,
+          child: ListTile(onTap: widget.press, title: getMenuItem()),
+        ),
       ),
     );
   }

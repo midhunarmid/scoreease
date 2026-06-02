@@ -8,12 +8,15 @@ import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
+import 'package:scoreease/core/utils/global.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
 import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
+import 'package:scoreease/core/widgets/password_prompt_widget.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/score_change_indicator.dart';
 
 class ScoreboardScoreUpdateScreen extends StatefulWidget {
   final ScoreboardEntity? _scoreboardEntity;
@@ -35,13 +38,25 @@ class _ScoreboardScoreUpdateScreenState
   ScoreboardEntity? _scoreboardEntity;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
+  final Map<String, GlobalKey<ScoreChangeIndicatorState>> _indicatorKeys = {};
+  bool _isWriteUnlocked = false;
 
   @override
   void initState() {
     super.initState();
     _scoreboardEntity = widget._scoreboardEntity;
+    _checkSavedAccess();
     if (_scoreboardEntity == null) {
       _bloc.add(ScoreboardGetEvent(widget._id));
+    }
+  }
+
+  Future<void> _checkSavedAccess() async {
+    final hasAccess = await GlobalValues.hasScoreboardAccess(scoreboardId: widget._id, type: 'write');
+    if (hasAccess && mounted) {
+      setState(() {
+        _isWriteUnlocked = true;
+      });
     }
   }
 
@@ -111,6 +126,30 @@ class _ScoreboardScoreUpdateScreenState
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
         bloc: _bloc,
         builder: (ctx, state) {
+          if (_scoreboardEntity != null) {
+            final writePass = _scoreboardEntity!.access?.write;
+            if (writePass != null && writePass.isNotEmpty && !_isWriteUnlocked) {
+              return PasswordPromptWidget(
+                expectedPassword: writePass,
+                title: "Update Protected Scoreboard",
+                message: "Enter the write password to update scores.",
+                onSuccess: () {
+                  GlobalValues.unlockScoreboardAccess(scoreboardId: widget._id, type: 'write');
+                  setState(() {
+                    _isWriteUnlocked = true;
+                  });
+                },
+                onCancel: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/display?id=${widget._id}');
+                  }
+                },
+              );
+            }
+          }
+
           List<String> playersList =
               _scoreboardEntity?.players?.keys.toList() ?? [];
           playersList.sort(); // Sort players alphabetically for consistency
@@ -163,13 +202,14 @@ class _ScoreboardScoreUpdateScreenState
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
           ),
           if (subtitle.isNotEmpty)
             Text(
               subtitle,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).hintColor,
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 10.sp,
                   ),
             ),
@@ -178,7 +218,11 @@ class _ScoreboardScoreUpdateScreenState
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () {
-          context.go("/");
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/display?id=${widget._id}');
+          }
         },
       ),
       actions: [
@@ -370,16 +414,20 @@ class _ScoreboardScoreUpdateScreenState
     final avatarColor = _getAvatarColor(playerName);
     final firstLetter =
         playerName.isNotEmpty ? playerName[0].toUpperCase() : "?";
+    final indicatorKey = _indicatorKeys.putIfAbsent(
+        playerName, () => GlobalKey<ScoreChangeIndicatorState>());
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: appColors.primaryColor.withValues(alpha: 0.12),
-          width: 1.5,
-        ),
+    return ScoreChangeIndicator(
+      key: indicatorKey,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: appColors.primaryColor.withValues(alpha: 0.12),
+            width: 1.5,
+          ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -421,7 +469,8 @@ class _ScoreboardScoreUpdateScreenState
             ],
           ),
           GestureDetector(
-            onTap: () => _showCustomScoreDialog(playerName, int.tryParse(playerScore) ?? 0),
+            onTap: () => _showCustomScoreDialog(
+                playerName, int.tryParse(playerScore) ?? 0, indicatorKey),
             child: Text(
               playerScore,
               key: ValueKey(playerScore),
@@ -430,7 +479,11 @@ class _ScoreboardScoreUpdateScreenState
                     fontWeight: FontWeight.w900,
                     color: appColors.primaryColor,
                   ),
-            ).animate(key: ValueKey(playerScore)).scaleXY(begin: 1.5, end: 1.0, duration: 250.ms, curve: Curves.easeOutBack),
+            ).animate(key: ValueKey(playerScore)).scaleXY(
+                begin: 1.5,
+                end: 1.0,
+                duration: 250.ms,
+                curve: Curves.easeOutBack),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -439,6 +492,7 @@ class _ScoreboardScoreUpdateScreenState
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.lightImpact();
+                    indicatorKey.currentState?.showDelta(-1);
                     _bloc.add(ScoreboardUpdatePlayerScoreEvent(
                       playerName,
                       _scoreboardEntity!,
@@ -451,9 +505,11 @@ class _ScoreboardScoreUpdateScreenState
                     decoration: BoxDecoration(
                       color: appColors.negativeButtonBg.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: appColors.negativeButtonBg, width: 2),
+                      border: Border.all(
+                          color: appColors.negativeButtonBg, width: 2),
                     ),
-                    child: Icon(Icons.remove, color: appColors.negativeButtonBg, size: 32),
+                    child: Icon(Icons.remove,
+                        color: appColors.negativeButtonBg, size: 32),
                   ),
                 ),
               ),
@@ -462,6 +518,7 @@ class _ScoreboardScoreUpdateScreenState
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.mediumImpact();
+                    indicatorKey.currentState?.showDelta(1);
                     _bloc.add(ScoreboardUpdatePlayerScoreEvent(
                       playerName,
                       _scoreboardEntity!,
@@ -476,7 +533,8 @@ class _ScoreboardScoreUpdateScreenState
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: appColors.pleasantButtonBg.withValues(alpha: 0.4),
+                          color:
+                              appColors.pleasantButtonBg.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -490,10 +548,10 @@ class _ScoreboardScoreUpdateScreenState
           ),
         ],
       ),
-    ).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
+    )).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
   }
 
-  void _showCustomScoreDialog(String playerName, int currentScore) {
+  void _showCustomScoreDialog(String playerName, int currentScore, GlobalKey<ScoreChangeIndicatorState> indicatorKey) {
     final controller = TextEditingController(text: currentScore.toString());
     showDialog(
       context: context,
@@ -546,6 +604,7 @@ class _ScoreboardScoreUpdateScreenState
                 final newScore = int.tryParse(controller.text) ?? currentScore;
                 final delta = newScore - currentScore;
                 if (delta != 0) {
+                  indicatorKey.currentState?.showDelta(delta);
                   _bloc.add(ScoreboardUpdatePlayerScoreEvent(
                     playerName,
                     _scoreboardEntity!,

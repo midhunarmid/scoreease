@@ -1,12 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:scoreease/core/utils/firebase_collections.dart';
 import 'package:scoreease/features/scoreboard/data/models/scoreboard_model.dart';
-import 'package:scoreease/core/utils/global.dart';
 import 'package:scoreease/core/utils/my_app_exception.dart';
 import 'package:scoreease/main.dart';
 
 class ScoreboardRemoteDataSource {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseDatabase _db = FirebaseDatabase.instance;
 
   Future<ScoreboardModel?> getScoreboard({required String id}) async {
     if (id.isEmpty) {
@@ -15,37 +14,16 @@ class ScoreboardRemoteDataSource {
     }
 
     String collection = FireStoreCollection.scoreboards.name;
+    DataSnapshot snapshot = await _db.ref(collection).child(id).get();
 
-    Query query = _db.collection(collection);
-    query.orderBy("id");
-    query = query.where("id", isEqualTo: id);
-
-    int lastUpdated = await GlobalValues.getLastUpdatedTime(collection: collection);
-    DateTime lastUpdatedTime = DateTime.fromMillisecondsSinceEpoch(lastUpdated);
-    MyApp.debugPrint("getLastUpdatedTime $lastUpdated");
-
-    QuerySnapshot<ScoreboardModel> querySnapshotServer = await query
-        .withConverter(
-          fromFirestore: ScoreboardModel.fromFirestore,
-          toFirestore: (ScoreboardModel data, _) => data.toMap(),
-        )
-        .where("lastUpdated", isGreaterThan: lastUpdatedTime)
-        .get(const GetOptions(source: Source.server));
-
-    List<ScoreboardModel> resultList = [];
-
-    if (querySnapshotServer.docs.isNotEmpty) {
-      for (QueryDocumentSnapshot docSnapshot in querySnapshotServer.docs) {
-        resultList.add(docSnapshot.data() as ScoreboardModel);
-      }
-
-      await GlobalValues.setLastUpdatedTime(
-          collection: collection, lastUpdateTime: DateTime.now().millisecondsSinceEpoch);
+    if (snapshot.value != null) {
+      ScoreboardModel model = ScoreboardModel.fromMap(Map<String, dynamic>.from(snapshot.value as Map));
+      MyApp.debugPrint("Server items [$model]");
+      return model;
     }
 
-    MyApp.debugPrint("Server items ${resultList.toString()}");
-
-    return resultList.isNotEmpty ? resultList.first : null;
+    MyApp.debugPrint("Server items []");
+    return null;
   }
 
   Future<String?> saveScoreboard({required ScoreboardModel scoreboardModel}) async {
@@ -56,8 +34,7 @@ class ScoreboardRemoteDataSource {
     }
 
     String collection = FireStoreCollection.scoreboards.name;
-    // DocumentReference doc = await _db.collection(collection).add(scoreboardModel.toMap());
-    await _db.collection(collection).doc(id).set(scoreboardModel.toMap());
+    await _db.ref(collection).child(id).set(scoreboardModel.toMap());
 
     MyApp.debugPrint("Scoreboard saved with id $id");
     return id;
@@ -73,6 +50,14 @@ class ScoreboardRemoteDataSource {
       );
     }
 
-    return _db.collection(collection).doc(id).snapshots().map((snapshot) => ScoreboardModel.fromMap(snapshot.data()!));
+    return _db.ref(collection).child(id).onValue.map((event) {
+      if (event.snapshot.value == null) {
+        throw const MyAppException(
+          title: "Scoreboard Not Found",
+          message: "The scoreboard data is empty or has been deleted.",
+        );
+      }
+      return ScoreboardModel.fromMap(Map<String, dynamic>.from(event.snapshot.value as Map));
+    });
   }
 }

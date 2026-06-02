@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scoreease/features/scoreboard/data/mappers/access_mapper.dart';
 import 'package:scoreease/features/scoreboard/data/models/scoreboard_model.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
@@ -10,8 +9,9 @@ class ScoreboardMapper {
       title: model.title,
       description: model.description,
       author: model.author,
-      createdAt: model.createdAt?.toDate(),
-      lastUpdated: model.lastUpdated?.toDate(),
+      ownerId: model.ownerId,
+      createdAt: model.createdAt != null ? DateTime.fromMillisecondsSinceEpoch(model.createdAt!) : null,
+      lastUpdated: model.lastUpdated != null ? DateTime.fromMillisecondsSinceEpoch(model.lastUpdated!) : null,
       access: model.access == null ? null : AccessMapper.toEntity(model.access!),
       players: model.players,
     );
@@ -23,8 +23,9 @@ class ScoreboardMapper {
       title: entity.title,
       description: entity.description,
       author: entity.author,
-      createdAt: entity.createdAt != null ? Timestamp.fromDate(entity.createdAt!) : null,
-      lastUpdated: entity.lastUpdated != null ? Timestamp.fromDate(entity.lastUpdated!) : null,
+      ownerId: entity.ownerId,
+      createdAt: entity.createdAt?.millisecondsSinceEpoch,
+      lastUpdated: entity.lastUpdated?.millisecondsSinceEpoch,
       access: entity.access == null ? null : AccessMapper.fromEntity(entity.access!),
       players: entity.players,
     );

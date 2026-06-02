@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '580234066545',
     projectId: 'scoreease-98ed8',
     authDomain: 'scoreease-98ed8.firebaseapp.com',
+    databaseURL: 'https://scoreease-98ed8-default-rtdb.firebaseio.com',
     storageBucket: 'scoreease-98ed8.firebasestorage.app',
     measurementId: 'G-PRLTHJ48ZX',
   );
@@ -55,6 +56,7 @@ class DefaultFirebaseOptions {
     appId: '1:580234066545:android:8c38180831901bbc4c39d0',
     messagingSenderId: '580234066545',
     projectId: 'scoreease-98ed8',
+    databaseURL: 'https://scoreease-98ed8-default-rtdb.firebaseio.com',
     storageBucket: 'scoreease-98ed8.firebasestorage.app',
   );
 
@@ -63,6 +65,7 @@ class DefaultFirebaseOptions {
     appId: '1:580234066545:ios:b8722bfa793c67144c39d0',
     messagingSenderId: '580234066545',
     projectId: 'scoreease-98ed8',
+    databaseURL: 'https://scoreease-98ed8-default-rtdb.firebaseio.com',
     storageBucket: 'scoreease-98ed8.firebasestorage.app',
     iosBundleId: 'in.armid.scoreease',
   );
@@ -72,6 +75,7 @@ class DefaultFirebaseOptions {
     appId: '1:580234066545:ios:b8722bfa793c67144c39d0',
     messagingSenderId: '580234066545',
     projectId: 'scoreease-98ed8',
+    databaseURL: 'https://scoreease-98ed8-default-rtdb.firebaseio.com',
     storageBucket: 'scoreease-98ed8.firebasestorage.app',
     iosBundleId: 'in.armid.scoreease',
   );
@@ -82,6 +86,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '580234066545',
     projectId: 'scoreease-98ed8',
     authDomain: 'scoreease-98ed8.firebaseapp.com',
+    databaseURL: 'https://scoreease-98ed8-default-rtdb.firebaseio.com',
     storageBucket: 'scoreease-98ed8.firebasestorage.app',
     measurementId: 'G-E7Y35XB986',
   );

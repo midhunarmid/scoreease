@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
+import 'package:scoreease/core/utils/global.dart';
 import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/animated_container.dart';
+import 'package:scoreease/core/widgets/password_prompt_widget.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ScoreboardScoreDisplayScreen extends StatefulWidget {
   final String _id;
@@ -27,12 +30,23 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
   ScoreboardEntity? _scoreboardEntity;
   late String _id;
   bool _sortByScore = true; // Default to sort by score/rank
+  bool _isReadUnlocked = false;
 
   @override
   void initState() {
     super.initState();
     _id = widget._id;
+    _checkSavedAccess();
     _bloc.add(ScoreboardListenPlayerScoreEvent(_id));
+  }
+
+  Future<void> _checkSavedAccess() async {
+    final hasAccess = await GlobalValues.hasScoreboardAccess(scoreboardId: _id, type: 'read');
+    if (hasAccess && mounted) {
+      setState(() {
+        _isReadUnlocked = true;
+      });
+    }
   }
 
   @override
@@ -57,6 +71,24 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
         bloc: _bloc,
         builder: (ctx, state) {
+          if (_scoreboardEntity != null) {
+            final readPass = _scoreboardEntity!.access?.read;
+            if (readPass != null && readPass.isNotEmpty && !_isReadUnlocked) {
+              return PasswordPromptWidget(
+                expectedPassword: readPass,
+                title: "Protected Scoreboard",
+                message: "Enter the read password to view this scoreboard.",
+                onSuccess: () {
+                  GlobalValues.unlockScoreboardAccess(scoreboardId: _id, type: 'read');
+                  setState(() {
+                    _isReadUnlocked = true;
+                  });
+                },
+                onCancel: () => context.go('/'),
+              );
+            }
+          }
+
           List<String> playersList = _scoreboardEntity?.players?.keys.toList() ?? [];
 
           // Sort players based on current preference
@@ -137,13 +169,14 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
           ),
           if (subtitle.isNotEmpty)
             Text(
               subtitle,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).hintColor,
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 10.sp,
                   ),
             ),
@@ -167,25 +200,17 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
         ),
         IconButton(
           icon: const Icon(Icons.share_outlined),
-          tooltip: "Copy Link",
+          tooltip: "Share Scoreboard",
           onPressed: () {
-            final link = Uri.base.toString();
-            Clipboard.setData(ClipboardData(text: link));
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text("Scoreboard link copied to clipboard!"),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: appColors.pleasantButtonBg,
-                duration: const Duration(seconds: 2),
-              ),
-            );
+            final link = "$appBaseUrl/display?id=$_id";
+            SharePlus.instance.share(ShareParams(text: "Check out the live scores on ScoreEase!\n$link"));
           },
         ),
         IconButton(
           icon: const Icon(Icons.edit_note_outlined),
           tooltip: "Update Scores",
           onPressed: () {
-            context.go("/${ScoreboardScoreUpdateScreen.routeName}?id=$_id", extra: _scoreboardEntity);
+            context.push("/${ScoreboardScoreUpdateScreen.routeName}?id=$_id", extra: _scoreboardEntity);
           },
         ),
       ],
@@ -371,15 +396,18 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
               ),
             ],
           ),
-          Text(
-            playerScore,
-            key: ValueKey<String>(playerScore),
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontSize: 64.sp,
-                  fontWeight: FontWeight.w900,
-                  color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
-                ),
-          ).animate(key: ValueKey(playerScore)).fade().scaleXY(begin: 1.5, end: 1.0, duration: 400.ms, curve: Curves.easeOutBack),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              playerScore,
+              key: ValueKey<String>(playerScore),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontSize: 64.sp,
+                    fontWeight: FontWeight.w900,
+                    color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
+                  ),
+            ).animate(key: ValueKey(playerScore)).fade().scaleXY(begin: 1.5, end: 1.0, duration: 400.ms, curve: Curves.easeOutBack),
+          ),
         ],
       ),
     ).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
@@ -489,8 +517,9 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
       itemCount: playersList.length,
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 240,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.70,
         mainAxisSpacing: 16,
+
         crossAxisSpacing: 16,
       ),
       itemBuilder: (context, index) {

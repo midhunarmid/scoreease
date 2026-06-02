@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:scoreease/features/scoreboard/data/models/access_model.dart';
 
@@ -11,8 +11,9 @@ class ScoreboardModel {
   final String? title;
   final String? description;
   final String? author;
-  final Timestamp? createdAt;
-  final Timestamp? lastUpdated;
+  final String? ownerId;
+  final int? createdAt;
+  final int? lastUpdated;
   final AccessModel? access;
   final Map<String, int>? players;
 
@@ -21,6 +22,7 @@ class ScoreboardModel {
     this.title,
     this.description,
     this.author,
+    this.ownerId,
     this.createdAt,
     this.lastUpdated,
     this.access,
@@ -29,15 +31,7 @@ class ScoreboardModel {
 
   @override
   String toString() {
-    return 'ScoreboardModel(id: $id, title: $title, description: $description, author: $author, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
-  }
-
-  factory ScoreboardModel.fromFirestore(
-    DocumentSnapshot<Map<String, dynamic>> snapshot,
-    SnapshotOptions? options,
-  ) {
-    final data = snapshot.data() ?? {};
-    return ScoreboardModel.fromMap(data);
+    return 'ScoreboardModel(id: $id, title: $title, description: $description, author: $author, ownerId: $ownerId, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
   }
 
   factory ScoreboardModel.fromMap(Map<String, dynamic> data) {
@@ -46,9 +40,10 @@ class ScoreboardModel {
       title: data['title'] as String?,
       description: data['description'] as String?,
       author: data['author'] as String?,
-      createdAt: data['createdAt'] as Timestamp?,
-      lastUpdated: data['lastUpdated'] as Timestamp?,
-      access: data['access'] == null ? null : AccessModel.fromMap(data['access'] as Map<String, dynamic>),
+      ownerId: data['ownerId'] as String?,
+      createdAt: data['createdAt'] as int?,
+      lastUpdated: data['lastUpdated'] as int?,
+      access: data['access'] == null ? null : AccessModel.fromMap(Map<String, dynamic>.from(data['access'] as Map)),
       players: data['players'] == null ? null : Map<String, int>.from(data['players'] as Map<dynamic, dynamic>),
     );
   }
@@ -58,8 +53,9 @@ class ScoreboardModel {
         'title': title,
         'description': description,
         'author': author,
+        'ownerId': ownerId,
         'createdAt': createdAt,
-        'lastUpdated': FieldValue.serverTimestamp(),
+        'lastUpdated': ServerValue.timestamp,
         'access': access?.toMap(),
         'players': players,
       };
@@ -81,8 +77,9 @@ class ScoreboardModel {
     String? title,
     String? description,
     String? author,
-    Timestamp? createdAt,
-    Timestamp? lastUpdated,
+    String? ownerId,
+    int? createdAt,
+    int? lastUpdated,
     AccessModel? access,
     Map<String, int>? players,
   }) {
@@ -91,6 +88,7 @@ class ScoreboardModel {
       title: title ?? this.title,
       description: description ?? this.description,
       author: author ?? this.author,
+      ownerId: ownerId ?? this.ownerId,
       createdAt: createdAt ?? this.createdAt,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       access: access ?? this.access,

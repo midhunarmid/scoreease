@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
@@ -8,6 +8,7 @@ import 'package:scoreease/features/scoreboard/presentation/pages/score_board_set
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
+import 'package:scoreease/features/settings/presentation/pages/version_history_screen.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,12 +21,13 @@ final GoRouter router = GoRouter(
       "/${ScoreboardScoreUpdateScreen.routeName}",
       "/${ScoreboardScoreDisplayScreen.routeName}",
       "/${SettingsScreen.routeName}",
+      "/${VersionHistoryScreen.routeName}",
       "/signin",
       "/forgotPassword",
       "/signup",
     ].contains(state.fullPath)) {
       // if any routes which needs auth, check for auth
-      bool auth = Random().nextBool();
+      bool auth = FirebaseAuth.instance.currentUser != null;
       if (!auth) {
         // if not authenticated, show signin screen
         return "/${LandingScreen.routeName}";
@@ -83,6 +85,14 @@ final GoRouter router = GoRouter(
             context: context,
             state: state,
             child: const SettingsScreen(),
+          ),
+        ),
+        GoRoute(
+          path: VersionHistoryScreen.routeName,
+          pageBuilder: (context, state) => buildPageWithDefaultTransition<void>(
+            context: context,
+            state: state,
+            child: const VersionHistoryScreen(),
           ),
         ),
         GoRoute(

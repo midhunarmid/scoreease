@@ -1,0 +1,12 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "scoreboards": {
+      "$scoreboardId": {
+        // Here you can add specific validation later
+        // e.g. ".write": "newData.hasChildren(['title', 'players'])"
+      }
+    }
+  }
+}

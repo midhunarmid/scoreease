@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:scoreease/features/landing/presentation/blocs/landing/landing_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/score_board_setup_screen.dart';
-import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
+
+import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
 import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/message_generator.dart';
@@ -104,8 +105,7 @@ class _LandingScreenState extends State<LandingScreen> {
           );
         } else if (state is LandingScoreCardReceivedState) {
           context.go(
-              "/${ScoreboardScoreUpdateScreen.routeName}?id=${state.scoreboard.id}",
-              extra: state.scoreboard);
+              "/${ScoreboardScoreDisplayScreen.routeName}?id=${state.scoreboard.id}");
         }
       },
       child: BlocBuilder<LandingBloc, LandingState>(
@@ -115,6 +115,10 @@ class _LandingScreenState extends State<LandingScreen> {
               appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
+                systemOverlayStyle:
+                    Theme.of(context).brightness == Brightness.light
+                        ? SystemUiOverlayStyle.dark
+                        : SystemUiOverlayStyle.light,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings),
@@ -138,7 +142,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       children: [
                         Image.asset(
                           'assets/images/brand_icon.png',
-                          height: 100.h,
+                          height: 200.h,
                         )
                             .animate(
                                 onPlay: (controller) =>
@@ -148,7 +152,6 @@ class _LandingScreenState extends State<LandingScreen> {
                                 end: const Offset(1.05, 1.05),
                                 duration: 2.seconds,
                                 curve: Curves.easeInOut),
-                        SizedBox(height: 24.h),
                         Text(
                           MessageGenerator.getMessage("landing-welcome"),
                           textAlign: TextAlign.center,
@@ -161,7 +164,7 @@ class _LandingScreenState extends State<LandingScreen> {
                               ),
                         ).animate().fade(duration: 500.ms).slideY(
                             begin: 0.3, end: 0, curve: Curves.easeOutQuad),
-                        SizedBox(height: 48.h),
+                        SizedBox(height: 28.h),
                         Card(
                           elevation: 8,
                           shadowColor: Colors.black12,
