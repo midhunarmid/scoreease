@@ -8,6 +8,7 @@ import 'package:scoreease/features/scoreboard/presentation/pages/score_board_set
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
+import 'package:scoreease/features/settings/presentation/pages/version_history_screen.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,6 +21,7 @@ final GoRouter router = GoRouter(
       "/${ScoreboardScoreUpdateScreen.routeName}",
       "/${ScoreboardScoreDisplayScreen.routeName}",
       "/${SettingsScreen.routeName}",
+      "/${VersionHistoryScreen.routeName}",
       "/signin",
       "/forgotPassword",
       "/signup",
@@ -83,6 +85,14 @@ final GoRouter router = GoRouter(
             context: context,
             state: state,
             child: const SettingsScreen(),
+          ),
+        ),
+        GoRoute(
+          path: VersionHistoryScreen.routeName,
+          pageBuilder: (context, state) => buildPageWithDefaultTransition<void>(
+            context: context,
+            state: state,
+            child: const VersionHistoryScreen(),
           ),
         ),
         GoRoute(

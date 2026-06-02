@@ -5,6 +5,7 @@ import 'package:scoreease/core/navigation/app_router.dart';
 import 'package:scoreease/features/landing/presentation/pages/landing_screen.dart';
 import 'package:scoreease/core/utils/di.dart';
 import 'package:scoreease/core/utils/theme.dart';
+import 'package:scoreease/core/utils/theme_provider.dart';
 import 'package:url_strategy/url_strategy.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -51,12 +52,18 @@ class MyApp extends StatelessWidget {
       minTextAdapt: false,
       fontSizeResolver: FontSizeResolvers.radius,
       builder: (context, child) {
-        return MaterialApp.router(
-          routerConfig: router,
-          title: "scoreease",
-          debugShowCheckedModeBanner: false,
-          theme: appTheme,
-          darkTheme: appTheme,
+        return ListenableBuilder(
+          listenable: themeProvider,
+          builder: (context, _) {
+            return MaterialApp.router(
+              routerConfig: router,
+              title: "scoreease",
+              debugShowCheckedModeBanner: false,
+              theme: getLightTheme(),
+              darkTheme: getDarkTheme(),
+              themeMode: themeProvider.themeMode,
+            );
+          },
         );
       },
       child: const LandingScreen(),

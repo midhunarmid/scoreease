@@ -115,9 +115,10 @@ class _LandingScreenState extends State<LandingScreen> {
               appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                systemOverlayStyle: Theme.of(context).brightness == Brightness.light
-                    ? SystemUiOverlayStyle.dark
-                    : SystemUiOverlayStyle.light,
+                systemOverlayStyle:
+                    Theme.of(context).brightness == Brightness.light
+                        ? SystemUiOverlayStyle.dark
+                        : SystemUiOverlayStyle.light,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings),
@@ -141,7 +142,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       children: [
                         Image.asset(
                           'assets/images/brand_icon.png',
-                          height: 100.h,
+                          height: 200.h,
                         )
                             .animate(
                                 onPlay: (controller) =>
@@ -151,7 +152,6 @@ class _LandingScreenState extends State<LandingScreen> {
                                 end: const Offset(1.05, 1.05),
                                 duration: 2.seconds,
                                 curve: Curves.easeInOut),
-                        SizedBox(height: 24.h),
                         Text(
                           MessageGenerator.getMessage("landing-welcome"),
                           textAlign: TextAlign.center,
@@ -164,7 +164,7 @@ class _LandingScreenState extends State<LandingScreen> {
                               ),
                         ).animate().fade(duration: 500.ms).slideY(
                             begin: 0.3, end: 0, curve: Curves.easeOutQuad),
-                        SizedBox(height: 48.h),
+                        SizedBox(height: 28.h),
                         Card(
                           elevation: 8,
                           shadowColor: Colors.black12,
