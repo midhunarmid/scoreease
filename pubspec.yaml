@@ -2,7 +2,7 @@ name: scoreease
 description: Track. Update. Share. Score with Ease.
 publish_to: 'none'
 
-version: 3.0.0+3
+version: 1.2.0+3
 
 environment:
   sdk: '>=3.0.6 <4.0.0'
