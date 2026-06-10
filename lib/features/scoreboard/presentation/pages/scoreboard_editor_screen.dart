@@ -4,11 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
+import 'package:scoreease/core/utils/constants.dart';
 
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
+import 'package:scoreease/features/scoreboard/domain/entities/team_entity.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/access_entity.dart';
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
@@ -44,6 +46,10 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
   bool _removeOwnerAccess = false;
   
   final Map<String, int> _playersMap = {};
+  final Map<String, TeamEntity> _teamsMap = {};
+  final TextEditingController _teamTextController = TextEditingController();
+  final Map<String, TextEditingController> _playerControllers = {};
+  final Map<String, FocusNode> _playerFocusNodes = {};
 
   ScoreboardEntity? _scoreboardEntity;
   bool _isOwnerUnlocked = false;
@@ -82,6 +88,9 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
     _writeAccessController = TextEditingController();
     _ownerAccessController = TextEditingController();
 
+    if (_scoreboardEntity!.teams != null) {
+      _teamsMap.addAll(_scoreboardEntity!.teams!);
+    }
     if (_scoreboardEntity!.players != null) {
       _playersMap.addAll(_scoreboardEntity!.players!);
     }
@@ -95,6 +104,13 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
     _readAccessController.dispose();
     _writeAccessController.dispose();
     _ownerAccessController.dispose();
+    _teamTextController.dispose();
+    for (var controller in _playerControllers.values) {
+      controller.dispose();
+    }
+    for (var node in _playerFocusNodes.values) {
+      node.dispose();
+    }
     _bloc.close();
     super.dispose();
   }
@@ -125,6 +141,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
       description: _descriptionController.text.trim(),
       author: _authorController.text.trim(),
       players: _playersMap,
+      teams: _scoreboardEntity!.isTeamGame == true ? _teamsMap : _scoreboardEntity!.teams,
       access: updatedAccess,
     );
 
@@ -158,6 +175,124 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
               }
             },
             child: Text("Add", style: TextStyle(color: appColors.buttonTextColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addTeam() {
+    final newTeam = _teamTextController.text.trim();
+    if (newTeam.isNotEmpty) {
+      if (_teamsMap.containsKey(newTeam)) {
+        showSingleButtonAlertDialog(context: context, title: "Error", message: "Team already exists.");
+      } else {
+        setState(() {
+          _teamsMap[newTeam] = TeamEntity(name: newTeam, players: const {});
+        });
+        _teamTextController.clear();
+      }
+    }
+  }
+
+  void _removeTeam(String team) {
+    showTwoButtonAlertDialog(
+      context: context,
+      title: "Delete Team",
+      message: "Are you sure you want to delete $team and all its players?",
+      positiveButton: "Delete",
+      negativeButton: "Cancel",
+      positiveAction: () {
+        setState(() {
+          final teamData = _teamsMap[team];
+          if (teamData != null && teamData.players.isNotEmpty) {
+             for (var player in teamData.players.keys) {
+               _playersMap.remove(player);
+             }
+          }
+          _teamsMap.remove(team);
+        });
+      },
+    );
+  }
+
+  void _addPlayerToTeam(String teamName) {
+    if (!_playerControllers.containsKey(teamName)) return;
+    final controller = _playerControllers[teamName]!;
+    final newPlayer = controller.text.trim();
+    if (newPlayer.isNotEmpty) {
+      bool playerExists = _playersMap.containsKey(newPlayer);
+      if (playerExists) {
+        showSingleButtonAlertDialog(context: context, title: "Error", message: "Player already exists.");
+      } else {
+        setState(() {
+          _playersMap[newPlayer] = 0;
+          final team = _teamsMap[teamName]!;
+          final updatedPlayers = Map<String, bool>.from(team.players)..putIfAbsent(newPlayer, () => true);
+          _teamsMap[teamName] = team.copyWith(players: updatedPlayers);
+        });
+        controller.clear();
+      }
+    }
+  }
+
+  void _removePlayerFromTeam(String teamName, String player) {
+    showTwoButtonAlertDialog(
+      context: context,
+      title: "Delete Player",
+      message: "Are you sure you want to delete $player?",
+      positiveButton: "Delete",
+      negativeButton: "Cancel",
+      positiveAction: () {
+        setState(() {
+          _playersMap.remove(player);
+          final team = _teamsMap[teamName]!;
+          final updatedPlayers = Map<String, bool>.from(team.players)..remove(player);
+          _teamsMap[teamName] = team.copyWith(players: updatedPlayers);
+        });
+      },
+    );
+  }
+
+  void _editPlayerInTeam(String teamName, String oldPlayer) {
+    final controller = TextEditingController(text: oldPlayer);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text("Edit Player Name", style: Theme.of(ctx).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: "New Player Name"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: appColors.pleasantButtonBg),
+            onPressed: () {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty && newName != oldPlayer) {
+                if (_playersMap.containsKey(newName)) {
+                  showSingleButtonAlertDialog(context: context, title: "Error", message: "Player already exists.");
+                  return;
+                }
+                setState(() {
+                  final score = _playersMap[oldPlayer] ?? 0;
+                  _playersMap.remove(oldPlayer);
+                  _playersMap[newName] = score;
+
+                  final team = _teamsMap[teamName]!;
+                  final updatedPlayers = Map<String, bool>.from(team.players);
+                  updatedPlayers.remove(oldPlayer);
+                  updatedPlayers[newName] = true;
+                  _teamsMap[teamName] = team.copyWith(players: updatedPlayers);
+                });
+                Navigator.pop(ctx);
+              } else {
+                Navigator.pop(ctx);
+              }
+            },
+            child: Text("Save", style: TextStyle(color: appColors.buttonTextColor)),
           ),
         ],
       ),
@@ -237,6 +372,107 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildTeamCard(String teamName, Map<String, bool> players) {
+    if (!_playerControllers.containsKey(teamName)) {
+      _playerControllers[teamName] = TextEditingController();
+      _playerFocusNodes[teamName] = FocusNode();
+    }
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: appColors.primaryColor.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: appColors.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16.r),
+                topRight: Radius.circular(16.r),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.shield, color: appColors.primaryColor, size: 20.sp),
+                    SizedBox(width: 8.w),
+                    Text(
+                      teamName,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => _removeTeam(teamName),
+                  tooltip: "Remove Team",
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(12.w),
+            child: Column(
+              children: [
+                getTextInputWidget(
+                  context: context,
+                  label: 'Add Player to $teamName',
+                  hint: 'Player Name',
+                  controller: _playerControllers[teamName]!,
+                  keyboardType: TextInputType.name,
+                  textInputAction: TextInputAction.go,
+                  prefixIcon: const Icon(Icons.person_add_alt_1_outlined),
+                  icon: Icons.add,
+                  focusNode: _playerFocusNodes[teamName],
+                  onPressed: () => _addPlayerToTeam(teamName),
+                ),
+                SizedBox(height: 12.h),
+                if (players.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      "No players in this team yet.",
+                      style: TextStyle(
+                        color: appColors.textColor.withValues(alpha: 0.5),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: players.keys.map((player) {
+                      return InputChip(
+                        label: Text(player),
+                        onPressed: () => _editPlayerInTeam(teamName, player),
+                        deleteIcon: const Icon(Icons.cancel, size: 18),
+                        onDeleted: () => _removePlayerFromTeam(teamName, player),
+                        backgroundColor: appColors.screenBg,
+                        side: BorderSide(color: appColors.disableBgColor),
+                      ).animate().scale(duration: 200.ms, curve: Curves.easeOut);
+                    }).toList(),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fade().slideY(begin: 0.1);
   }
 
   void _editPlayer(String oldName) {
@@ -381,11 +617,13 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                 ),
               ],
             ),
-            body: Padding(
-              padding: WebOptimisedWidget.getWebOptimisedHorizonatalPadding().copyWith(left: 16, right: 16, top: 16),
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                children: [
+            body: Center(
+              child: Container(
+                width: maxScreenWidth,
+                padding: WebOptimisedWidget.getWebOptimisedHorizonatalPadding().copyWith(left: 16, right: 16, top: 16),
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  children: [
                   _buildSectionContainer(
                     title: "Basic Details",
                     icon: Icons.info_outline,
@@ -452,74 +690,107 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                     ],
                   ).animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic),
 
-                  _buildSectionContainer(
-                    title: "Player Roster",
-                    icon: Icons.people_outline,
-                    action: TextButton.icon(
-                      icon: const Icon(Icons.add_circle_outline, size: 20),
-                      label: const Text("Add Player"),
-                      onPressed: _addPlayer,
-                      style: TextButton.styleFrom(foregroundColor: appColors.pleasantButtonBg),
-                    ),
-                    children: [
-                      if (_playersMap.isEmpty)
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24.h),
-                          child: Center(
-                            child: Text(
-                              "No players added yet.",
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).hintColor),
-                            ),
-                          ),
-                        )
-                      else
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _playersMap.length,
-                          separatorBuilder: (context, index) => SizedBox(height: 8.h),
-                          itemBuilder: (context, index) {
-                            final player = _playersMap.keys.elementAt(index);
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(color: appColors.primaryColor.withValues(alpha: 0.05)),
-                              ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: appColors.primaryColor.withValues(alpha: 0.1),
-                                  child: Text(player.isNotEmpty ? player[0].toUpperCase() : "?", style: TextStyle(color: appColors.primaryColor, fontWeight: FontWeight.bold)),
-                                ),
-                                title: Text(player, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                                subtitle: Text("Score: ${_playersMap[player]}", style: Theme.of(context).textTheme.bodySmall),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                                      onPressed: () => _editPlayer(player),
-                                      tooltip: "Edit name",
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                      onPressed: () => _deletePlayer(player),
-                                      tooltip: "Remove player",
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                  if (_scoreboardEntity!.isTeamGame == true)
+                    _buildSectionContainer(
+                      title: "Team Roster",
+                      icon: Icons.group_work_outlined,
+                      children: [
+                        getTextInputWidget(
+                          context: context,
+                          label: 'Add Team',
+                          hint: 'e.g. Red Team',
+                          controller: _teamTextController,
+                          keyboardType: TextInputType.name,
+                          textInputAction: TextInputAction.go,
+                          prefixIcon: const Icon(Icons.group_add_outlined),
+                          icon: Icons.add,
+                          onPressed: _addTeam,
                         ),
-                    ],
-                  ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic),
+                        SizedBox(height: 16.h),
+                        if (_teamsMap.isEmpty)
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24.h),
+                            child: Center(
+                              child: Text(
+                                "No teams added yet.",
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).hintColor),
+                              ),
+                            ),
+                          )
+                        else
+                          ..._teamsMap.entries.map((entry) => _buildTeamCard(entry.key, entry.value.players)).toList(),
+                      ],
+                    ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic)
+                  else
+                    _buildSectionContainer(
+                      title: "Player Roster",
+                      icon: Icons.people_outline,
+                      action: TextButton.icon(
+                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                        label: const Text("Add Player"),
+                        onPressed: _addPlayer,
+                        style: TextButton.styleFrom(foregroundColor: appColors.pleasantButtonBg),
+                      ),
+                      children: [
+                        if (_playersMap.isEmpty)
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24.h),
+                            child: Center(
+                              child: Text(
+                                "No players added yet.",
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).hintColor),
+                              ),
+                            ),
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _playersMap.length,
+                            separatorBuilder: (context, index) => SizedBox(height: 8.h),
+                            itemBuilder: (context, index) {
+                              final player = _playersMap.keys.elementAt(index);
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  border: Border.all(color: appColors.primaryColor.withValues(alpha: 0.05)),
+                                ),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: appColors.primaryColor.withValues(alpha: 0.1),
+                                    child: Text(player.isNotEmpty ? player[0].toUpperCase() : "?", style: TextStyle(color: appColors.primaryColor, fontWeight: FontWeight.bold)),
+                                  ),
+                                  title: Text(player, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                                  subtitle: Text("Score: ${_playersMap[player]}", style: Theme.of(context).textTheme.bodySmall),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                                        onPressed: () => _editPlayer(player),
+                                        tooltip: "Edit name",
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                        onPressed: () => _deletePlayer(player),
+                                        tooltip: "Remove player",
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic),
                   
                   SizedBox(height: 32.h),
                 ],
               ),
             ),
-      );
+          ),
+        );
         },
       ),
     );

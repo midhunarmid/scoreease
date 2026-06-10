@@ -101,12 +101,22 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           String errorTitle = "";
           String errorMessage = "";
 
-          if (event.scoreboardEntity.players?.isEmpty ?? true) {
-            errorTitle = MessageGenerator.getMessage("scoreboard-players-empty");
-            errorMessage = MessageGenerator.getMessage("scoreboard-players-empty-message");
-          } else if (event.scoreboardEntity.players?.keys.any((name) => name.isEmpty) ?? true) {
-            errorTitle = MessageGenerator.getMessage("scoreboard-players-empty-name");
-            errorMessage = MessageGenerator.getMessage("scoreboard-players-empty-name-message");
+          if (event.scoreboardEntity.isTeamGame == true) {
+            if ((event.scoreboardEntity.teams?.length ?? 0) < 2) {
+              errorTitle = "Not enough teams";
+              errorMessage = "A team game requires at least 2 teams.";
+            } else if (event.scoreboardEntity.teams?.values.any((team) => team.players.isEmpty) ?? false) {
+              errorTitle = "Empty teams";
+              errorMessage = "All teams must have at least one player.";
+            }
+          } else {
+            if (event.scoreboardEntity.players?.isEmpty ?? true) {
+              errorTitle = MessageGenerator.getMessage("scoreboard-players-empty");
+              errorMessage = MessageGenerator.getMessage("scoreboard-players-empty-message");
+            } else if (event.scoreboardEntity.players?.keys.any((name) => name.isEmpty) ?? true) {
+              errorTitle = MessageGenerator.getMessage("scoreboard-players-empty-name");
+              errorMessage = MessageGenerator.getMessage("scoreboard-players-empty-name-message");
+            }
           }
 
           if (errorTitle.isNotEmpty) {

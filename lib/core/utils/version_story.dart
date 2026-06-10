@@ -20,7 +20,7 @@ class ScoreEaseVersionStory {
   static Map<String, ScoreEaseVersionStory> versionStoryMap = {
     "5": ScoreEaseVersionStory(
       versionSemantic: "1.4.0",
-      versionName: "Bumrah",
+      versionName: "Messi",
       buildNumber: "5",
       buildDate: "TBD",
       tagline: "Unplayable team dynamics.",

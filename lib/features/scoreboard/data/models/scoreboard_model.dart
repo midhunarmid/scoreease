@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:scoreease/features/scoreboard/data/models/access_model.dart';
+import 'package:scoreease/features/scoreboard/data/models/team_model.dart';
 
 @immutable
 class ScoreboardModel {
@@ -16,6 +17,8 @@ class ScoreboardModel {
   final int? lastUpdated;
   final AccessModel? access;
   final Map<String, int>? players;
+  final bool? isTeamGame;
+  final Map<String, TeamModel>? teams;
 
   const ScoreboardModel({
     this.id,
@@ -27,11 +30,13 @@ class ScoreboardModel {
     this.lastUpdated,
     this.access,
     this.players,
+    this.isTeamGame,
+    this.teams,
   });
 
   @override
   String toString() {
-    return 'ScoreboardModel(id: $id, title: $title, description: $description, author: $author, ownerId: $ownerId, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
+    return 'ScoreboardModel(id: $id, title: $title, description: $description, author: $author, ownerId: $ownerId, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players, isTeamGame: $isTeamGame, teams: $teams)';
   }
 
   factory ScoreboardModel.fromMap(Map<String, dynamic> data) {
@@ -45,6 +50,12 @@ class ScoreboardModel {
       lastUpdated: data['lastUpdated'] as int?,
       access: data['access'] == null ? null : AccessModel.fromMap(Map<String, dynamic>.from(data['access'] as Map)),
       players: data['players'] == null ? null : Map<String, int>.from(data['players'] as Map<dynamic, dynamic>),
+      isTeamGame: data['isTeamGame'] as bool?,
+      teams: data['teams'] == null
+          ? null
+          : (data['teams'] as Map).map(
+              (key, value) => MapEntry(key.toString(), TeamModel.fromMap(Map<String, dynamic>.from(value as Map))),
+            ),
     );
   }
 
@@ -58,6 +69,8 @@ class ScoreboardModel {
         'lastUpdated': ServerValue.timestamp,
         'access': access?.toMap(),
         'players': players,
+        'isTeamGame': isTeamGame,
+        'teams': teams?.map((k, v) => MapEntry(k, v.toMap())),
       };
 
   /// `dart:convert`
@@ -82,6 +95,8 @@ class ScoreboardModel {
     int? lastUpdated,
     AccessModel? access,
     Map<String, int>? players,
+    bool? isTeamGame,
+    Map<String, TeamModel>? teams,
   }) {
     return ScoreboardModel(
       id: id ?? this.id,
@@ -93,6 +108,8 @@ class ScoreboardModel {
       lastUpdated: lastUpdated ?? this.lastUpdated,
       access: access ?? this.access,
       players: players ?? this.players,
+      isTeamGame: isTeamGame ?? this.isTeamGame,
+      teams: teams ?? this.teams,
     );
   }
 

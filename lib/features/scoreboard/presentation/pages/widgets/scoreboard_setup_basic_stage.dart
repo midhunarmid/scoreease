@@ -12,6 +12,8 @@ class ScoreboardSetupBasicStage extends StatelessWidget {
   final TextEditingController titleController;
   final TextEditingController descriptionController;
   final TextEditingController authorController;
+  final bool isTeamGame;
+  final ValueChanged<bool> onGameModeChanged;
   final VoidCallback onNext;
 
   const ScoreboardSetupBasicStage({
@@ -20,6 +22,8 @@ class ScoreboardSetupBasicStage extends StatelessWidget {
     required this.titleController,
     required this.descriptionController,
     required this.authorController,
+    required this.isTeamGame,
+    required this.onGameModeChanged,
     required this.onNext,
   }) : super(key: key);
 
@@ -88,7 +92,9 @@ class ScoreboardSetupBasicStage extends StatelessWidget {
             LengthLimitingTextInputFormatter(20),
           ],
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: 16.h),
+        _buildGameModeToggle(context),
+        SizedBox(height: 16.h),
         Row(
           children: [
             Expanded(
@@ -111,6 +117,90 @@ class ScoreboardSetupBasicStage extends StatelessWidget {
         ),
         SizedBox(height: 16.h),
       ],
+    );
+  }
+
+  Widget _buildGameModeToggle(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+          child: Text(
+            "Game Mode",
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: appColors.primaryColor,
+                ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildModeOption(
+                context,
+                title: "Individual",
+                icon: Icons.person_outline,
+                isSelected: !isTeamGame,
+                onTap: () => onGameModeChanged(false),
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: _buildModeOption(
+                context,
+                title: "Team vs Team",
+                icon: Icons.groups_outlined,
+                isSelected: isTeamGame,
+                onTap: () => onGameModeChanged(true),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModeOption(BuildContext context, {
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? appColors.primaryColor.withValues(alpha: 0.1) : appColors.inputBgFill,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? appColors.primaryColor : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 32.sp,
+              color: isSelected ? appColors.primaryColor : appColors.disableBgColor,
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? appColors.primaryColor : appColors.textColor,
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

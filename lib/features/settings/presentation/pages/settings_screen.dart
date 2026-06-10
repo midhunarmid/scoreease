@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/version_story.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
@@ -40,7 +39,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: Center(
         child: Container(
           padding: WebOptimisedWidget.getWebOptimisedHorizonatalPadding(),
-          width: maxScreenWidth,
           child: ListView.builder(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             itemCount: items.length,
@@ -50,7 +48,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               if (isHeader) {
                 return Padding(
-                  padding: EdgeInsets.only(top: index == 0 ? 0 : 24.h, bottom: 12.h, left: 8.w),
+                  padding: EdgeInsets.only(
+                      top: index == 0 ? 0 : 24.h, bottom: 12.h, left: 8.w),
                   child: Text(
                     item.title.toUpperCase(),
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -59,13 +58,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           letterSpacing: 1.2,
                         ),
                   ),
-                ).animate().fade(duration: 400.ms, delay: (40 * index).ms).slideX(begin: 0.05, end: 0);
+                )
+                    .animate()
+                    .fade(duration: 400.ms, delay: (40 * index).ms)
+                    .slideX(begin: 0.05, end: 0);
               }
 
               return Padding(
                 padding: EdgeInsets.only(bottom: 12.h),
                 child: SettingsListItem(item: item),
-              ).animate().fade(duration: 400.ms, delay: (40 * index).ms).slideY(begin: 0.1, end: 0);
+              )
+                  .animate()
+                  .fade(duration: 400.ms, delay: (40 * index).ms)
+                  .slideY(begin: 0.1, end: 0);
             },
           ),
         ),
@@ -206,7 +211,7 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
           return Text(
             display,
             style: appTheme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600, 
+              fontWeight: FontWeight.w600,
               color: appColors.primaryColor,
             ),
           );
@@ -239,8 +244,8 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
                   Text(
                     "Choose Theme",
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   SizedBox(height: 16.h),
                   ListTile(
@@ -289,7 +294,8 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
         showTwoButtonAlertDialog(
           context: context,
           title: "Clear Passwords",
-          message: "Are you sure you want to clear all locally saved scoreboard accesses? You will have to enter passwords again.",
+          message:
+              "Are you sure you want to clear all locally saved scoreboard accesses? You will have to enter passwords again.",
           positiveButton: "Clear",
           negativeButton: "Cancel",
           positiveAction: () async {
@@ -297,7 +303,8 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text("All saved passwords cleared successfully!"),
+                  content:
+                      const Text("All saved passwords cleared successfully!"),
                   behavior: SnackBarBehavior.floating,
                   backgroundColor: appColors.pleasantButtonBg,
                   duration: const Duration(seconds: 2),
@@ -323,8 +330,9 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
         builder: (context, snapshot) {
           versionStory = snapshot.data;
           return Text(
-            versionStory?.versionDisplay ?? '-', 
-            style: appTheme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: appColors.primaryColor),
+            versionStory?.versionDisplay ?? '-',
+            style: appTheme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600, color: appColors.primaryColor),
           );
         },
       ),
@@ -339,7 +347,8 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
       icon: Icons.bug_report_rounded,
       iconColor: Colors.orangeAccent,
       onTap: () {
-        launchUrl(Uri.parse('https://github.com/midhunarmid/scoreease/issues/new?template=bug_report.md'));
+        launchUrl(Uri.parse(
+            'https://github.com/midhunarmid/scoreease/issues/new?template=bug_report.md'));
       },
       type: SettingsItemType.link,
     ),
@@ -349,7 +358,8 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
       icon: Icons.lightbulb_outline_rounded,
       iconColor: Colors.amber,
       onTap: () {
-        launchUrl(Uri.parse('https://github.com/midhunarmid/scoreease/issues/new?template=feature_request.md'));
+        launchUrl(Uri.parse(
+            'https://github.com/midhunarmid/scoreease/issues/new?template=feature_request.md'));
       },
       type: SettingsItemType.link,
     ),
@@ -359,7 +369,8 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
       icon: Icons.people_outline_rounded,
       iconColor: Colors.tealAccent,
       onTap: () {
-        launchUrl(Uri.parse('https://github.com/midhunarmid/scoreease/graphs/contributors'));
+        launchUrl(Uri.parse(
+            'https://github.com/midhunarmid/scoreease/graphs/contributors'));
       },
       type: SettingsItemType.link,
     ),
