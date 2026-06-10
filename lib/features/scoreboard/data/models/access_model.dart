@@ -7,20 +7,23 @@ import 'package:flutter/foundation.dart';
 class AccessModel {
   final String? read;
   final String? write;
+  final String? owner;
 
-  const AccessModel({this.read, this.write});
+  const AccessModel({this.read, this.write, this.owner});
 
   @override
-  String toString() => 'AccessModel(read: $read, write: $write)';
+  String toString() => 'AccessModel(read: $read, write: $write, owner: $owner)';
 
   factory AccessModel.fromMap(Map<String, dynamic> data) => AccessModel(
         read: data['read'] as String?,
         write: data['write'] as String?,
+        owner: data['owner'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
         'read': read,
         'write': write,
+        'owner': owner,
       };
 
   /// `dart:convert`
@@ -38,10 +41,12 @@ class AccessModel {
   AccessModel copyWith({
     String? read,
     String? write,
+    String? owner,
   }) {
     return AccessModel(
       read: read ?? this.read,
       write: write ?? this.write,
+      owner: owner ?? this.owner,
     );
   }
 
@@ -54,5 +59,5 @@ class AccessModel {
   }
 
   @override
-  int get hashCode => read.hashCode ^ write.hashCode;
+  int get hashCode => read.hashCode ^ write.hashCode ^ owner.hashCode;
 }

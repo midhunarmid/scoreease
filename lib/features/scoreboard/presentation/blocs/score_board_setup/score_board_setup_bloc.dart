@@ -131,6 +131,20 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
             createdAt: DateTime.now(),
           ));
           await delayedEmit(emit, ScoreboardSetupSuccessState(scoreboardId));
+        } else if (event is ScoreboardUpdateDetailsEvent) {
+          emit.call(
+            LoadingState(
+              LoadingInfo(
+                icon: LoadingIconEnum.submitting,
+                title: MessageGenerator.getLabel("Updating Scoreboard"),
+                message: MessageGenerator.getMessage("Please wait while we update the scoreboard details..."),
+              ),
+            ),
+          );
+
+          ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+          await scoreboardUseCase.saveScoreboard(event.scoreboardEntity);
+          await delayedEmit(emit, ScoreboardScoreUpdateSuccessState(event.scoreboardEntity));
         } else if (event is ScoreboardUpdatePlayerScoreEvent) {
           ScoreboardEntity scoreboardEntity = event.scoreboardEntity;
           String playerName = event.playerName;

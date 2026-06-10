@@ -7,6 +7,7 @@ import 'package:scoreease/features/landing/presentation/pages/landing_screen.dar
 import 'package:scoreease/features/scoreboard/presentation/pages/score_board_setup_screen.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_editor_screen.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
 import 'package:scoreease/features/settings/presentation/pages/version_history_screen.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
@@ -20,6 +21,7 @@ final GoRouter router = GoRouter(
       "/${ScoreboardSetupScreen.routeName}",
       "/${ScoreboardScoreUpdateScreen.routeName}",
       "/${ScoreboardScoreDisplayScreen.routeName}",
+      "/${ScoreboardEditorScreen.routeName}",
       "/${SettingsScreen.routeName}",
       "/${VersionHistoryScreen.routeName}",
       "/signin",
@@ -77,6 +79,14 @@ final GoRouter router = GoRouter(
             context: context,
             state: state,
             child: ScoreboardScoreDisplayScreen(state.uri.queryParameters['id'] ?? ""),
+          ),
+        ),
+        GoRoute(
+          path: ScoreboardEditorScreen.routeName,
+          pageBuilder: (context, state) => buildPageWithDefaultTransition<void>(
+            context: context,
+            state: state,
+            child: ScoreboardEditorScreen(state.uri.queryParameters['id'] ?? "", state.extra as ScoreboardEntity?),
           ),
         ),
         GoRoute(

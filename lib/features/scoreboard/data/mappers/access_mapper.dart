@@ -6,6 +6,7 @@ class AccessMapper {
     return AccessEntity(
       read: model.read,
       write: model.write,
+      owner: model.owner,
     );
   }
 
@@ -13,6 +14,7 @@ class AccessMapper {
     return AccessModel(
       read: entity.read,
       write: entity.write,
+      owner: entity.owner,
     );
   }
 }

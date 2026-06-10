@@ -10,6 +10,7 @@ import 'package:scoreease/core/widgets/animated_container.dart';
 class ScoreboardSetupAccessStage extends StatelessWidget {
   final TextEditingController readController;
   final TextEditingController writeController;
+  final TextEditingController ownerController;
   final VoidCallback onNext;
   final VoidCallback onPrevious;
 
@@ -17,6 +18,7 @@ class ScoreboardSetupAccessStage extends StatelessWidget {
     Key? key,
     required this.readController,
     required this.writeController,
+    required this.ownerController,
     required this.onNext,
     required this.onPrevious,
   }) : super(key: key);
@@ -61,6 +63,25 @@ class ScoreboardSetupAccessStage extends StatelessWidget {
           keyboardType: TextInputType.text,
           textInputAction: TextInputAction.go,
           prefixIcon: const Icon(Icons.password_outlined),
+          inputFormatters: [
+            LengthLimitingTextInputFormatter(10),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        Text(
+          "Owner Password (Optional)\nProvides full access to edit scoreboard settings later.",
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: appColors.primaryColor),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 4.h),
+        getTextInputWidget(
+          context: context,
+          label: "Owner Password",
+          hint: MessageGenerator.getLabel('score@1234'),
+          controller: ownerController,
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.go,
+          prefixIcon: const Icon(Icons.security),
           inputFormatters: [
             LengthLimitingTextInputFormatter(10),
           ],

@@ -1,5 +1,5 @@
 import 'dart:ui';
-import 'package:awesome_dialog/awesome_dialog.dart';
+
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:scoreease/core/utils/constants.dart';

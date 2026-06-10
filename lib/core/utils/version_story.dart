@@ -32,7 +32,7 @@ class ScoreEaseVersionStory {
       versionSemantic: "1.3.0",
       versionName: "Rohit",
       buildNumber: "4",
-      buildDate: "TBD",
+      buildDate: "23-January-2026",
       tagline: "Unleashing the hitman's power.",
       features: [
         "Scoreboard Editor - Full control to add/delete players, edit names, and manage access post-creation.",
