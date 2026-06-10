@@ -6,7 +6,6 @@ import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/version_story.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:scoreease/core/utils/constants.dart';
 
 class VersionHistoryScreen extends StatelessWidget {
   static const routeName = 'version_history';
@@ -29,26 +28,32 @@ class VersionHistoryScreen extends StatelessWidget {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          final currentBuildNumber = int.tryParse(snapshot.data!.buildNumber) ?? 0;
+          final currentBuildNumber =
+              int.tryParse(snapshot.data!.buildNumber) ?? 0;
 
           // Split and sort keys
           final allKeys = ScoreEaseVersionStory.versionStoryMap.keys.toList()
             ..sort((a, b) => int.parse(b).compareTo(int.parse(a)));
-          
-          final futureKeys = allKeys.where((k) => int.parse(k) > currentBuildNumber).toList();
-          final pastKeys = allKeys.where((k) => int.parse(k) <= currentBuildNumber).toList();
+
+          final futureKeys =
+              allKeys.where((k) => int.parse(k) > currentBuildNumber).toList();
+          final pastKeys =
+              allKeys.where((k) => int.parse(k) <= currentBuildNumber).toList();
 
           return Center(
             child: Container(
               padding: WebOptimisedWidget.getWebOptimisedHorizonatalPadding(),
-              width: maxScreenWidth,
               child: ListView(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
                 children: [
                   if (futureKeys.isNotEmpty) ...[
-                    _buildRoadmapHeader(context).animate().fade(duration: 500.ms).slideY(begin: 0.1, end: 0),
+                    _buildRoadmapHeader(context)
+                        .animate()
+                        .fade(duration: 500.ms)
+                        .slideY(begin: 0.1, end: 0),
                     ...List.generate(futureKeys.length, (index) {
-                      final version = ScoreEaseVersionStory.versionStoryMap[futureKeys[index]]!;
+                      final version = ScoreEaseVersionStory
+                          .versionStoryMap[futureKeys[index]]!;
                       return _buildRoadmapNode(context, version)
                           .animate()
                           .fade(duration: 500.ms, delay: (100 * (index + 1)).ms)
@@ -57,11 +62,14 @@ class VersionHistoryScreen extends StatelessWidget {
                     SizedBox(height: 16.h),
                   ],
                   ...List.generate(pastKeys.length, (index) {
-                    final version = ScoreEaseVersionStory.versionStoryMap[pastKeys[index]]!;
+                    final version =
+                        ScoreEaseVersionStory.versionStoryMap[pastKeys[index]]!;
                     final isLast = index == pastKeys.length - 1;
                     return _buildVersionNode(context, version, isLast)
                         .animate()
-                        .fade(duration: 500.ms, delay: (100 * (futureKeys.length + index + 1)).ms)
+                        .fade(
+                            duration: 500.ms,
+                            delay: (100 * (futureKeys.length + index + 1)).ms)
                         .slideY(begin: 0.1, end: 0);
                   }),
                 ],
@@ -87,7 +95,8 @@ class VersionHistoryScreen extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.amber, width: 2),
             ),
-            child: Icon(Icons.rocket_launch_rounded, size: 14.w, color: Colors.amber),
+            child: Icon(Icons.rocket_launch_rounded,
+                size: 14.w, color: Colors.amber),
           ),
         ),
         SizedBox(width: 8.w),
@@ -119,7 +128,8 @@ class VersionHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRoadmapNode(BuildContext context, ScoreEaseVersionStory version) {
+  Widget _buildRoadmapNode(
+      BuildContext context, ScoreEaseVersionStory version) {
     return Stack(
       children: [
         // Dashed line
@@ -138,7 +148,8 @@ class VersionHistoryScreen extends StatelessWidget {
                     width: 2,
                     height: 3,
                     child: DecoratedBox(
-                      decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.5)),
+                      decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.5)),
                     ),
                   ),
                 ),
@@ -149,7 +160,8 @@ class VersionHistoryScreen extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 40.w), // Empty space for dashed line to pass through
+            SizedBox(
+                width: 40.w), // Empty space for dashed line to pass through
             SizedBox(width: 8.w),
             // Content Card
             Expanded(
@@ -177,14 +189,20 @@ class VersionHistoryScreen extends StatelessWidget {
                             children: [
                               Text(
                                 "v${version.versionSemantic} ${version.versionName}",
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.amber.shade700,
                                     ),
                               ),
                               Text(
                                 "Planned",
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
                                       color: Colors.amber,
                                       fontStyle: FontStyle.italic,
                                     ),
@@ -194,13 +212,18 @@ class VersionHistoryScreen extends StatelessWidget {
                           SizedBox(height: 8.h),
                           Text(
                             version.tagline,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
                                   fontStyle: FontStyle.italic,
                                   color: Colors.amber,
                                 ),
                           ),
                           SizedBox(height: 12.h),
-                          ...version.features.map((feature) => _buildFeatureBullet(context, feature, color: Colors.amber)),
+                          ...version.features.map((feature) =>
+                              _buildFeatureBullet(context, feature,
+                                  color: Colors.amber)),
                         ],
                       ),
                     ),
@@ -214,7 +237,8 @@ class VersionHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVersionNode(BuildContext context, ScoreEaseVersionStory version, bool isLast) {
+  Widget _buildVersionNode(
+      BuildContext context, ScoreEaseVersionStory version, bool isLast) {
     return Stack(
       children: [
         if (!isLast)
@@ -277,13 +301,19 @@ class VersionHistoryScreen extends StatelessWidget {
                             children: [
                               Text(
                                 "v${version.versionSemantic} ${version.versionName}",
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
                               ),
                               Text(
                                 version.buildDate,
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
                                       color: Theme.of(context).hintColor,
                                     ),
                               ),
@@ -292,13 +322,17 @@ class VersionHistoryScreen extends StatelessWidget {
                           SizedBox(height: 8.h),
                           Text(
                             version.tagline,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
                                   fontStyle: FontStyle.italic,
                                   color: appColors.primaryColor,
                                 ),
                           ),
                           SizedBox(height: 12.h),
-                          ...version.features.map((feature) => _buildFeatureBullet(context, feature)),
+                          ...version.features.map((feature) =>
+                              _buildFeatureBullet(context, feature)),
                         ],
                       ),
                     ),
@@ -312,7 +346,8 @@ class VersionHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureBullet(BuildContext context, String text, {Color? color}) {
+  Widget _buildFeatureBullet(BuildContext context, String text,
+      {Color? color}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 6.h),
       child: Row(
@@ -322,13 +357,15 @@ class VersionHistoryScreen extends StatelessWidget {
             padding: EdgeInsets.only(top: 6.h, right: 8.w),
             child: CircleAvatar(
               radius: 3,
-              backgroundColor: color ?? appColors.textColor.withValues(alpha: 0.5),
+              backgroundColor:
+                  color ?? appColors.textColor.withValues(alpha: 0.5),
             ),
           ),
           Expanded(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.4),
+              style:
+                  Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.4),
             ),
           ),
         ],

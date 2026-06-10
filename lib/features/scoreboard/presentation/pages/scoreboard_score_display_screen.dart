@@ -154,7 +154,11 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
                   ? Column(
                       children: [
                         _buildOverviewCard(),
-                        Expanded(child: getGridLayout(playersList)),
+                        Expanded(
+                          child: _scoreboardEntity?.isTeamGame == true
+                              ? _buildTeamLayout()
+                              : getGridLayout(playersList),
+                        ),
                       ],
                     )
                   : Center(
@@ -587,6 +591,133 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
         }
 
         return card;
+      },
+    );
+  }
+
+  Widget _buildTeamLayout() {
+    final teams = _scoreboardEntity?.teams;
+    if (teams == null || teams.isEmpty) return const SizedBox.shrink();
+
+    // Calculate team scores
+    final Map<String, int> teamScores = {};
+    for (var entry in teams.entries) {
+      int score = 0;
+      for (var player in entry.value.players.keys) {
+        score += _scoreboardEntity?.players?[player] ?? 0;
+      }
+      teamScores[entry.key] = score;
+    }
+
+    // Sort teams by score
+    final sortedTeams = teams.keys.toList();
+    sortedTeams.sort((a, b) => teamScores[b]!.compareTo(teamScores[a]!));
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      itemCount: sortedTeams.length,
+      itemBuilder: (context, index) {
+        final teamName = sortedTeams[index];
+        final teamEntity = teams[teamName]!;
+        final teamTotalScore = teamScores[teamName]!;
+        
+        // Sort players within team
+        final teamPlayers = teamEntity.players.keys.toList();
+        teamPlayers.sort((a, b) {
+          final scoreA = _scoreboardEntity?.players?[a] ?? 0;
+          final scoreB = _scoreboardEntity?.players?[b] ?? 0;
+          int compare = scoreB.compareTo(scoreA);
+          if (compare != 0) return compare;
+          return a.compareTo(b);
+        });
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: const EdgeInsets.only(top: 16, bottom: 8),
+              decoration: BoxDecoration(
+                color: appColors.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: appColors.primaryColor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.shield, color: appColors.primaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        teamName,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: appColors.primaryColor,
+                            ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    teamTotalScore.toString(),
+                    key: ValueKey("team_${teamName}_$teamTotalScore"),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: appColors.primaryColor,
+                        ),
+                  ).animate(key: ValueKey("team_${teamName}_$teamTotalScore")).scaleXY(
+                      begin: 1.5,
+                      end: 1.0,
+                      duration: 250.ms,
+                      curve: Curves.easeOutBack),
+                ],
+              ),
+            ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: teamPlayers.length,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 240,
+                childAspectRatio: 0.70,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+              ),
+              itemBuilder: (context, idx) {
+                String playerName = teamPlayers[idx];
+                String playerScore = _scoreboardEntity?.players?[playerName]?.toString() ?? '0';
+                
+                // Rank logic for display screen
+                // Use global rank or team rank? Let's use global rank for now.
+                final globalScoreSortedList = List<String>.from(_scoreboardEntity?.players?.keys ?? <String>[]);
+                globalScoreSortedList.sort((a, b) {
+                  final scoreA = _scoreboardEntity?.players?[a] ?? 0;
+                  final scoreB = _scoreboardEntity?.players?[b] ?? 0;
+                  int compare = scoreB.compareTo(scoreA);
+                  if (compare != 0) return compare;
+                  return a.compareTo(b);
+                });
+                int rank = globalScoreSortedList.indexOf(playerName) + 1;
+                
+                bool rankChanged = _previousRanks.isNotEmpty && _previousRanks[playerName] != _currentRanks[playerName];
+                Widget card = _buildPlayerCard(playerName, playerScore, rank);
+
+                if (rankChanged) {
+                   card = card.animate(key: ValueKey('rank_change_${_currentRanks[playerName]}_$playerName'))
+                       .shimmer(duration: 800.ms, color: Colors.amber.withValues(alpha: 0.5))
+                       .scaleXY(begin: 1.0, end: 1.05, duration: 300.ms, curve: Curves.easeOutBack)
+                       .then()
+                       .scaleXY(begin: 1.05, end: 1.0, duration: 300.ms, curve: Curves.easeIn);
+                } else {
+                   card = card.animate(key: ValueKey('fade_in_$playerName')).fade().slideY(begin: 0.2, curve: Curves.easeOut);
+                }
+
+                return card;
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        );
       },
     );
   }

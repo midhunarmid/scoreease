@@ -1,5 +1,6 @@
 import 'package:scoreease/features/scoreboard/data/mappers/access_mapper.dart';
 import 'package:scoreease/features/scoreboard/data/models/scoreboard_model.dart';
+import 'package:scoreease/features/scoreboard/data/models/team_model.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
 
 class ScoreboardMapper {
@@ -14,6 +15,8 @@ class ScoreboardMapper {
       lastUpdated: model.lastUpdated != null ? DateTime.fromMillisecondsSinceEpoch(model.lastUpdated!) : null,
       access: model.access == null ? null : AccessMapper.toEntity(model.access!),
       players: model.players,
+      isTeamGame: model.isTeamGame,
+      teams: model.teams?.map((k, v) => MapEntry(k, v.toEntity())),
     );
   }
 
@@ -28,6 +31,8 @@ class ScoreboardMapper {
       lastUpdated: entity.lastUpdated?.millisecondsSinceEpoch,
       access: entity.access == null ? null : AccessMapper.fromEntity(entity.access!),
       players: entity.players,
+      isTeamGame: entity.isTeamGame,
+      teams: entity.teams?.map((k, v) => MapEntry(k, TeamModel.fromEntity(v))),
     );
   }
 }

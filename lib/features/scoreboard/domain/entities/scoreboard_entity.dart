@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'access_entity.dart';
+import 'team_entity.dart';
 
 @immutable
 class ScoreboardEntity {
@@ -13,6 +14,8 @@ class ScoreboardEntity {
   final DateTime? lastUpdated;
   final AccessEntity? access;
   final Map<String, int>? players;
+  final bool? isTeamGame;
+  final Map<String, TeamEntity>? teams;
 
   const ScoreboardEntity({
     this.id,
@@ -24,6 +27,8 @@ class ScoreboardEntity {
     this.lastUpdated,
     this.access,
     this.players,
+    this.isTeamGame,
+    this.teams,
   });
 
   ScoreboardEntity copyWith({
@@ -36,6 +41,8 @@ class ScoreboardEntity {
     DateTime? lastUpdated,
     AccessEntity? access,
     Map<String, int>? players,
+    bool? isTeamGame,
+    Map<String, TeamEntity>? teams,
   }) {
     return ScoreboardEntity(
       id: id ?? this.id,
@@ -47,12 +54,14 @@ class ScoreboardEntity {
       lastUpdated: lastUpdated ?? this.lastUpdated,
       access: access ?? this.access,
       players: players ?? this.players,
+      isTeamGame: isTeamGame ?? this.isTeamGame,
+      teams: teams ?? this.teams,
     );
   }
 
   @override
   String toString() {
-    return 'ScoreboardEntity(id: $id, title: $title, description: $description, author: $author, ownerId: $ownerId, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players)';
+    return 'ScoreboardEntity(id: $id, title: $title, description: $description, author: $author, ownerId: $ownerId, createdAt: $createdAt, lastUpdated: $lastUpdated, access: $access, players: $players, isTeamGame: $isTeamGame, teams: $teams)';
   }
 
   @override

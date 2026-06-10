@@ -180,7 +180,9 @@ class _ScoreboardScoreUpdateScreenState
                   _buildSearchBar(),
                   Expanded(
                     child: playersList.isNotEmpty
-                        ? getGridLayout(playersList)
+                        ? (_scoreboardEntity?.isTeamGame == true
+                            ? _buildTeamLayout()
+                            : getGridLayout(playersList))
                         : Center(
                             child: Padding(
                               padding: const EdgeInsets.all(24.0),
@@ -690,6 +692,95 @@ class _ScoreboardScoreUpdateScreenState
         String playerScore =
             _scoreboardEntity?.players?[playerName]?.toString() ?? '0';
         return _buildPlayerCard(playerName, playerScore);
+      },
+    );
+  }
+
+  Widget _buildTeamLayout() {
+    final teams = _scoreboardEntity?.teams;
+    if (teams == null || teams.isEmpty) return const SizedBox.shrink();
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      itemCount: teams.length,
+      itemBuilder: (context, index) {
+        final teamEntity = teams.values.elementAt(index);
+        final teamName = teamEntity.name;
+        
+        final filteredPlayers = teamEntity.players.keys
+            .where((player) =>
+                player.toLowerCase().contains(_searchQuery.toLowerCase()))
+            .toList();
+
+        if (filteredPlayers.isEmpty) return const SizedBox.shrink();
+
+        int teamTotalScore = 0;
+        for (var p in teamEntity.players.keys) {
+          teamTotalScore += _scoreboardEntity?.players?[p] ?? 0;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: const EdgeInsets.only(top: 16, bottom: 8),
+              decoration: BoxDecoration(
+                color: appColors.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: appColors.primaryColor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.shield, color: appColors.primaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        teamName,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: appColors.primaryColor,
+                            ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    teamTotalScore.toString(),
+                    key: ValueKey("team_${teamName}_$teamTotalScore"),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: appColors.primaryColor,
+                        ),
+                  ).animate(key: ValueKey("team_${teamName}_$teamTotalScore")).scaleXY(
+                      begin: 1.5,
+                      end: 1.0,
+                      duration: 250.ms,
+                      curve: Curves.easeOutBack),
+                ],
+              ),
+            ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredPlayers.length,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 220,
+                childAspectRatio: 0.82,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+              ),
+              itemBuilder: (context, idx) {
+                String playerName = filteredPlayers[idx];
+                String playerScore =
+                    _scoreboardEntity?.players?[playerName]?.toString() ?? '0';
+                return _buildPlayerCard(playerName, playerScore);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        );
       },
     );
   }

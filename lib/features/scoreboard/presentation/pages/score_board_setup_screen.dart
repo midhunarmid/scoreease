@@ -24,7 +24,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_basic_stage.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_roster_stage.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_team_roster_stage.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/scoreboard_setup_access_stage.dart';
+import 'package:scoreease/features/scoreboard/domain/entities/team_entity.dart';
 import 'package:scoreease/core/utils/security_helper.dart';
 
 class ScoreboardSetupScreen extends StatefulWidget {
@@ -49,6 +51,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
   ScoreboardSetupStage _currentStage = ScoreboardSetupStage.basic;
   ScoreboardEntity _scoreboardEntity = const ScoreboardEntity();
   final List<String> _playerNameList = [];
+  bool _isTeamGame = false;
+  final Map<String, List<String>> _teamsMap = {};
 
   @override
   void initState() {
@@ -77,6 +81,20 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           appLogger.e("Failed to decode draft players", error: e);
         }
       }
+
+      _isTeamGame = prefs.getBool('draft_setup_is_team_game') ?? false;
+      final teamsJson = prefs.getString('draft_setup_teams');
+      if (teamsJson != null) {
+        try {
+          final Map<String, dynamic> decoded = jsonDecode(teamsJson);
+          _teamsMap.clear();
+          decoded.forEach((key, value) {
+            _teamsMap[key] = (value as List).map((e) => e.toString()).toList();
+          });
+        } catch (e) {
+          appLogger.e("Failed to decode draft teams", error: e);
+        }
+      }
     });
   }
 
@@ -90,6 +108,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
     await prefs.setString('draft_setup_access_write', _scoreboardAccessWriteTextController.text);
     await prefs.setString('draft_setup_access_owner', _scoreboardAccessOwnerTextController.text);
     await prefs.setString('draft_setup_players', jsonEncode(_playerNameList));
+    await prefs.setBool('draft_setup_is_team_game', _isTeamGame);
+    await prefs.setString('draft_setup_teams', jsonEncode(_teamsMap));
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,6 +154,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
         await prefs.remove('draft_setup_access_write');
         await prefs.remove('draft_setup_access_owner');
         await prefs.remove('draft_setup_players');
+        await prefs.remove('draft_setup_is_team_game');
+        await prefs.remove('draft_setup_teams');
         
         setState(() {
           _scoreboardIdTextController.clear();
@@ -144,6 +166,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           _scoreboardAccessWriteTextController.clear();
           _scoreboardAccessOwnerTextController.clear();
           _playerNameList.clear();
+          _isTeamGame = false;
+          _teamsMap.clear();
           _currentStage = ScoreboardSetupStage.basic;
         });
       },
@@ -403,9 +427,46 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           titleController: _scoreboardTitleTextController,
           descriptionController: _scoreboardDescriptionTextController,
           authorController: _scoreboardAuthorTextController,
+          isTeamGame: _isTeamGame,
+          onGameModeChanged: (val) {
+            setState(() {
+              _isTeamGame = val;
+            });
+          },
           onNext: onScoreboardBasicNextButtonPressed,
         );
       case ScoreboardSetupStage.players:
+        if (_isTeamGame) {
+          return ScoreboardSetupTeamRosterStage(
+            teams: _teamsMap,
+            onAddTeam: (team) {
+              setState(() {
+                _teamsMap[team] = [];
+              });
+            },
+            onRemoveTeam: (team) {
+              setState(() {
+                _teamsMap.remove(team);
+              });
+            },
+            onAddPlayer: (team, player) {
+              setState(() {
+                _teamsMap[team]?.add(player);
+              });
+            },
+            onRemovePlayer: (team, player) {
+              setState(() {
+                _teamsMap[team]?.remove(player);
+              });
+            },
+            onNext: onScoreboardPlayerNamesNextButtonPressed,
+            onPrevious: () {
+              setState(() {
+                _currentStage = ScoreboardSetupStage.basic;
+              });
+            },
+          );
+        }
         return ScoreboardSetupRosterStage(
           players: _playerNameList,
           onAddPlayer: (player) {
@@ -448,6 +509,8 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       author: _scoreboardAuthorTextController.text,
       ownerId: FirebaseAuth.instance.currentUser?.uid,
       players: const {},
+      isTeamGame: _isTeamGame,
+      teams: const {},
       access: const AccessEntity(
         read: "",
         write: "",
@@ -458,9 +521,30 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
   }
 
   void onScoreboardPlayerNamesNextButtonPressed() {
-    _scoreboardEntity = _scoreboardEntity.copyWith(
-      players: _playerNameList.asMap().map((index, player) => MapEntry(player, 0)),
-    );
+    if (_isTeamGame) {
+      Map<String, int> allPlayers = {};
+      Map<String, TeamEntity> finalTeams = {};
+      _teamsMap.forEach((teamName, players) {
+        Map<String, bool> teamPlayersMap = {};
+        for (var p in players) {
+          allPlayers[p] = 0;
+          teamPlayersMap[p] = true;
+        }
+        finalTeams[teamName] = TeamEntity(name: teamName, players: teamPlayersMap);
+      });
+
+      _scoreboardEntity = _scoreboardEntity.copyWith(
+        players: allPlayers,
+        isTeamGame: true,
+        teams: finalTeams,
+      );
+    } else {
+      _scoreboardEntity = _scoreboardEntity.copyWith(
+        players: _playerNameList.asMap().map((index, player) => MapEntry(player, 0)),
+        isTeamGame: false,
+        teams: {},
+      );
+    }
     _bloc.add(ScoreboardSetupPlayerNamesSubmitEvent(_scoreboardEntity));
   }
 
