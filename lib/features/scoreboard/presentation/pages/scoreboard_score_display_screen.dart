@@ -15,6 +15,7 @@ import 'package:scoreease/core/widgets/password_prompt_widget.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/score_change_indicator.dart';
 
 class ScoreboardScoreDisplayScreen extends StatefulWidget {
   final String _id;
@@ -30,6 +31,27 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
   ScoreboardEntity? _scoreboardEntity;
   late String _id;
   bool _sortByScore = true; // Default to sort by score/rank
+
+  final Map<String, GlobalKey<ScoreChangeIndicatorState>> _indicatorKeys = {};
+  Map<String, int> _previousRanks = {};
+  Map<String, int> _currentRanks = {};
+
+  Map<String, int> _calculateRanks(Map<String, int> playersMap) {
+    List<String> playersList = playersMap.keys.toList();
+    playersList.sort((a, b) {
+      final scoreA = playersMap[a] ?? 0;
+      final scoreB = playersMap[b] ?? 0;
+      int compare = scoreB.compareTo(scoreA);
+      if (compare != 0) return compare;
+      return a.compareTo(b);
+    });
+    
+    Map<String, int> ranks = {};
+    for (int i = 0; i < playersList.length; i++) {
+      ranks[playersList[i]] = i + 1;
+    }
+    return ranks;
+  }
   bool _isReadUnlocked = false;
 
   @override
@@ -65,7 +87,27 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
         if (state is ScoreboardSetupErrorState) {
           showSingleButtonAlertDialog(context: context, title: state.title, message: state.message);
         } else if (state is ScoreboardReceivedSuccessState) {
-          _scoreboardEntity = state.scoreboardEntity;
+          final oldPlayers = _scoreboardEntity?.players;
+          final newPlayers = state.scoreboardEntity.players;
+          
+          if (oldPlayers != null && newPlayers != null) {
+            newPlayers.forEach((player, newScore) {
+              final oldScore = oldPlayers[player] ?? 0;
+              final delta = newScore - oldScore;
+              if (delta != 0) {
+                _indicatorKeys[player]?.currentState?.showDelta(delta);
+              }
+            });
+          }
+
+          if (_scoreboardEntity != null && state.scoreboardEntity.players != null) {
+              _previousRanks = _calculateRanks(_scoreboardEntity!.players ?? {});
+              _currentRanks = _calculateRanks(state.scoreboardEntity.players!);
+          }
+
+          setState(() {
+            _scoreboardEntity = state.scoreboardEntity;
+          });
         }
       },
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
@@ -210,7 +252,7 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
           icon: const Icon(Icons.edit_note_outlined),
           tooltip: "Update Scores",
           onPressed: () {
-            context.push("/${ScoreboardScoreUpdateScreen.routeName}?id=$_id", extra: _scoreboardEntity);
+            context.go("/${ScoreboardScoreUpdateScreen.routeName}?id=$_id");
           },
         ),
       ],
@@ -326,8 +368,11 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
     final avatarColor = _getAvatarColor(playerName);
     final firstLetter = playerName.isNotEmpty ? playerName[0].toUpperCase() : "?";
     final isLeader = rank == 1;
+    final indicatorKey = _indicatorKeys.putIfAbsent(playerName, () => GlobalKey<ScoreChangeIndicatorState>());
 
-    return Container(
+    return ScoreChangeIndicator(
+      key: indicatorKey,
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -410,7 +455,7 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
           ),
         ],
       ),
-    ).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
+    ));
   }
 
   Widget _buildRankBadge(int rank) {
@@ -526,7 +571,22 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
         String playerName = playersList[index];
         String playerScore = _scoreboardEntity?.players?[playerName]?.toString() ?? '0';
         int rank = scoreSortedList.indexOf(playerName) + 1;
-        return _buildPlayerCard(playerName, playerScore, rank);
+        
+        bool rankChanged = _previousRanks.isNotEmpty && _previousRanks[playerName] != _currentRanks[playerName];
+
+        Widget card = _buildPlayerCard(playerName, playerScore, rank);
+
+        if (rankChanged) {
+           card = card.animate(key: ValueKey('rank_change_${_currentRanks[playerName]}_$playerName'))
+               .shimmer(duration: 800.ms, color: Colors.amber.withValues(alpha: 0.5))
+               .scaleXY(begin: 1.0, end: 1.05, duration: 300.ms, curve: Curves.easeOutBack)
+               .then()
+               .scaleXY(begin: 1.05, end: 1.0, duration: 300.ms, curve: Curves.easeIn);
+        } else {
+           card = card.animate(key: ValueKey('fade_in_$playerName')).fade().slideY(begin: 0.2, curve: Curves.easeOut);
+        }
+
+        return card;
       },
     );
   }

@@ -42,6 +42,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
   final TextEditingController _scoreboardAuthorTextController = TextEditingController();
   final TextEditingController _scoreboardAccessReadTextController = TextEditingController();
   final TextEditingController _scoreboardAccessWriteTextController = TextEditingController();
+  final TextEditingController _scoreboardAccessOwnerTextController = TextEditingController();
 
   final ScoreboardSetupBloc _bloc = ScoreboardSetupBloc();
   ProgressDialog? _pr;
@@ -64,6 +65,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       _scoreboardAuthorTextController.text = prefs.getString('draft_setup_author') ?? '';
       _scoreboardAccessReadTextController.text = prefs.getString('draft_setup_access_read') ?? '';
       _scoreboardAccessWriteTextController.text = prefs.getString('draft_setup_access_write') ?? '';
+      _scoreboardAccessOwnerTextController.text = prefs.getString('draft_setup_access_owner') ?? '';
       
       final playersJson = prefs.getString('draft_setup_players');
       if (playersJson != null) {
@@ -86,6 +88,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
     await prefs.setString('draft_setup_author', _scoreboardAuthorTextController.text);
     await prefs.setString('draft_setup_access_read', _scoreboardAccessReadTextController.text);
     await prefs.setString('draft_setup_access_write', _scoreboardAccessWriteTextController.text);
+    await prefs.setString('draft_setup_access_owner', _scoreboardAccessOwnerTextController.text);
     await prefs.setString('draft_setup_players', jsonEncode(_playerNameList));
     
     if (mounted) {
@@ -129,6 +132,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
         await prefs.remove('draft_setup_author');
         await prefs.remove('draft_setup_access_read');
         await prefs.remove('draft_setup_access_write');
+        await prefs.remove('draft_setup_access_owner');
         await prefs.remove('draft_setup_players');
         
         setState(() {
@@ -138,6 +142,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
           _scoreboardAuthorTextController.clear();
           _scoreboardAccessReadTextController.clear();
           _scoreboardAccessWriteTextController.clear();
+          _scoreboardAccessOwnerTextController.clear();
           _playerNameList.clear();
           _currentStage = ScoreboardSetupStage.basic;
         });
@@ -153,6 +158,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
     _scoreboardAuthorTextController.dispose();
     _scoreboardAccessReadTextController.dispose();
     _scoreboardAccessWriteTextController.dispose();
+    _scoreboardAccessOwnerTextController.dispose();
     _bloc.close();
     super.dispose();
   }
@@ -423,6 +429,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
         return ScoreboardSetupAccessStage(
           readController: _scoreboardAccessReadTextController,
           writeController: _scoreboardAccessWriteTextController,
+          ownerController: _scoreboardAccessOwnerTextController,
           onNext: onScoreboardAccessNextButtonPressed,
           onPrevious: () {
             setState(() {
@@ -444,6 +451,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       access: const AccessEntity(
         read: "",
         write: "",
+        owner: "",
       ),
     );
     _bloc.add(ScoreboardSetupBasicSubmitEvent(scoreboard));
@@ -461,6 +469,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
       access: AccessEntity(
         read: SecurityHelper.hashPassword(_scoreboardAccessReadTextController.text),
         write: SecurityHelper.hashPassword(_scoreboardAccessWriteTextController.text),
+        owner: SecurityHelper.hashPassword(_scoreboardAccessOwnerTextController.text),
       ),
     );
     _bloc.add(ScoreboardSetupFinalSubmitEvent(_scoreboardEntity));

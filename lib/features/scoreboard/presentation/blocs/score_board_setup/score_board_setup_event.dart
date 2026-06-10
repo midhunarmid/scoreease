@@ -21,6 +21,12 @@ class ScoreboardSetupFinalSubmitEvent extends ScoreboardSetupEvent {
   ScoreboardSetupFinalSubmitEvent(this.scoreboardEntity);
 }
 
+class ScoreboardUpdateDetailsEvent extends ScoreboardSetupEvent {
+  final ScoreboardEntity scoreboardEntity;
+
+  ScoreboardUpdateDetailsEvent(this.scoreboardEntity);
+}
+
 class ScoreboardUpdatePlayerScoreEvent extends ScoreboardSetupEvent {
   final String playerName;
   final ScoreboardEntity scoreboardEntity;
