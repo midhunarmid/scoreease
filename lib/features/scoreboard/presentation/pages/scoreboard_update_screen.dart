@@ -89,10 +89,9 @@ class _ScoreboardScoreUpdateScreenState
     if (hasAccess) _loadScoreboard();
   }
 
+  // Listen live so scores from other scorers show up here too.
   void _loadScoreboard() {
-    if (_scoreboardEntity == null) {
-      _bloc.add(ScoreboardGetEvent(widget._id));
-    }
+    _bloc.add(ScoreboardListenPlayerScoreEvent(widget._id));
   }
 
   @override

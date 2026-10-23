@@ -64,6 +64,11 @@ class ScoreboardRepositoryImpl implements ScoreboardRepository {
   }
 
   @override
+  Future<void> incrementPlayerScore(String id, String player, int delta) {
+    return _remoteDataSource.incrementPlayerScore(id: id, player: player, delta: delta);
+  }
+
+  @override
   Stream<ScoreboardEntity> getScoreboardStream(String id) {
     return _remoteDataSource.listenToScoreboard(id).map((scoreboardModel) {
       return ScoreboardMapper.toEntity(scoreboardModel);

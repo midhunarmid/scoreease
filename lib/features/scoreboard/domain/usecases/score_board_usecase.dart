@@ -29,6 +29,10 @@ class ScoreboardUseCase {
     return await _scoreboardRepository.setPlayerScores(id, scores);
   }
 
+  Future<void> incrementPlayerScore(String id, String player, int delta) async {
+    return await _scoreboardRepository.incrementPlayerScore(id, player, delta);
+  }
+
   Stream<ScoreboardEntity> getScoreboardStream(String id) {
     return _scoreboardRepository.getScoreboardStream(id);
   }

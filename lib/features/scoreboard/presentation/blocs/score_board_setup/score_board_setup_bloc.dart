@@ -142,14 +142,14 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
         } else if (event is ScoreboardUpdatePlayerScoreEvent) {
           ScoreboardEntity scoreboardEntity = event.scoreboardEntity;
           String playerName = event.playerName;
-          int newScore = (scoreboardEntity.players?[playerName] ?? 0) + event.delta;
+          // Shown right away; the live listener then brings in the server total.
           ScoreboardEntity updatedScoreboardEntity = scoreboardEntity.copyWith(players: {
             ...?scoreboardEntity.players,
-            playerName: newScore,
+            playerName: (scoreboardEntity.players?[playerName] ?? 0) + event.delta,
           });
 
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
-          await scoreboardUseCase.setPlayerScores(scoreboardEntity.id!, {playerName: newScore});
+          await scoreboardUseCase.incrementPlayerScore(scoreboardEntity.id!, playerName, event.delta);
           emit.call(ScoreboardScoreUpdateSuccessState(updatedScoreboardEntity));
         } else if (event is ScoreboardResetScoresEvent) {
           emit.call(

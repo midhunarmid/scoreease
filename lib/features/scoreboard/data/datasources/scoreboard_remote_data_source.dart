@@ -148,6 +148,16 @@ class ScoreboardRemoteDataSource {
     await _guard(() => _db.ref().update(updates));
   }
 
+  /// Adds [delta] to a player's score on the server, so taps from several
+  /// scorers at once all count. Needs write access.
+  Future<void> incrementPlayerScore({required String id, required String player, required int delta}) async {
+    final Map<String, dynamic> updates = {
+      '$_boards/$id/players/$player': ServerValue.increment(delta),
+      '$_boards/$id/lastUpdated': ServerValue.timestamp,
+    };
+    await _guard(() => _db.ref().update(updates));
+  }
+
   /// Whether the signed-in user currently has [level] access to board [id].
   /// Saved grants are re-checked against the server, so a changed password
   /// locks people out again.
