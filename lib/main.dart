@@ -1,78 +1,24 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:scoreease/core/navigation/app_router.dart';
-import 'package:scoreease/features/landing/presentation/pages/landing_screen.dart';
-import 'package:scoreease/core/utils/di.dart';
-import 'package:scoreease/core/utils/theme.dart';
-import 'package:scoreease/core/utils/theme_provider.dart';
-import 'package:url_strategy/url_strategy.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'firebase_options.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'app/app.dart';
+import 'app/di.dart';
+import 'design/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  setPathUrlStrategy();
-  setupDependencies();
-
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    if (FirebaseAuth.instance.currentUser == null) {
-      await FirebaseAuth.instance.signInAnonymously();
-    }
-  } catch (e) {
-    if (!e.toString().contains('duplicate-app')) {
-      rethrow;
-    }
-  }
-
-  // Configuring firebase database settings. Enabling unlimited caching.
-  // We will be clearing cache in our own way
-  if (!kIsWeb) {
-    FirebaseDatabase.instance.setPersistenceEnabled(true);
-  }
-
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 690),
-      splitScreenMode: true,
-      minTextAdapt: false,
-      fontSizeResolver: FontSizeResolvers.radius,
-      builder: (context, child) {
-        return ListenableBuilder(
-          listenable: themeProvider,
-          builder: (context, _) {
-            return MaterialApp.router(
-              routerConfig: router,
-              title: "scoreease",
-              debugShowCheckedModeBanner: false,
-              theme: getLightTheme(),
-              darkTheme: getDarkTheme(),
-              themeMode: themeProvider.themeMode,
-            );
-          },
-        );
-      },
-      child: const LandingScreen(),
-    );
-  }
-
-  static void debugPrint(Object? object) {
-    if (kDebugMode) {
-      print(object);
-    }
-  }
+  usePathUrlStrategy();
+  await setupDependencies();
+  // Lay out text with the real fonts from the first frame; otherwise chips
+  // and buttons measured with a fallback font clip their labels. Offline on
+  // first run we carry on with system fonts.
+  buildTheme(Brightness.light);
+  GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w500);
+  GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w600);
+  GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700);
+  await GoogleFonts.pendingFonts().timeout(const Duration(seconds: 3), onTimeout: () => const []).catchError((_) => const []);
+  runApp(const ScoreEaseApp());
 }

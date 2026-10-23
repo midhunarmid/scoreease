@@ -1,57 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    $FLUTTER_BASE_HREF is replaced by the value of `flutter build --base-href`.
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Scoreease is an app for tracking your scores in various games.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Keep score of anything: board games, card nights, table tennis, cricket. Works offline and shares live.">
+  <meta name="theme-color" content="#10B981" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)">
 
   <link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
   <link rel="shortcut icon" href="favicon/favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
-  <meta name="apple-mobile-web-app-title" content="Scoreease" />
+  <meta name="apple-mobile-web-app-title" content="ScoreEase" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
-  <title>Scoreease</title>
+  <title>ScoreEase</title>
   <link rel="manifest" href="manifest.json">
 
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    var serviceWorkerVersion = null;
-  </script>
-  <!-- This script adds the flutter initialization JS code -->
-  <script src="flutter.js" defer></script>
+  <style>
+    html, body { margin: 0; height: 100%; background: #f8faf9; }
+    @media (prefers-color-scheme: dark) { html, body { background: #0f1512; } }
+    #splash {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #10B981;
+    }
+    #splash img { width: 72px; height: 72px; border-radius: 16px; }
+    #splash .bar { width: 120px; height: 4px; border-radius: 2px; background: rgba(16, 185, 129, .2); overflow: hidden; }
+    #splash .bar::after {
+      content: ""; display: block; width: 40%; height: 100%; background: #10B981;
+      animation: load 1s ease-in-out infinite;
+    }
+    @keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+  </style>
 </head>
 
 <body>
+  <div id="splash" aria-label="Loading ScoreEase">
+    <img src="favicon/web-app-manifest-192x192.png" alt="">
+    <div class="bar"></div>
+  </div>
   <script>
-    window.addEventListener('load', function (ev) {
-      // Download main.dart.js
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
-        onEntrypointLoaded: function (engineInitializer) {
-          engineInitializer.initializeEngine().then(function (appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
+    {{flutter_js}}
+    {{flutter_build_config}}
+    _flutter.loader.load({
+      onEntrypointLoaded: async function (engineInitializer) {
+        const appRunner = await engineInitializer.initializeEngine();
+        await appRunner.runApp();
+        document.getElementById('splash')?.remove();
+      }
     });
   </script>
 </body>

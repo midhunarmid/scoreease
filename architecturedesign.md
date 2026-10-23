@@ -1,70 +1,79 @@
-# ScoreEase Architecture Overview
-[![](https://mermaid.ink/img/pako:eNp1VO9v2jAQ_VcsS52YRNOGhAL5MCkN6Ropowjouh_ZB5MYiJTYke20ZVX_950NgVCxL-Tu3fPd88uRN5zyjGIPrwr-km6IUGgxThhCFxdoOgvn4WThL6KHCYr9n-FMF2S9XAtSbdBUUEmZIirn7HeC2ymKyZaKBP_RBxB6jKD-GKHOXVErRQV6yrM1VfLzgXFb8BQ4tzEPUAeYc-hD0ScUPkNLdE9YVuRs3fApyxK2F-lPp3EU_E-jX1VFnjYSW9lHhZIGRFKpdUqKTIyuUMRALUkVF_LM6LG_8M_MHBNFoI9-fJgyoxWXOXTbQv2Y7MasSEoPzLtc0CWIiMqqAG6TtjqAmQBKCCnSLFo25p9zKfyxCGcTP0bzcPY9CsL5ieLwFeYzoic1IZpT8ZynVJ5IMuPaeg7ggXbPpYJX1SbtIdSRKTApQBYRZZ5ZOTtuwNdc3ddLOLYLzE0_FP1UX08eOXvguEWCv0gq9CLtItgl_euncJHWts21jsdZDEQTLjkRGQIAdai1trroyiBXZJnaPeecn3fxwxMKHiaTMNCbZ-yEtb28_GJWWaf6aYBmtwxnH5vC8WXqUuvV6mJ7A3S5nR8IO-uNqMZkMzHSyN4kDZz4Z5A9fXe2ceukcAo3lrWuiLt4LfIMe0rUtItLKkqiU_ymDydYbWAnE-xBmNEVqQuV4IS9w7GKsF-cl81Jwev1BnsrUkjI6iqD__44J7Cb5QEV4D4VAa-Zwp5ru6YJ9t7wK_ac65Hl2rY76PdHrt13nS7eYs_uWUNn6DjXTu9mZI_6ffe9i_-asdfWaGgPbgbDUW_oDPo9F9rRTHv_bfcxNN_E93-kG6gg?type=png)](https://mermaid.live/edit#pako:eNp1VO9v2jAQ_VcsS52YRNOGhAL5MCkN6Ropowjouh_ZB5MYiJTYke20ZVX_950NgVCxL-Tu3fPd88uRN5zyjGIPrwr-km6IUGgxThhCFxdoOgvn4WThL6KHCYr9n-FMF2S9XAtSbdBUUEmZIirn7HeC2ymKyZaKBP_RBxB6jKD-GKHOXVErRQV6yrM1VfLzgXFb8BQ4tzEPUAeYc-hD0ScUPkNLdE9YVuRs3fApyxK2F-lPp3EU_E-jX1VFnjYSW9lHhZIGRFKpdUqKTIyuUMRALUkVF_LM6LG_8M_MHBNFoI9-fJgyoxWXOXTbQv2Y7MasSEoPzLtc0CWIiMqqAG6TtjqAmQBKCCnSLFo25p9zKfyxCGcTP0bzcPY9CsL5ieLwFeYzoic1IZpT8ZynVJ5IMuPaeg7ggXbPpYJX1SbtIdSRKTApQBYRZZ5ZOTtuwNdc3ddLOLYLzE0_FP1UX08eOXvguEWCv0gq9CLtItgl_euncJHWts21jsdZDEQTLjkRGQIAdai1trroyiBXZJnaPeecn3fxwxMKHiaTMNCbZ-yEtb28_GJWWaf6aYBmtwxnH5vC8WXqUuvV6mJ7A3S5nR8IO-uNqMZkMzHSyN4kDZz4Z5A9fXe2ceukcAo3lrWuiLt4LfIMe0rUtItLKkqiU_ymDydYbWAnE-xBmNEVqQuV4IS9w7GKsF-cl81Jwev1BnsrUkjI6iqD__44J7Cb5QEV4D4VAa-Zwp5ru6YJ9t7wK_ac65Hl2rY76PdHrt13nS7eYs_uWUNn6DjXTu9mZI_6ffe9i_-asdfWaGgPbgbDUW_oDPo9F9rRTHv_bfcxNN_E93-kG6gg)
+# ScoreEase 2.0 architecture
 
-ScoreEase follows a **Clean Architecture** approach to keep the codebase modular, testable, and scalable.
+ScoreEase is a lightweight score tracker for Android, iOS and the web, built with Flutter. Games are stored on the device. A game touches the cloud only when its owner shares it live. Everything runs on the free Firebase **Spark** plan: Realtime Database, anonymous Auth and Hosting. There are no Cloud Functions, Firestore or Storage.
 
-It is structured in **three primary layers**:
+## Layers
 
----
+```
+lib/
+  main.dart            starts Hive and DI, waits for fonts, runs the app
+  app/                 MaterialApp, go_router routes, adaptive shell, get_it setup, version story
+  design/              tokens, Material 3 theme (+ ScoreColors extension), breakpoints, shared widgets
+  engine/              pure Dart, no Flutter: models, scoring engines, templates
+  data/local/          Hive-backed LocalStore (games, events, players, backup) and SettingsStore
+  data/cloud/          Firebase bootstrap, board passwords (AccessRemote), live boards, 1.x boards
+  features/            home, new_game, play (cubit, mode views, TV), live viewer, share,
+                       history, players (stats), settings
+```
 
-## 📌 1. Presentation Layer
+### Engine (event-sourced)
 
-Handles everything related to the **UI** and **user interactions**.
+- A `Game` holds the setup: mode, template, settings and participants. It never stores scores.
+- Every action is a `ScoreEvent` (`add`, `round`, `point`, `ball`, `undo`, `redo`, `end`...). Event ids use the Firebase push-id format, so events from several devices merge in time order.
+- `GameEngine.compute(game, events)` drops undone events, then replays the rest through the mode's `ScoringEngine`. The result is a `GameSnapshot` with the state, standings, winners, result text and whether undo/redo are available.
+- There are four engines: `CounterEngine` (with an optional match clock), `RoundsEngine`, `SetsEngine` and `CricketEngine`. `templates.dart` defines presets such as table tennis, badminton, rummy and cricket on top of them.
+- Undo and redo are themselves events. They work the same way locally and between devices.
 
-| Component             | Description                                                                 |
-|-----------------------|-----------------------------------------------------------------------------|
-| `pages` | Visual elements like screens, buttons, and inputs.                         |
-| `blocs`                | Converts UI events into state changes. Manages user flows like scoreboard creation and updates. |
+### State
 
----
+`PlayCubit` (flutter_bloc) runs one game. It backs three screens: the scoring screen, the live viewer and TV mode.
 
-## 📌 2. Domain Layer
+- **Local game:** events load from Hive, and each new event is appended and saved.
+- **Shared by this device:** the same as a local game, but events are also written to `boards/{code}/events`. The cubit listens to the cloud copy and mirrors it locally.
+- **Joined from a link:** read or write access is checked first, with a password gate if needed. The cubit then streams the board.
 
-The **business logic layer**, independent of frameworks or Firebase.
+The other screens read `LocalStore` directly and rebuild from Hive `watch()` streams.
 
-| Component                 | Description                                                                 |
-|---------------------------|-----------------------------------------------------------------------------|
-| `Use Cases` | Contains core application logic (e.g., "Add score to a player"). It coordinates between BLoC and the data layer. |
+### Layout
 
----
+Breakpoints follow Material 3 window classes:
 
-## 📌 3. Data Layer
+- **Compact (< 600):** bottom navigation bar; scoring is full screen.
+- **Medium (600–1024):** navigation rail.
+- **Expanded (≥ 1024):** extended rail. The scoring screen gets a side panel with standings and history.
 
-This layer handles communication with Firebase or other data sources.
+Two-sided games split the screen in half, side by side in landscape and stacked in portrait. There is no pixel-scaling package: sizes come from the tokens in `design/tokens.dart`, and numbers use tabular figures.
 
-| Component                        | Description                                                                 |
-|----------------------------------|-----------------------------------------------------------------------------|
-| `Repository Interface`           | Defines contracts for operations like `getScoreboard()` or `updatePlayerScore()`. |
-| `Firebase Repository Implementation` | Concrete class interacting with Firestore based on the interface.         |
+## Cloud model (Realtime Database)
 
----
+| Path | Contents | Who can read | Who can write |
+|---|---|---|---|
+| `boardMeta/{code}` | `ownerId`, `readProtected`, `writeProtected`, `ownerProtected` | anyone | creator (on create), then owner |
+| `secrets/{code}/{read\|write\|owner}` | SHA-256 hashes | nobody | owner |
+| `grants/{code}/{uid}/{level}` | hash the user entered; valid only if it equals the secret | that user | that user |
+| `boards/{code}/meta` | title, mode, template, settings, participants | read level | owner |
+| `boards/{code}/events/{pushId}` | `{t, d, ts, by}` | read level | write level; append only, `by` must equal `auth.uid` |
+| `scoreboards/{id}` | 1.x boards: read-only in the app, can be copied into a local game | read level | unchanged 1.x rules |
 
-## 🌐 External Services
+- Codes are 6 characters with no confusable letters, and they share the namespace with 1.x board ids. A taken code is rejected by the `boardMeta` create rule, and the app retries with a new one.
+- The rules cap sizes: participants `p0`–`p49`, and string lengths on every field.
+- Viewers listen to `boards/{code}`. The SDK sends only what changed, so each point costs a few bytes.
+- Stopping sharing deletes the board, its meta and its secrets. The local copy stays.
 
-| Service               | Role                                                                 |
-|-----------------------|----------------------------------------------------------------------|
-| **Firebase Firestore**| Stores scoreboard data, player scores, and score history.            |
-| **Firebase Hosting**  | Hosts the web app at [https://scoreease.armid.in](https://scoreease.armid.in) |
-| **GitHub + Actions**  | Automates deployment from GitHub to Firebase Hosting.                |
-| **Browser Access**    | Scoreboards accessible via shareable URLs (e.g., `/board/abc123`).   |
+## Data on the device
 
----
+Hive CE boxes hold JSON strings, so there are no type adapters or code generation:
 
-## ✅ Key Features
+- `games`: game JSON keyed by id.
+- `events`: one map of events per game id.
+- `players`: remembered names, colours and when each was last used.
+- `settings`: theme, haptics, keep-awake and the board ids this device unlocked.
 
-- Create scoreboards with up to 100 players.
-- Real-time live score updates via Firestore.
-- Mobile and web-friendly UI using Flutter Web.
-- Direct URL support for viewing any scoreboard.
-- Free, open-source, and privacy-friendly.
+Backup export and import is a single JSON file. CSV export and result-card images go out through the share sheet.
 
----
+## Testing and CI
 
-## 🧩 Clean Architecture Benefits
-
-- 🔁 **Reusable** logic across platforms (web, Android, iOS).
-- 🔍 **Testable** core business logic and data operations.
-- 📦 **Modular** structure — easy to extend or replace components.
-
----
-
+- `flutter test`: engine unit tests (`test/engine`), `PlayCubit` persistence tests and adaptive-layout widget tests (`test/widget`).
+- `test/database_rules`: rules tests against the RTDB emulator, covering both the 1.x roots and `boards/`. Run them with `npm ci && npm test`; they need Java.
+- `.github/workflows/ci.yml` runs analyze, the tests and the rules tests on PRs and branches.
+- `firebase-hosting-merge.yml` runs analyze and tests, builds the web app, and deploys Hosting plus the database rules on merge to `master`.
