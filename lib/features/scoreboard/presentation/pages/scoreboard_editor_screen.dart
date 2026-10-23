@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scoreease/core/utils/input_case_text_formatter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -14,9 +15,12 @@ import 'package:scoreease/features/scoreboard/domain/entities/team_entity.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/access_entity.dart';
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/editor_section.dart';
 import 'package:scoreease/core/utils/security_helper.dart';
 import 'package:scoreease/core/widgets/password_prompt_widget.dart';
-import 'package:scoreease/core/utils/global.dart';
+import 'package:get_it/get_it.dart';
+import 'package:scoreease/core/utils/my_app_exception.dart';
+import 'package:scoreease/features/scoreboard/domain/usecases/score_board_usecase.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class ScoreboardEditorScreen extends StatefulWidget {
@@ -54,28 +58,47 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
   ScoreboardEntity? _scoreboardEntity;
   bool _isOwnerUnlocked = false;
   bool _isLoadingAccess = true;
+  final ScoreboardUseCase _useCase = GetIt.instance<ScoreboardUseCase>();
 
   @override
   void initState() {
     super.initState();
     _scoreboardEntity = widget.scoreboardEntity;
     
-    _checkSavedAccess();
-
     if (_scoreboardEntity != null) {
       _initControllers();
-    } else {
-      _bloc.add(ScoreboardGetEvent(widget.id));
     }
+    _checkAccess();
   }
 
-  Future<void> _checkSavedAccess() async {
-    final hasOwnerAccess = await GlobalValues.hasScoreboardAccess(scoreboardId: widget.id, type: 'owner');
-    if (mounted) {
-      setState(() {
-        _isOwnerUnlocked = hasOwnerAccess;
-        _isLoadingAccess = false;
-      });
+  Future<void> _checkAccess() async {
+    bool hasOwnerAccess = false;
+    try {
+      hasOwnerAccess = await _useCase.hasAccess(widget.id, AccessLevel.owner);
+    } on MyAppException catch (e) {
+      if (mounted) {
+        showSingleButtonAlertDialog(
+          context: context,
+          title: e.title,
+          message: e.message,
+          positiveAction: () => context.go('/'),
+        );
+      }
+      return;
+    } catch (e) {
+      appLogger.e(e);
+    }
+    if (!mounted) return;
+    setState(() {
+      _isOwnerUnlocked = hasOwnerAccess;
+      _isLoadingAccess = false;
+    });
+    if (hasOwnerAccess) _loadScoreboard();
+  }
+
+  void _loadScoreboard() {
+    if (_scoreboardEntity == null) {
+      _bloc.add(ScoreboardGetEvent(widget.id));
     }
   }
 
@@ -125,10 +148,12 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
       return;
     }
 
-    final oldAccess = _scoreboardEntity!.access;
-    final String? newRead = _removeReadAccess ? "" : (_readAccessController.text.isNotEmpty ? SecurityHelper.hashPassword(_readAccessController.text) : oldAccess?.read);
-    final String? newWrite = _removeWriteAccess ? "" : (_writeAccessController.text.isNotEmpty ? SecurityHelper.hashPassword(_writeAccessController.text) : oldAccess?.write);
-    final String? newOwner = _removeOwnerAccess ? "" : (_ownerAccessController.text.isNotEmpty ? SecurityHelper.hashPassword(_ownerAccessController.text) : oldAccess?.owner);
+    // null keeps the stored password, "" removes it.
+    String? newHash(bool remove, TextEditingController controller) =>
+        remove ? "" : (controller.text.isNotEmpty ? SecurityHelper.hashPassword(controller.text) : null);
+    final String? newRead = newHash(_removeReadAccess, _readAccessController);
+    final String? newWrite = newHash(_removeWriteAccess, _writeAccessController);
+    final String? newOwner = newHash(_removeOwnerAccess, _ownerAccessController);
 
     final updatedAccess = AccessEntity(
        read: newRead,
@@ -157,6 +182,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          inputFormatters: nameKeyFormatters(),
           decoration: const InputDecoration(labelText: "Player Name"),
         ),
         actions: [
@@ -263,6 +289,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          inputFormatters: nameKeyFormatters(),
           decoration: const InputDecoration(labelText: "New Player Name"),
         ),
         actions: [
@@ -293,81 +320,6 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
               }
             },
             child: Text("Save", style: TextStyle(color: appColors.buttonTextColor)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPasswordField({
-    required String label, 
-    required TextEditingController controller, 
-    required bool removeFlag, 
-    required Function(bool?) onChanged
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        getTextInputWidget(
-          context: context,
-          label: label,
-          hint: removeFlag ? "Password removed" : "Leave empty to keep existing",
-          controller: controller,
-          prefixIcon: const Icon(Icons.lock_outline),
-          enabled: !removeFlag,
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text("Remove $label Access", style: Theme.of(context).textTheme.bodySmall?.copyWith(color: removeFlag ? Colors.red : null)),
-              Checkbox(
-                value: removeFlag,
-                onChanged: onChanged,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionContainer({required String title, required List<Widget> children, IconData? icon, Widget? action}) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 24.h),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: appColors.primaryColor.withValues(alpha: 0.12),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, color: appColors.primaryColor, size: 20.sp),
-                  SizedBox(width: 8.w),
-                ],
-                Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: appColors.primaryColor)),
-                const Spacer(),
-                if (action != null) action,
-              ],
-            ),
-          ),
-          Divider(height: 1, color: appColors.primaryColor.withValues(alpha: 0.1)),
-          Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
           ),
         ],
       ),
@@ -436,6 +388,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                   keyboardType: TextInputType.name,
                   textInputAction: TextInputAction.go,
                   prefixIcon: const Icon(Icons.person_add_alt_1_outlined),
+                  inputFormatters: nameKeyFormatters(),
                   icon: Icons.add,
                   focusNode: _playerFocusNodes[teamName],
                   onPressed: () => _addPlayerToTeam(teamName),
@@ -484,6 +437,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          inputFormatters: nameKeyFormatters(),
           decoration: const InputDecoration(labelText: "New Player Name"),
         ),
         actions: [
@@ -568,26 +522,29 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
       },
       child: Builder(
         builder: (context) {
-          if (_scoreboardEntity == null || _isLoadingAccess) {
+          if (_isLoadingAccess) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
 
-          final ownerPass = _scoreboardEntity!.access?.owner;
-          if (ownerPass != null && ownerPass.isNotEmpty && !_isOwnerUnlocked) {
+          if (!_isOwnerUnlocked) {
             return PasswordPromptWidget(
-              expectedPassword: ownerPass,
+              onVerify: (password) => _useCase.unlock(widget.id, AccessLevel.owner, password),
               title: "Edit Protected Scoreboard",
               message: "Enter the owner password to edit scoreboard details and players.",
               onSuccess: () {
-                GlobalValues.unlockScoreboardAccess(scoreboardId: widget.id, type: 'owner');
                 setState(() {
                   _isOwnerUnlocked = true;
                 });
+                _loadScoreboard();
               },
               onCancel: () {
                 context.go('/${ScoreboardScoreUpdateScreen.routeName}?id=${widget.id}');
               },
             );
+          }
+
+          if (_scoreboardEntity == null) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
 
           return Scaffold(
@@ -598,6 +555,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
               iconTheme: IconThemeData(color: appColors.textColor),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
+                tooltip: "Back",
                 onPressed: () {
                   context.go('/${ScoreboardScoreUpdateScreen.routeName}?id=${widget.id}');
                 },
@@ -624,7 +582,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
                   children: [
-                  _buildSectionContainer(
+                  EditorSection(
                     title: "Basic Details",
                     icon: Icons.info_outline,
                     children: [
@@ -654,11 +612,11 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                     ],
                   ).animate().fade(duration: 400.ms, delay: 0.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic),
 
-                  _buildSectionContainer(
+                  EditorSection(
                     title: "Security / Access",
                     icon: Icons.shield_outlined,
                     children: [
-                      _buildPasswordField(
+                      EditorPasswordField(
                         label: "Read",
                         controller: _readAccessController,
                         removeFlag: _removeReadAccess,
@@ -668,7 +626,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                         },
                       ),
                       SizedBox(height: 16.h),
-                      _buildPasswordField(
+                      EditorPasswordField(
                         label: "Write",
                         controller: _writeAccessController,
                         removeFlag: _removeWriteAccess,
@@ -678,7 +636,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                         },
                       ),
                       SizedBox(height: 16.h),
-                      _buildPasswordField(
+                      EditorPasswordField(
                         label: "Owner",
                         controller: _ownerAccessController,
                         removeFlag: _removeOwnerAccess,
@@ -691,7 +649,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                   ).animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic),
 
                   if (_scoreboardEntity!.isTeamGame == true)
-                    _buildSectionContainer(
+                    EditorSection(
                       title: "Team Roster",
                       icon: Icons.group_work_outlined,
                       children: [
@@ -703,6 +661,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                           keyboardType: TextInputType.name,
                           textInputAction: TextInputAction.go,
                           prefixIcon: const Icon(Icons.group_add_outlined),
+                          inputFormatters: nameKeyFormatters(),
                           icon: Icons.add,
                           onPressed: _addTeam,
                         ),
@@ -722,7 +681,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                       ],
                     ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic)
                   else
-                    _buildSectionContainer(
+                    EditorSection(
                       title: "Player Roster",
                       icon: Icons.people_outline,
                       action: TextButton.icon(

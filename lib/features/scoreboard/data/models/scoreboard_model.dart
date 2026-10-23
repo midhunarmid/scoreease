@@ -15,7 +15,8 @@ class ScoreboardModel {
   final String? ownerId;
   final int? createdAt;
   final int? lastUpdated;
-  final AccessModel? access;
+  /// Public access flags from `boardMeta/{id}`. Not part of the stored board.
+  final AccessMetaModel? access;
   final Map<String, int>? players;
   final bool? isTeamGame;
   final Map<String, TeamModel>? teams;
@@ -48,7 +49,6 @@ class ScoreboardModel {
       ownerId: data['ownerId'] as String?,
       createdAt: data['createdAt'] as int?,
       lastUpdated: data['lastUpdated'] as int?,
-      access: data['access'] == null ? null : AccessModel.fromMap(Map<String, dynamic>.from(data['access'] as Map)),
       players: data['players'] == null ? null : Map<String, int>.from(data['players'] as Map<dynamic, dynamic>),
       isTeamGame: data['isTeamGame'] as bool?,
       teams: data['teams'] == null
@@ -67,7 +67,6 @@ class ScoreboardModel {
         'ownerId': ownerId,
         'createdAt': createdAt,
         'lastUpdated': ServerValue.timestamp,
-        'access': access?.toMap(),
         'players': players,
         'isTeamGame': isTeamGame,
         'teams': teams?.map((k, v) => MapEntry(k, v.toMap())),
@@ -93,7 +92,7 @@ class ScoreboardModel {
     String? ownerId,
     int? createdAt,
     int? lastUpdated,
-    AccessModel? access,
+    AccessMetaModel? access,
     Map<String, int>? players,
     bool? isTeamGame,
     Map<String, TeamModel>? teams,

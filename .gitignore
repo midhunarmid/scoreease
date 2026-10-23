@@ -126,3 +126,8 @@ build/web/
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
+
+# Node tooling (rules tests, migration script)
+node_modules/
+
+*-debug.log

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/core/widgets/dummy_screen.dart';
+import 'package:scoreease/core/widgets/not_found_screen.dart';
 import 'package:scoreease/features/landing/presentation/pages/landing_screen.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/score_board_setup_screen.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
@@ -14,7 +15,7 @@ import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:go_router/go_router.dart';
 
 final GoRouter router = GoRouter(
-  errorBuilder: (context, state) => const DummyScreen(text: "Error Screen"),
+  errorBuilder: (context, state) => const NotFoundScreen(),
   redirect: (BuildContext context, GoRouterState state) {
     if (![
       "/${LandingScreen.routeName}",

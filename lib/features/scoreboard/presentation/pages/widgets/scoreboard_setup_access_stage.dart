@@ -45,7 +45,7 @@ class ScoreboardSetupAccessStage extends StatelessWidget {
           textInputAction: TextInputAction.go,
           prefixIcon: const Icon(Icons.password_outlined),
           inputFormatters: [
-            LengthLimitingTextInputFormatter(10),
+            LengthLimitingTextInputFormatter(64),
           ],
         ),
         SizedBox(height: 8.h),
@@ -64,7 +64,7 @@ class ScoreboardSetupAccessStage extends StatelessWidget {
           textInputAction: TextInputAction.go,
           prefixIcon: const Icon(Icons.password_outlined),
           inputFormatters: [
-            LengthLimitingTextInputFormatter(10),
+            LengthLimitingTextInputFormatter(64),
           ],
         ),
         SizedBox(height: 8.h),
@@ -83,7 +83,7 @@ class ScoreboardSetupAccessStage extends StatelessWidget {
           textInputAction: TextInputAction.go,
           prefixIcon: const Icon(Icons.security),
           inputFormatters: [
-            LengthLimitingTextInputFormatter(10),
+            LengthLimitingTextInputFormatter(64),
           ],
         ),
         SizedBox(height: 8.h),

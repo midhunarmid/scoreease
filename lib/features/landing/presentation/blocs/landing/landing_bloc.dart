@@ -28,8 +28,13 @@ class LandingBloc extends Bloc<LandingEvent, LandingState> {
           );
 
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
-          ScoreboardEntity scoreboardEntity = await scoreboardUseCase.getScoreboard(event.id);
-          await delayedEmit(emit, LandingScoreCardReceivedState(scoreboardEntity));
+          if (!await scoreboardUseCase.exists(event.id)) {
+            throw const MyAppException(
+              title: "Scoreboard Not Found",
+              message: "No score board found with that ID",
+            );
+          }
+          await delayedEmit(emit, LandingScoreCardReceivedState(ScoreboardEntity(id: event.id)));
         }
       } on MyAppException catch (ae) {
         appLogger.e(ae);

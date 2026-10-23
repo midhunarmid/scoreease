@@ -1,8 +1,54 @@
-import 'dart:convert';
-
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
+/// Public access flags, stored at `boardMeta/{id}` and readable by everyone.
+@immutable
+class AccessMetaModel {
+  final String? ownerId;
+  final bool readProtected;
+  final bool writeProtected;
+  final bool ownerProtected;
+
+  const AccessMetaModel({
+    this.ownerId,
+    this.readProtected = false,
+    this.writeProtected = false,
+    this.ownerProtected = false,
+  });
+
+  factory AccessMetaModel.fromMap(Map<String, dynamic> data) => AccessMetaModel(
+        ownerId: data['ownerId'] as String?,
+        readProtected: data['readProtected'] as bool? ?? false,
+        writeProtected: data['writeProtected'] as bool? ?? false,
+        ownerProtected: data['ownerProtected'] as bool? ?? false,
+      );
+
+  Map<String, dynamic> toMap() => {
+        'ownerId': ownerId ?? '',
+        'readProtected': readProtected,
+        'writeProtected': writeProtected,
+        'ownerProtected': ownerProtected,
+      };
+
+  @override
+  String toString() =>
+      'AccessMetaModel(ownerId: $ownerId, readProtected: $readProtected, writeProtected: $writeProtected, ownerProtected: $ownerProtected)';
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(other, this)) return true;
+    if (other is! AccessMetaModel) return false;
+    return other.ownerId == ownerId &&
+        other.readProtected == readProtected &&
+        other.writeProtected == writeProtected &&
+        other.ownerProtected == ownerProtected;
+  }
+
+  @override
+  int get hashCode => Object.hash(ownerId, readProtected, writeProtected, ownerProtected);
+}
+
+/// Password hashes to write to `secrets/{id}`. That node is never readable by
+/// clients; `null` keeps the stored value and `""` removes it.
 @immutable
 class AccessModel {
   final String? read;
@@ -12,52 +58,17 @@ class AccessModel {
   const AccessModel({this.read, this.write, this.owner});
 
   @override
-  String toString() => 'AccessModel(read: $read, write: $write, owner: $owner)';
+  String toString() => 'AccessModel(read: ${_mask(read)}, write: ${_mask(write)}, owner: ${_mask(owner)})';
 
-  factory AccessModel.fromMap(Map<String, dynamic> data) => AccessModel(
-        read: data['read'] as String?,
-        write: data['write'] as String?,
-        owner: data['owner'] as String?,
-      );
-
-  Map<String, dynamic> toMap() => {
-        'read': read,
-        'write': write,
-        'owner': owner,
-      };
-
-  /// `dart:convert`
-  ///
-  /// Parses the string and returns the resulting Json object as [AccessModel].
-  factory AccessModel.fromJson(String data) {
-    return AccessModel.fromMap(json.decode(data) as Map<String, dynamic>);
-  }
-
-  /// `dart:convert`
-  ///
-  /// Converts [AccessModel] to a JSON string.
-  String toJson() => json.encode(toMap());
-
-  AccessModel copyWith({
-    String? read,
-    String? write,
-    String? owner,
-  }) {
-    return AccessModel(
-      read: read ?? this.read,
-      write: write ?? this.write,
-      owner: owner ?? this.owner,
-    );
-  }
+  static String? _mask(String? value) => value == null ? null : (value.isEmpty ? '""' : '***');
 
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
     if (other is! AccessModel) return false;
-    final mapEquals = const DeepCollectionEquality().equals;
-    return mapEquals(other.toMap(), toMap());
+    return other.read == read && other.write == write && other.owner == owner;
   }
 
   @override
-  int get hashCode => read.hashCode ^ write.hashCode ^ owner.hashCode;
+  int get hashCode => Object.hash(read, write, owner);
 }

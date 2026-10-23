@@ -1,0 +1,11 @@
+{
+  "name": "scoreease-migrate-access",
+  "private": true,
+  "description": "One-time move of board password hashes out of the public scoreboard data (v1.5.0).",
+  "scripts": {
+    "migrate": "node migrate.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

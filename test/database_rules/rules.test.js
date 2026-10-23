@@ -1,0 +1,190 @@
+// Tests for database.rules.json. Run with `npm test` from this folder; it
+// starts the Realtime Database emulator, so Java and firebase-tools are needed.
+const { test, before, after, beforeEach } = require('node:test');
+const assert = require('node:assert');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const {
+  initializeTestEnvironment,
+  assertFails,
+  assertSucceeds,
+} = require('@firebase/rules-unit-testing');
+const { ref, get, set, update, remove } = require('firebase/database');
+
+const hash = (password) => crypto.createHash('sha256').update(password).digest('hex');
+
+let env;
+
+before(async () => {
+  env = await initializeTestEnvironment({
+    projectId: 'demo-scoreease',
+    database: {
+      rules: fs.readFileSync(path.join(__dirname, '../../database.rules.json'), 'utf8'),
+    },
+  });
+});
+
+after(async () => {
+  await env.cleanup();
+});
+
+beforeEach(async () => {
+  await env.clearDatabase();
+});
+
+const db = (uid) => env.authenticatedContext(uid).database();
+
+// The multi-path write the app makes when it creates a board.
+function createBoard(uid, id, { read, write, owner } = {}) {
+  const updates = {
+    [`boardMeta/${id}`]: {
+      ownerId: uid,
+      readProtected: !!read,
+      writeProtected: !!write,
+      ownerProtected: !!owner,
+    },
+    [`scoreboards/${id}`]: { id, title: 'Game night', ownerId: uid, players: { ann: 0, bob: 0 } },
+  };
+  if (read) updates[`secrets/${id}/read`] = hash(read);
+  if (write) updates[`secrets/${id}/write`] = hash(write);
+  if (owner) updates[`secrets/${id}/owner`] = hash(owner);
+  return update(ref(db(uid)), updates);
+}
+
+test('unauthenticated users cannot read or write anything', async () => {
+  await assertSucceeds(createBoard('alice', 'open'));
+  const anon = env.unauthenticatedContext().database();
+  await assertFails(get(ref(anon, 'scoreboards/open')));
+  await assertFails(set(ref(anon, 'scoreboards/open/players/ann'), 5));
+});
+
+test('nobody can list every board or read secrets', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { read: 'pw' }));
+  await assertFails(get(ref(db('alice'), 'scoreboards')));
+  await assertFails(get(ref(db('alice'), 'secrets/b1')));
+  await assertFails(get(ref(db('mallory'), 'secrets/b1')));
+});
+
+test('a taken ID cannot be created again', async () => {
+  await assertSucceeds(createBoard('alice', 'b1'));
+  await assertFails(createBoard('mallory', 'b1'));
+});
+
+test('a board cannot be created on behalf of someone else', async () => {
+  const updates = {
+    'boardMeta/b1': { ownerId: 'alice', readProtected: false, writeProtected: false, ownerProtected: false },
+    'scoreboards/b1': { id: 'b1', title: 'x', ownerId: 'alice' },
+  };
+  await assertFails(update(ref(db('mallory')), updates));
+});
+
+test('open boards can be read and scored by anyone signed in', async () => {
+  await assertSucceeds(createBoard('alice', 'b1'));
+  await assertSucceeds(get(ref(db('bob'), 'scoreboards/b1')));
+  await assertSucceeds(set(ref(db('bob'), 'scoreboards/b1/players/ann'), 3));
+});
+
+test('read-protected boards need the read password', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { read: 'letmein' }));
+  await assertSucceeds(get(ref(db('alice'), 'scoreboards/b1')));
+  await assertSucceeds(get(ref(db('bob'), 'boardMeta/b1')));
+  await assertFails(get(ref(db('bob'), 'scoreboards/b1')));
+
+  await assertFails(set(ref(db('bob'), 'grants/b1/bob/read'), hash('wrong')));
+  await assertFails(get(ref(db('bob'), 'scoreboards/b1')));
+
+  await assertSucceeds(set(ref(db('bob'), 'grants/b1/bob/read'), hash('letmein')));
+  await assertSucceeds(get(ref(db('bob'), 'scoreboards/b1')));
+});
+
+test('a grant stops working once the password changes', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { read: 'old' }));
+  await assertSucceeds(set(ref(db('bob'), 'grants/b1/bob/read'), hash('old')));
+  await assertSucceeds(get(ref(db('bob'), 'scoreboards/b1')));
+
+  await assertSucceeds(set(ref(db('alice'), 'secrets/b1/read'), hash('new')));
+  await assertFails(get(ref(db('bob'), 'scoreboards/b1')));
+  // The app re-checks a saved grant by rewriting it; that now fails.
+  await assertFails(set(ref(db('bob'), 'grants/b1/bob/read'), hash('old')));
+});
+
+test('users cannot read or write grants of other users', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { read: 'pw' }));
+  await assertSucceeds(set(ref(db('bob'), 'grants/b1/bob/read'), hash('pw')));
+  await assertFails(get(ref(db('mallory'), 'grants/b1/bob')));
+  await assertFails(set(ref(db('mallory'), 'grants/b1/bob/read'), hash('pw')));
+});
+
+test('write-protected boards: readers can view but not score', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { write: 'scorer' }));
+  await assertSucceeds(get(ref(db('bob'), 'scoreboards/b1')));
+  await assertFails(set(ref(db('bob'), 'scoreboards/b1/players/ann'), 10));
+
+  await assertSucceeds(set(ref(db('bob'), 'grants/b1/bob/write'), hash('scorer')));
+  await assertSucceeds(set(ref(db('bob'), 'scoreboards/b1/players/ann'), 10));
+});
+
+test('scorers can change scores but not board settings', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { read: 'r', write: 'w' }));
+  await assertSucceeds(set(ref(db('bob'), 'grants/b1/bob/write'), hash('w')));
+  // The write password also lets you view.
+  await assertSucceeds(get(ref(db('bob'), 'scoreboards/b1')));
+  await assertSucceeds(update(ref(db('bob'), 'scoreboards/b1/players'), { ann: 1, bob: 2 }));
+  await assertFails(set(ref(db('bob'), 'scoreboards/b1/title'), 'hacked'));
+  await assertFails(set(ref(db('bob'), 'secrets/b1/read'), hash('mine')));
+  await assertFails(remove(ref(db('bob'), 'scoreboards/b1')));
+});
+
+test('an open write level still respects the read password', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { read: 'r' }));
+  await assertFails(set(ref(db('bob'), 'scoreboards/b1/players/ann'), 1));
+  await assertSucceeds(set(ref(db('bob'), 'grants/b1/bob/read'), hash('r')));
+  await assertSucceeds(set(ref(db('bob'), 'scoreboards/b1/players/ann'), 1));
+});
+
+test('scores must be numbers', async () => {
+  await assertSucceeds(createBoard('alice', 'b1'));
+  await assertFails(set(ref(db('bob'), 'scoreboards/b1/players/ann'), 'lots'));
+});
+
+test('only the creator or an owner-password holder can edit settings', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { owner: 'boss' }));
+  await assertSucceeds(set(ref(db('alice'), 'scoreboards/b1/title'), 'Renamed'));
+  await assertFails(set(ref(db('carol'), 'scoreboards/b1/title'), 'Mine now'));
+
+  await assertSucceeds(set(ref(db('carol'), 'grants/b1/carol/owner'), hash('boss')));
+  await assertSucceeds(set(ref(db('carol'), 'scoreboards/b1/title'), 'Mine now'));
+  await assertSucceeds(set(ref(db('carol'), 'boardMeta/b1/readProtected'), true));
+  await assertSucceeds(set(ref(db('carol'), 'secrets/b1/read'), hash('x')));
+});
+
+test('without an owner password only the creator can edit settings', async () => {
+  await assertSucceeds(createBoard('alice', 'b1'));
+  await assertFails(set(ref(db('bob'), 'scoreboards/b1/title'), 'nope'));
+  await assertFails(set(ref(db('bob'), 'boardMeta/b1/writeProtected'), true));
+});
+
+test('ownership cannot be transferred', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { owner: 'boss' }));
+  await assertSucceeds(set(ref(db('carol'), 'grants/b1/carol/owner'), hash('boss')));
+  await assertFails(set(ref(db('carol'), 'boardMeta/b1/ownerId'), 'carol'));
+  await assertFails(set(ref(db('carol'), 'scoreboards/b1/ownerId'), 'carol'));
+});
+
+test('password hashes cannot be stored on the board itself', async () => {
+  await assertSucceeds(createBoard('alice', 'b1'));
+  await assertFails(set(ref(db('alice'), 'scoreboards/b1/access'), { read: hash('pw') }));
+});
+
+test('the owner can delete the board', async () => {
+  await assertSucceeds(createBoard('alice', 'b1', { read: 'pw' }));
+  await assertSucceeds(
+    update(ref(db('alice')), { 'scoreboards/b1': null, 'boardMeta/b1': null, 'secrets/b1': null }),
+  );
+  let exists;
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    exists = (await get(ref(ctx.database(), 'boardMeta/b1'))).exists();
+  });
+  assert.strictEqual(exists, false);
+});

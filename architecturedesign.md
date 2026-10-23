@@ -35,7 +35,7 @@ This layer handles communication with Firebase or other data sources.
 | Component                        | Description                                                                 |
 |----------------------------------|-----------------------------------------------------------------------------|
 | `Repository Interface`           | Defines contracts for operations like `getScoreboard()` or `updatePlayerScore()`. |
-| `Firebase Repository Implementation` | Concrete class interacting with Firestore based on the interface.         |
+| `Repository Implementation` | Concrete class backed by `ScoreboardRemoteDataSource`, which talks to the Firebase Realtime Database. |
 
 ---
 
@@ -43,17 +43,41 @@ This layer handles communication with Firebase or other data sources.
 
 | Service               | Role                                                                 |
 |-----------------------|----------------------------------------------------------------------|
-| **Firebase Firestore**| Stores scoreboard data, player scores, and score history.            |
+| **Firebase Realtime Database** | Stores scoreboards and scores, and streams live updates.      |
+| **Firebase Auth (anonymous)** | Gives each browser a user id that the database rules use for ownership and unlocked passwords. |
 | **Firebase Hosting**  | Hosts the web app at [https://scoreease.armid.in](https://scoreease.armid.in) |
-| **GitHub + Actions**  | Automates deployment from GitHub to Firebase Hosting.                |
+| **GitHub + Actions**  | Runs analyze and tests on every branch and PR, and deploys `master` to Firebase Hosting. |
 | **Browser Access**    | Scoreboards accessible via shareable URLs (e.g., `/board/abc123`).   |
+
+---
+
+## 🔐 Data and Access Control
+
+Board passwords are enforced by `database.rules.json`, not by the app. The data is split so the rules can check them:
+
+| Path | Who can read | What it holds |
+|------|--------------|---------------|
+| `boardMeta/{id}` | Anyone | Owner's user id and which levels (read, write, owner) have a password. |
+| `secrets/{id}` | Nobody | SHA-256 hashes of the passwords. Written when a board is created or by its owner. |
+| `grants/{id}/{uid}/{level}` | That user | The hash a user entered. The rules only accept it when it matches the secret, and from then on that user has that level. |
+| `scoreboards/{id}` | Per the levels | Title, players, scores and teams. |
+
+- **Owner** (the creator's user id, or anyone who entered the owner password) can change everything, including passwords, and delete the board.
+- **Write** (write password, or no write password set) can change scores only, and also view.
+- **Read** (read password, or no read password set) can view.
+- Changing a password invalidates the grants made with the old one.
+- Score taps use `ServerValue.increment`, so several scorers can tap at once.
+
+Rule tests live in `test/database_rules` and run against the Firebase emulator (`npm ci && npm test`).
+
+Boards created before 1.5.0 kept their hashes on the board itself. `tools/migrate_access` moves them; see the script header for the order to run it in.
 
 ---
 
 ## ✅ Key Features
 
 - Create scoreboards with up to 100 players.
-- Real-time live score updates via Firestore.
+- Real-time live score updates via the Realtime Database.
 - Mobile and web-friendly UI using Flutter Web.
 - Direct URL support for viewing any scoreboard.
 - Free, open-source, and privacy-friendly.

@@ -122,6 +122,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings),
+                    tooltip: "Settings",
                     color: Theme.of(context).iconTheme.color,
                     onPressed: () {
                       context.go("/${SettingsScreen.routeName}");
