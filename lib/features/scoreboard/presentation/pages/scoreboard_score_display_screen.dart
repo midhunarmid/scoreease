@@ -18,6 +18,7 @@ import 'package:scoreease/core/widgets/password_prompt_widget.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/live_player_card.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/score_change_indicator.dart';
 
 class ScoreboardScoreDisplayScreen extends StatefulWidget {
@@ -370,207 +371,6 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
     );
   }
 
-  Color _getAvatarColor(String name) {
-    final colors = [
-      Colors.blue.shade600,
-      Colors.purple.shade600,
-      Colors.orange.shade600,
-      Colors.teal.shade600,
-      Colors.pink.shade600,
-      Colors.indigo.shade600,
-      Colors.green.shade600,
-      Colors.amber.shade700,
-    ];
-    int hash = 0;
-    for (int i = 0; i < name.length; i++) {
-      hash = name.codeUnitAt(i) + ((hash << 5) - hash);
-    }
-    return colors[hash.abs() % colors.length];
-  }
-
-  Widget _buildPlayerCard(String playerName, String playerScore, int rank) {
-    final avatarColor = _getAvatarColor(playerName);
-    final firstLetter = playerName.isNotEmpty ? playerName[0].toUpperCase() : "?";
-    final isLeader = rank == 1;
-    final indicatorKey = _indicatorKeys.putIfAbsent(playerName, () => GlobalKey<ScoreChangeIndicatorState>());
-
-    return ScoreChangeIndicator(
-      key: indicatorKey,
-      child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isLeader ? Colors.amber.shade400 : appColors.primaryColor.withValues(alpha: 0.12),
-          width: isLeader ? 2 : 1.5,
-        ),
-        boxShadow: [
-          if (isLeader)
-            BoxShadow(
-              color: Colors.amber.shade200.withValues(alpha: 0.3),
-              blurRadius: 12,
-              spreadRadius: 2,
-              offset: const Offset(0, 4),
-            )
-          else
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildRankBadge(rank),
-              if (isLeader)
-                Icon(
-                  Icons.workspace_premium_rounded,
-                  color: Colors.amber.shade700,
-                  size: 24.sp,
-                )
-              else
-                const SizedBox(width: 24),
-            ],
-          ),
-          Column(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: avatarColor,
-                child: Text(
-                  firstLetter,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                playerName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                    ),
-              ),
-            ],
-          ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              playerScore,
-              key: ValueKey<String>(playerScore),
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    fontSize: 64.sp,
-                    fontWeight: FontWeight.w900,
-                    color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
-                  ),
-            ).animate(key: ValueKey(playerScore)).fade().scaleXY(begin: 1.5, end: 1.0, duration: 400.ms, curve: Curves.easeOutBack),
-          ),
-        ],
-      ),
-    ));
-  }
-
-  Widget _buildRankBadge(int rank) {
-    if (rank == 1) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.amber.shade100,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.emoji_events_rounded, color: Colors.amber.shade800, size: 14.sp),
-            const SizedBox(width: 4),
-            Text(
-              "1st",
-              style: TextStyle(
-                color: Colors.amber.shade900,
-                fontWeight: FontWeight.bold,
-                fontSize: 10.sp,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (rank == 2) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.emoji_events_rounded, color: Colors.grey.shade600, size: 14.sp),
-            const SizedBox(width: 4),
-            Text(
-              "2nd",
-              style: TextStyle(
-                color: Colors.grey.shade800,
-                fontWeight: FontWeight.bold,
-                fontSize: 10.sp,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (rank == 3) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.emoji_events_rounded, color: Colors.orange.shade700, size: 14.sp),
-            const SizedBox(width: 4),
-            Text(
-              "3rd",
-              style: TextStyle(
-                color: Colors.orange.shade900,
-                fontWeight: FontWeight.bold,
-                fontSize: 10.sp,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          "#$rank",
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.bold,
-            fontSize: 10.sp,
-          ),
-        ),
-      );
-    }
-  }
-
   Widget getGridLayout(List<String> playersList) {
     // Rank lookup list (always sorted by score descending for accurate rank index calculation)
     final scoreSortedList = List<String>.from(playersList);
@@ -598,7 +398,13 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
         
         bool rankChanged = _previousRanks.isNotEmpty && _previousRanks[playerName] != _currentRanks[playerName];
 
-        Widget card = _buildPlayerCard(playerName, playerScore, rank);
+        Widget card = LivePlayerCard(
+          key: ValueKey('live_$playerName'),
+          playerName: playerName,
+          playerScore: playerScore,
+          rank: rank,
+          indicatorKey: _indicatorKeys.putIfAbsent(playerName, () => GlobalKey<ScoreChangeIndicatorState>()),
+        );
 
         if (rankChanged) {
            card = card.animate(key: ValueKey('rank_change_${_currentRanks[playerName]}_$playerName'))
@@ -720,7 +526,13 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
                 int rank = globalScoreSortedList.indexOf(playerName) + 1;
                 
                 bool rankChanged = _previousRanks.isNotEmpty && _previousRanks[playerName] != _currentRanks[playerName];
-                Widget card = _buildPlayerCard(playerName, playerScore, rank);
+                Widget card = LivePlayerCard(
+          key: ValueKey('live_$playerName'),
+          playerName: playerName,
+          playerScore: playerScore,
+          rank: rank,
+          indicatorKey: _indicatorKeys.putIfAbsent(playerName, () => GlobalKey<ScoreChangeIndicatorState>()),
+        );
 
                 if (rankChanged) {
                    card = card.animate(key: ValueKey('rank_change_${_currentRanks[playerName]}_$playerName'))

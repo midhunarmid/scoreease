@@ -69,7 +69,7 @@ void main() {
 
   group('Access models', () {
     test('meta flags default to unprotected', () {
-      final meta = AccessMetaModel.fromMap({'ownerId': 'uid-1'});
+      final meta = AccessMetaModel.fromMap(const {'ownerId': 'uid-1'});
       expect(meta.readProtected, isFalse);
       expect(meta.writeProtected, isFalse);
       expect(meta.ownerProtected, isFalse);

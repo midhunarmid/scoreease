@@ -20,6 +20,8 @@ import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/password_prompt_widget.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/custom_score_dialog.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/player_score_card.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/widgets/score_change_indicator.dart';
 
 class ScoreboardScoreUpdateScreen extends StatefulWidget {
@@ -437,240 +439,35 @@ class _ScoreboardScoreUpdateScreenState
     );
   }
 
-  Color _getAvatarColor(String name) {
-    final colors = [
-      Colors.blue.shade600,
-      Colors.purple.shade600,
-      Colors.orange.shade600,
-      Colors.teal.shade600,
-      Colors.pink.shade600,
-      Colors.indigo.shade600,
-      Colors.green.shade600,
-      Colors.amber.shade700,
-    ];
-    int hash = 0;
-    for (int i = 0; i < name.length; i++) {
-      hash = name.codeUnitAt(i) + ((hash << 5) - hash);
-    }
-    return colors[hash.abs() % colors.length];
-  }
-
   Widget _buildPlayerCard(String playerName, String playerScore) {
-    final avatarColor = _getAvatarColor(playerName);
-    final firstLetter =
-        playerName.isNotEmpty ? playerName[0].toUpperCase() : "?";
     final indicatorKey = _indicatorKeys.putIfAbsent(
         playerName, () => GlobalKey<ScoreChangeIndicatorState>());
-
-    return ScoreChangeIndicator(
-        key: indicatorKey,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: appColors.primaryColor.withValues(alpha: 0.12),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: avatarColor,
-                    child: Text(
-                      firstLetter,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      playerName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18.sp,
-                              ),
-                    ),
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () => _showCustomScoreDialog(
-                    playerName, int.tryParse(playerScore) ?? 0, indicatorKey),
-                child: Text(
-                  playerScore,
-                  key: ValueKey(playerScore),
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontSize: 48.sp,
-                        fontWeight: FontWeight.w900,
-                        color: appColors.primaryColor,
-                      ),
-                ).animate(key: ValueKey(playerScore)).scaleXY(
-                    begin: 1.5,
-                    end: 1.0,
-                    duration: 250.ms,
-                    curve: Curves.easeOutBack),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        indicatorKey.currentState?.showDelta(-1);
-                        _bloc.add(ScoreboardUpdatePlayerScoreEvent(
-                          playerName,
-                          _scoreboardEntity!,
-                          delta: -1,
-                        ));
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color:
-                              appColors.negativeButtonBg.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: appColors.negativeButtonBg, width: 2),
-                        ),
-                        child: Icon(Icons.remove,
-                            color: appColors.negativeButtonBg, size: 32),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        indicatorKey.currentState?.showDelta(1);
-                        _bloc.add(ScoreboardUpdatePlayerScoreEvent(
-                          playerName,
-                          _scoreboardEntity!,
-                          delta: 1,
-                        ));
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: appColors.pleasantButtonBg,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: appColors.pleasantButtonBg
-                                  .withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.add,
-                            color: Colors.white, size: 32),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        )).animate().fade().slideY(begin: 0.2, curve: Curves.easeOut);
-  }
-
-  void _showCustomScoreDialog(String playerName, int currentScore,
-      GlobalKey<ScoreChangeIndicatorState> indicatorKey) {
-    final controller = TextEditingController(text: currentScore.toString());
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            "Edit score for $playerName",
-            style: Theme.of(ctx)
-                .textTheme
-                .labelLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            autofocus: true,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
-            ],
-            style: Theme.of(ctx).textTheme.labelMedium,
-            decoration: InputDecoration(
-              labelText: "Score",
-              filled: true,
-              fillColor: appColors.inputBgFill,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(
-                "Cancel",
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: appColors.pleasantButtonBg,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () {
-                final newScore = int.tryParse(controller.text) ?? currentScore;
-                final delta = newScore - currentScore;
-                if (delta != 0) {
-                  indicatorKey.currentState?.showDelta(delta);
-                  _bloc.add(ScoreboardUpdatePlayerScoreEvent(
-                    playerName,
-                    _scoreboardEntity!,
-                    delta: delta,
-                  ));
-                }
-                Navigator.pop(ctx);
-              },
-              child: Text(
-                "Save",
-                style: TextStyle(color: appColors.buttonTextColor),
-              ),
-            ),
-          ],
-        );
+    return PlayerScoreCard(
+      key: ValueKey('score_$playerName'),
+      playerName: playerName,
+      playerScore: playerScore,
+      indicatorKey: indicatorKey,
+      onChangeScore: (delta) => _changeScore(playerName, delta, indicatorKey),
+      onEditScore: () async {
+        final currentScore = int.tryParse(playerScore) ?? 0;
+        final newScore = await showCustomScoreDialog(
+            context: context, playerName: playerName, currentScore: currentScore);
+        if (newScore != null) {
+          _changeScore(playerName, newScore - currentScore, indicatorKey);
+        }
       },
     );
+  }
+
+  void _changeScore(String playerName, int delta,
+      GlobalKey<ScoreChangeIndicatorState> indicatorKey) {
+    if (delta == 0 || _scoreboardEntity == null) return;
+    indicatorKey.currentState?.showDelta(delta);
+    _bloc.add(ScoreboardUpdatePlayerScoreEvent(
+      playerName,
+      _scoreboardEntity!,
+      delta: delta,
+    ));
   }
 
   Widget getGridLayout(List<String> playersList) {

@@ -14,6 +14,7 @@ import 'package:scoreease/features/scoreboard/domain/entities/team_entity.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/access_entity.dart';
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
+import 'package:scoreease/features/scoreboard/presentation/pages/widgets/editor_section.dart';
 import 'package:scoreease/core/utils/security_helper.dart';
 import 'package:scoreease/core/widgets/password_prompt_widget.dart';
 import 'package:get_it/get_it.dart';
@@ -322,81 +323,6 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
     );
   }
 
-  Widget _buildPasswordField({
-    required String label, 
-    required TextEditingController controller, 
-    required bool removeFlag, 
-    required Function(bool?) onChanged
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        getTextInputWidget(
-          context: context,
-          label: label,
-          hint: removeFlag ? "Password removed" : "Leave empty to keep existing",
-          controller: controller,
-          prefixIcon: const Icon(Icons.lock_outline),
-          enabled: !removeFlag,
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text("Remove $label Access", style: Theme.of(context).textTheme.bodySmall?.copyWith(color: removeFlag ? Colors.red : null)),
-              Checkbox(
-                value: removeFlag,
-                onChanged: onChanged,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionContainer({required String title, required List<Widget> children, IconData? icon, Widget? action}) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 24.h),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: appColors.primaryColor.withValues(alpha: 0.12),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, color: appColors.primaryColor, size: 20.sp),
-                  SizedBox(width: 8.w),
-                ],
-                Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: appColors.primaryColor)),
-                const Spacer(),
-                if (action != null) action,
-              ],
-            ),
-          ),
-          Divider(height: 1, color: appColors.primaryColor.withValues(alpha: 0.1)),
-          Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTeamCard(String teamName, Map<String, bool> players) {
     if (!_playerControllers.containsKey(teamName)) {
       _playerControllers[teamName] = TextEditingController();
@@ -650,7 +576,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
                   children: [
-                  _buildSectionContainer(
+                  EditorSection(
                     title: "Basic Details",
                     icon: Icons.info_outline,
                     children: [
@@ -680,11 +606,11 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                     ],
                   ).animate().fade(duration: 400.ms, delay: 0.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic),
 
-                  _buildSectionContainer(
+                  EditorSection(
                     title: "Security / Access",
                     icon: Icons.shield_outlined,
                     children: [
-                      _buildPasswordField(
+                      EditorPasswordField(
                         label: "Read",
                         controller: _readAccessController,
                         removeFlag: _removeReadAccess,
@@ -694,7 +620,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                         },
                       ),
                       SizedBox(height: 16.h),
-                      _buildPasswordField(
+                      EditorPasswordField(
                         label: "Write",
                         controller: _writeAccessController,
                         removeFlag: _removeWriteAccess,
@@ -704,7 +630,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                         },
                       ),
                       SizedBox(height: 16.h),
-                      _buildPasswordField(
+                      EditorPasswordField(
                         label: "Owner",
                         controller: _ownerAccessController,
                         removeFlag: _removeOwnerAccess,
@@ -717,7 +643,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                   ).animate().fade(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic),
 
                   if (_scoreboardEntity!.isTeamGame == true)
-                    _buildSectionContainer(
+                    EditorSection(
                       title: "Team Roster",
                       icon: Icons.group_work_outlined,
                       children: [
@@ -748,7 +674,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                       ],
                     ).animate().fade(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1, curve: Curves.easeOutCubic)
                   else
-                    _buildSectionContainer(
+                    EditorSection(
                       title: "Player Roster",
                       icon: Icons.people_outline,
                       action: TextButton.icon(
