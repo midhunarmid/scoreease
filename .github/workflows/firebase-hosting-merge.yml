@@ -24,6 +24,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Don't deploy a build that fails checks
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
       # Build the Flutter Web app
       - name: Build Flutter Web
         run: flutter build web --release
