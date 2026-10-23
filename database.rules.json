@@ -1,11 +1,182 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true,
+    "boardMeta": {
+      "$id": {
+        ".read": true,
+        ".write": "(auth != null && !data.exists() && newData.child('ownerId').val() === auth.uid) || (auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val())))",
+        ".validate": "newData.hasChild('ownerId')",
+        "ownerId": {
+          ".validate": "newData.isString() && (!data.exists() || newData.val() === data.val())"
+        },
+        "readProtected": {
+          ".validate": "newData.isBoolean()"
+        },
+        "writeProtected": {
+          ".validate": "newData.isBoolean()"
+        },
+        "ownerProtected": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "secrets": {
+      "$id": {
+        ".read": false,
+        ".write": "(auth != null && !root.child('boardMeta').child($id).exists() && newData.parent().parent().child('boardMeta').child($id).child('ownerId').val() === auth.uid) || (auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val())))",
+        "$level": {
+          ".validate": "($level === 'read' || $level === 'write' || $level === 'owner') && newData.isString() && newData.val().matches(/^[0-9a-f]{64}$/)"
+        }
+      }
+    },
+    "grants": {
+      "$id": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          "$level": {
+            ".validate": "newData.isString() && newData.val() === root.child('secrets').child($id).child($level).val()"
+          }
+        }
+      }
+    },
     "scoreboards": {
-      "$scoreboardId": {
-        // Here you can add specific validation later
-        // e.g. ".write": "newData.hasChildren(['title', 'players'])"
+      "$id": {
+        ".read": "((auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val()))) || ((auth != null && root.child('boardMeta').child($id).exists()) && ((root.child('grants').child($id).child(auth.uid).child('write').exists() && root.child('grants').child($id).child(auth.uid).child('write').val() === root.child('secrets').child($id).child('write').val()) || (root.child('boardMeta').child($id).child('readProtected').val() !== true || (root.child('grants').child($id).child(auth.uid).child('read').exists() && root.child('grants').child($id).child(auth.uid).child('read').val() === root.child('secrets').child($id).child('read').val())))))",
+        ".write": "(auth != null && !root.child('boardMeta').child($id).exists() && newData.parent().parent().child('boardMeta').child($id).child('ownerId').val() === auth.uid) || (auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val())))",
+        ".validate": "newData.hasChildren(['id', 'title'])",
+        "id": {
+          ".validate": "newData.val() === $id"
+        },
+        "ownerId": {
+          ".validate": "newData.isString() && (newData.val() === root.child('boardMeta').child($id).child('ownerId').val() || (!root.child('boardMeta').child($id).exists() && newData.val() === auth.uid))"
+        },
+        "title": {
+          ".validate": "newData.isString() && newData.val().length <= 200"
+        },
+        "description": {
+          ".validate": "newData.isString() && newData.val().length <= 2000"
+        },
+        "author": {
+          ".validate": "newData.isString() && newData.val().length <= 200"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "lastUpdated": {
+          ".write": "((auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val()))) || ((auth != null && root.child('boardMeta').child($id).exists()) && ((root.child('grants').child($id).child(auth.uid).child('write').exists() && root.child('grants').child($id).child(auth.uid).child('write').val() === root.child('secrets').child($id).child('write').val()) || (root.child('boardMeta').child($id).child('writeProtected').val() !== true && (root.child('boardMeta').child($id).child('readProtected').val() !== true || (root.child('grants').child($id).child(auth.uid).child('read').exists() && root.child('grants').child($id).child(auth.uid).child('read').val() === root.child('secrets').child($id).child('read').val()))))))",
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "isTeamGame": {
+          ".validate": "newData.isBoolean()"
+        },
+        "players": {
+          ".write": "((auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val()))) || ((auth != null && root.child('boardMeta').child($id).exists()) && ((root.child('grants').child($id).child(auth.uid).child('write').exists() && root.child('grants').child($id).child(auth.uid).child('write').val() === root.child('secrets').child($id).child('write').val()) || (root.child('boardMeta').child($id).child('writeProtected').val() !== true && (root.child('boardMeta').child($id).child('readProtected').val() !== true || (root.child('grants').child($id).child(auth.uid).child('read').exists() && root.child('grants').child($id).child(auth.uid).child('read').val() === root.child('secrets').child($id).child('read').val()))))))",
+          "$player": {
+            ".validate": "newData.isNumber()"
+          }
+        },
+        "teams": {
+          "$team": {
+            ".validate": "newData.hasChildren(['name'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "players": {
+              "$player": {
+                ".validate": "newData.isBoolean()"
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "access": {
+          ".validate": false
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "boards": {
+      "$id": {
+        ".read": "((auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val()))) || ((auth != null && root.child('boardMeta').child($id).exists()) && ((root.child('grants').child($id).child(auth.uid).child('write').exists() && root.child('grants').child($id).child(auth.uid).child('write').val() === root.child('secrets').child($id).child('write').val()) || (root.child('boardMeta').child($id).child('readProtected').val() !== true || (root.child('grants').child($id).child(auth.uid).child('read').exists() && root.child('grants').child($id).child(auth.uid).child('read').val() === root.child('secrets').child($id).child('read').val())))))",
+        ".write": "(auth != null && !root.child('boardMeta').child($id).exists() && newData.parent().parent().child('boardMeta').child($id).child('ownerId').val() === auth.uid) || (auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val())))",
+        "meta": {
+          ".validate": "newData.hasChildren(['title', 'mode', 'template', 'participants', 'createdAt'])",
+          "title": {
+            ".validate": "newData.isString() && newData.val().length <= 100"
+          },
+          "mode": {
+            ".validate": "newData.isString() && newData.val().matches(/^(counter|rounds|sets|cricket)$/)"
+          },
+          "template": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "settings": {
+            "$key": {
+              ".validate": "$key.length <= 30 && (newData.isNumber() || newData.isBoolean() || (newData.isString() && newData.val().length <= 40))"
+            }
+          },
+          "participants": {
+            "$pid": {
+              ".validate": "$pid.matches(/^p[1-4]?[0-9]$/) && newData.hasChildren(['name'])",
+              "name": {
+                ".validate": "newData.isString() && newData.val().length <= 40"
+              },
+              "color": {
+                ".validate": "newData.isNumber()"
+              },
+              "members": {
+                "$member": {
+                  ".validate": "$member.matches(/^m[0-9]{1,2}$/) && newData.isString() && newData.val().length <= 40"
+                }
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "events": {
+          "$eid": {
+            ".write": "(((auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val()))) || ((auth != null && root.child('boardMeta').child($id).exists()) && ((root.child('grants').child($id).child(auth.uid).child('write').exists() && root.child('grants').child($id).child(auth.uid).child('write').val() === root.child('secrets').child($id).child('write').val()) || (root.child('boardMeta').child($id).child('writeProtected').val() !== true && (root.child('boardMeta').child($id).child('readProtected').val() !== true || (root.child('grants').child($id).child(auth.uid).child('read').exists() && root.child('grants').child($id).child(auth.uid).child('read').val() === root.child('secrets').child($id).child('read').val()))))))) && !data.exists() && newData.exists()",
+            ".validate": "$eid.length === 20 && newData.hasChildren(['t', 'ts', 'by']) && newData.child('by').val() === auth.uid",
+            "t": {
+              ".validate": "newData.isString() && newData.val().length <= 12"
+            },
+            "ts": {
+              ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+            },
+            "by": {
+              ".validate": "newData.isString()"
+            },
+            "d": {
+              "$key": {
+                ".validate": "$key.length <= 12 && (newData.isNumber() || newData.isBoolean() || (newData.isString() && newData.val().length <= 40) || newData.hasChildren())",
+                "$sub": {
+                  ".validate": "$sub.length <= 24 && newData.isNumber()"
+                }
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     }
   }

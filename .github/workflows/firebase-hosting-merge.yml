@@ -1,4 +1,4 @@
-name: Flutter Web Build & Deploy to Firebase Hosting
+name: Flutter Web Build & Deploy to Firebase (Hosting + Database rules)
 
 on:
   push:
@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Analyze and test
+        run: flutter analyze && flutter test
+
       # Build the Flutter Web app
       - name: Build Flutter Web
         run: flutter build web --release
@@ -36,7 +39,7 @@ jobs:
       - name: Deploy to Firebase Hosting
         uses: w9jds/firebase-action@v13.1.0
         with:
-          args: deploy --only hosting
+          args: deploy --only hosting,database
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
           PROJECT_ID: scoreease-98ed8
