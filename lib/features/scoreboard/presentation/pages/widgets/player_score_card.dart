@@ -69,79 +69,92 @@ class PlayerScoreCard extends StatelessWidget {
                       playerName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18.sp,
-                              ),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18.sp,
+                          ),
                     ),
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: onEditScore,
-                child: Text(
-                  playerScore,
-                  key: ValueKey(playerScore),
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontSize: 48.sp,
-                        fontWeight: FontWeight.w900,
-                        color: appColors.primaryColor,
-                      ),
-                ).animate(key: ValueKey(playerScore)).scaleXY(
-                    begin: 1.5,
-                    end: 1.0,
-                    duration: 250.ms,
-                    curve: Curves.easeOutBack),
+              Semantics(
+                button: true,
+                label: "$playerName has $playerScore points. Set exact score",
+                excludeSemantics: true,
+                child: GestureDetector(
+                  onTap: onEditScore,
+                  child: Text(
+                    playerScore,
+                    key: ValueKey(playerScore),
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                          fontSize: 48.sp,
+                          fontWeight: FontWeight.w900,
+                          color: appColors.primaryColor,
+                        ),
+                  )
+                      .animate(key: ValueKey(playerScore))
+                      .scaleXY(begin: 1.5, end: 1.0, duration: 250.ms, curve: Curves.easeOutBack),
+                ),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        onChangeScore(-1);
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color:
-                              appColors.negativeButtonBg.withValues(alpha: 0.1),
+                    child: Tooltip(
+                      message: "Take 1 point from $playerName",
+                      excludeFromSemantics: true,
+                      child: Semantics(
+                        button: true,
+                        label: "Take 1 point from $playerName",
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            onChangeScore(-1);
+                          },
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: appColors.negativeButtonBg, width: 2),
+                          child: Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: appColors.negativeButtonBg.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: appColors.negativeButtonBg, width: 2),
+                            ),
+                            child: Icon(Icons.remove, color: appColors.negativeButtonBg, size: 32),
+                          ),
                         ),
-                        child: Icon(Icons.remove,
-                            color: appColors.negativeButtonBg, size: 32),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        onChangeScore(1);
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: appColors.pleasantButtonBg,
+                    child: Tooltip(
+                      message: "Add 1 point to $playerName",
+                      excludeFromSemantics: true,
+                      child: Semantics(
+                        button: true,
+                        label: "Add 1 point to $playerName",
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.mediumImpact();
+                            onChangeScore(1);
+                          },
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: appColors.pleasantButtonBg
-                                  .withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
+                          child: Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: appColors.pleasantButtonBg,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: appColors.pleasantButtonBg.withValues(alpha: 0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                          ],
+                            child: const Icon(Icons.add, color: Colors.white, size: 32),
+                          ),
                         ),
-                        child: const Icon(Icons.add,
-                            color: Colors.white, size: 32),
                       ),
                     ),
                   ),

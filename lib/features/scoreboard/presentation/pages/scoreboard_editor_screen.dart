@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scoreease/core/utils/input_case_text_formatter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -181,6 +182,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          inputFormatters: nameKeyFormatters(),
           decoration: const InputDecoration(labelText: "Player Name"),
         ),
         actions: [
@@ -287,6 +289,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          inputFormatters: nameKeyFormatters(),
           decoration: const InputDecoration(labelText: "New Player Name"),
         ),
         actions: [
@@ -385,6 +388,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                   keyboardType: TextInputType.name,
                   textInputAction: TextInputAction.go,
                   prefixIcon: const Icon(Icons.person_add_alt_1_outlined),
+                  inputFormatters: nameKeyFormatters(),
                   icon: Icons.add,
                   focusNode: _playerFocusNodes[teamName],
                   onPressed: () => _addPlayerToTeam(teamName),
@@ -433,6 +437,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          inputFormatters: nameKeyFormatters(),
           decoration: const InputDecoration(labelText: "New Player Name"),
         ),
         actions: [
@@ -550,6 +555,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
               iconTheme: IconThemeData(color: appColors.textColor),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
+                tooltip: "Back",
                 onPressed: () {
                   context.go('/${ScoreboardScoreUpdateScreen.routeName}?id=${widget.id}');
                 },
@@ -655,6 +661,7 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
                           keyboardType: TextInputType.name,
                           textInputAction: TextInputAction.go,
                           prefixIcon: const Icon(Icons.group_add_outlined),
+                          inputFormatters: nameKeyFormatters(),
                           icon: Icons.add,
                           onPressed: _addTeam,
                         ),

@@ -26,95 +26,99 @@ class LivePlayerCard extends StatelessWidget {
     final firstLetter = avatarInitial(playerName);
     final isLeader = rank == 1;
 
-    return ScoreChangeIndicator(
-        key: indicatorKey,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isLeader ? Colors.amber.shade400 : appColors.primaryColor.withValues(alpha: 0.12),
-              width: isLeader ? 2 : 1.5,
-            ),
-            boxShadow: [
-              if (isLeader)
-                BoxShadow(
-                  color: Colors.amber.shade200.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 4),
-                )
-              else
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildRankBadge(context),
-                  if (isLeader)
-                    Icon(
-                      Icons.workspace_premium_rounded,
-                      color: Colors.amber.shade700,
-                      size: 24.sp,
-                    )
-                  else
-                    const SizedBox(width: 24),
-                ],
+    return Semantics(
+      label: "$playerName, rank $rank, $playerScore points",
+      excludeSemantics: true,
+      child: ScoreChangeIndicator(
+          key: indicatorKey,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isLeader ? Colors.amber.shade400 : appColors.primaryColor.withValues(alpha: 0.12),
+                width: isLeader ? 2 : 1.5,
               ),
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: avatarColor,
-                    child: Text(
-                      firstLetter,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
+              boxShadow: [
+                if (isLeader)
+                  BoxShadow(
+                    color: Colors.amber.shade200.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
+                  )
+                else
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildRankBadge(context),
+                    if (isLeader)
+                      Icon(
+                        Icons.workspace_premium_rounded,
+                        color: Colors.amber.shade700,
+                        size: 24.sp,
+                      )
+                    else
+                      const SizedBox(width: 24),
+                  ],
+                ),
+                Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: avatarColor,
+                      child: Text(
+                        firstLetter,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    playerName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16.sp,
+                    const SizedBox(height: 8),
+                    Text(
+                      playerName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.sp,
+                          ),
+                    ),
+                  ],
+                ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    playerScore,
+                    key: ValueKey<String>(playerScore),
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                          fontSize: 64.sp,
+                          fontWeight: FontWeight.w900,
+                          color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
                         ),
-                  ),
-                ],
-              ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  playerScore,
-                  key: ValueKey<String>(playerScore),
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontSize: 64.sp,
-                        fontWeight: FontWeight.w900,
-                        color: isLeader ? Colors.amber.shade800 : appColors.primaryColor,
-                      ),
-                )
-                    .animate(key: ValueKey(playerScore))
-                    .fade()
-                    .scaleXY(begin: 1.5, end: 1.0, duration: 400.ms, curve: Curves.easeOutBack),
-              ),
-            ],
-          ),
-        ));
+                  )
+                      .animate(key: ValueKey(playerScore))
+                      .fade()
+                      .scaleXY(begin: 1.5, end: 1.0, duration: 400.ms, curve: Curves.easeOutBack),
+                ),
+              ],
+            ),
+          )),
+    );
   }
 
   Widget _buildRankBadge(BuildContext context) {

@@ -251,6 +251,7 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
+        tooltip: "Back",
         onPressed: () {
           context.go("/");
         },

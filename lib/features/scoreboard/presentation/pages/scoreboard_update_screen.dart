@@ -257,6 +257,7 @@ class _ScoreboardScoreUpdateScreenState
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
+        tooltip: "Back",
         onPressed: () {
           context.go(
               '/${ScoreboardScoreDisplayScreen.routeName}?id=${widget._id}');
@@ -304,7 +305,12 @@ class _ScoreboardScoreUpdateScreenState
                 positiveButton: "Reset",
                 negativeButton: "Cancel",
                 positiveAction: () {
-                  _bloc.add(ScoreboardResetScoresEvent(_scoreboardEntity!));
+                  final board = _scoreboardEntity!;
+                  final previousScores = Map<String, int>.from(board.players ?? {});
+                  _bloc.add(ScoreboardResetScoresEvent(board));
+                  _showUndoSnackBar("All scores reset to 0", () {
+                    _bloc.add(ScoreboardRestoreScoresEvent(board, previousScores));
+                  });
                 },
               );
             }
@@ -418,6 +424,7 @@ class _ScoreboardScoreUpdateScreenState
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear),
+                  tooltip: "Clear search",
                   onPressed: () {
                     _searchController.clear();
                     setState(() {
@@ -452,10 +459,27 @@ class _ScoreboardScoreUpdateScreenState
         final currentScore = int.tryParse(playerScore) ?? 0;
         final newScore = await showCustomScoreDialog(
             context: context, playerName: playerName, currentScore: currentScore);
-        if (newScore != null) {
-          _changeScore(playerName, newScore - currentScore, indicatorKey);
+        if (newScore != null && newScore != currentScore) {
+          final delta = newScore - currentScore;
+          _changeScore(playerName, delta, indicatorKey);
+          _showUndoSnackBar("$playerName set to $newScore", () {
+            _changeScore(playerName, -delta, indicatorKey);
+          });
         }
       },
+    );
+  }
+
+  void _showUndoSnackBar(String message, VoidCallback onUndo) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(label: "Undo", onPressed: onUndo),
+      ),
     );
   }
 

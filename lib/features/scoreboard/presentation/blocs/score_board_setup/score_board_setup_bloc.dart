@@ -172,6 +172,10 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
           await scoreboardUseCase.setPlayerScores(scoreboardEntity.id!, resetPlayers);
           await delayedEmit(emit, ScoreboardScoreUpdateSuccessState(updatedScoreboardEntity));
+        } else if (event is ScoreboardRestoreScoresEvent) {
+          ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
+          await scoreboardUseCase.setPlayerScores(event.scoreboardEntity.id!, event.scores);
+          emit.call(ScoreboardScoreUpdateSuccessState(event.scoreboardEntity.copyWith(players: event.scores)));
         } else if (event is ScoreboardListenPlayerScoreEvent) {
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
           await emit.forEach<ScoreboardEntity>(

@@ -41,6 +41,14 @@ class ScoreboardResetScoresEvent extends ScoreboardSetupEvent {
   ScoreboardResetScoresEvent(this.scoreboardEntity);
 }
 
+/// Puts back scores from before a reset, for undo.
+class ScoreboardRestoreScoresEvent extends ScoreboardSetupEvent {
+  final ScoreboardEntity scoreboardEntity;
+  final Map<String, int> scores;
+
+  ScoreboardRestoreScoresEvent(this.scoreboardEntity, this.scores);
+}
+
 class ScoreboardListenPlayerScoreEvent extends ScoreboardSetupEvent {
   final String id;
 

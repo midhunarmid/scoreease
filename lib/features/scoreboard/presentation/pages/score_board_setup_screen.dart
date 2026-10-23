@@ -252,6 +252,7 @@ class _ScoreboardSetupScreenState extends State<ScoreboardSetupScreen> {
                 elevation: 0,
                 leading: IconButton(
                   icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
+                  tooltip: "Back",
                   onPressed: _onBackPressed,
                 ),
                 actions: [

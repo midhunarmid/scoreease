@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scoreease/core/utils/input_case_text_formatter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -57,9 +58,7 @@ class _ScoreboardSetupRosterStageState extends State<ScoreboardSetupRosterStage>
           keyboardType: TextInputType.name,
           textInputAction: TextInputAction.go,
           prefixIcon: const Icon(Icons.person_add_alt_1_outlined),
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(20),
-          ],
+          inputFormatters: nameKeyFormatters(),
           icon: Icons.add,
           focusNode: _playerNameAddFocuNode,
           onPressed: () {
