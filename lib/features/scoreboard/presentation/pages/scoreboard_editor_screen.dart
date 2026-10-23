@@ -16,7 +16,9 @@ import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_set
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
 import 'package:scoreease/core/utils/security_helper.dart';
 import 'package:scoreease/core/widgets/password_prompt_widget.dart';
-import 'package:scoreease/core/utils/global.dart';
+import 'package:get_it/get_it.dart';
+import 'package:scoreease/core/utils/my_app_exception.dart';
+import 'package:scoreease/features/scoreboard/domain/usecases/score_board_usecase.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class ScoreboardEditorScreen extends StatefulWidget {
@@ -54,28 +56,47 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
   ScoreboardEntity? _scoreboardEntity;
   bool _isOwnerUnlocked = false;
   bool _isLoadingAccess = true;
+  final ScoreboardUseCase _useCase = GetIt.instance<ScoreboardUseCase>();
 
   @override
   void initState() {
     super.initState();
     _scoreboardEntity = widget.scoreboardEntity;
     
-    _checkSavedAccess();
-
     if (_scoreboardEntity != null) {
       _initControllers();
-    } else {
-      _bloc.add(ScoreboardGetEvent(widget.id));
     }
+    _checkAccess();
   }
 
-  Future<void> _checkSavedAccess() async {
-    final hasOwnerAccess = await GlobalValues.hasScoreboardAccess(scoreboardId: widget.id, type: 'owner');
-    if (mounted) {
-      setState(() {
-        _isOwnerUnlocked = hasOwnerAccess;
-        _isLoadingAccess = false;
-      });
+  Future<void> _checkAccess() async {
+    bool hasOwnerAccess = false;
+    try {
+      hasOwnerAccess = await _useCase.hasAccess(widget.id, AccessLevel.owner);
+    } on MyAppException catch (e) {
+      if (mounted) {
+        showSingleButtonAlertDialog(
+          context: context,
+          title: e.title,
+          message: e.message,
+          positiveAction: () => context.go('/'),
+        );
+      }
+      return;
+    } catch (e) {
+      appLogger.e(e);
+    }
+    if (!mounted) return;
+    setState(() {
+      _isOwnerUnlocked = hasOwnerAccess;
+      _isLoadingAccess = false;
+    });
+    if (hasOwnerAccess) _loadScoreboard();
+  }
+
+  void _loadScoreboard() {
+    if (_scoreboardEntity == null) {
+      _bloc.add(ScoreboardGetEvent(widget.id));
     }
   }
 
@@ -125,10 +146,12 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
       return;
     }
 
-    final oldAccess = _scoreboardEntity!.access;
-    final String? newRead = _removeReadAccess ? "" : (_readAccessController.text.isNotEmpty ? SecurityHelper.hashPassword(_readAccessController.text) : oldAccess?.read);
-    final String? newWrite = _removeWriteAccess ? "" : (_writeAccessController.text.isNotEmpty ? SecurityHelper.hashPassword(_writeAccessController.text) : oldAccess?.write);
-    final String? newOwner = _removeOwnerAccess ? "" : (_ownerAccessController.text.isNotEmpty ? SecurityHelper.hashPassword(_ownerAccessController.text) : oldAccess?.owner);
+    // null keeps the stored password, "" removes it.
+    String? newHash(bool remove, TextEditingController controller) =>
+        remove ? "" : (controller.text.isNotEmpty ? SecurityHelper.hashPassword(controller.text) : null);
+    final String? newRead = newHash(_removeReadAccess, _readAccessController);
+    final String? newWrite = newHash(_removeWriteAccess, _writeAccessController);
+    final String? newOwner = newHash(_removeOwnerAccess, _ownerAccessController);
 
     final updatedAccess = AccessEntity(
        read: newRead,
@@ -568,26 +591,29 @@ class _ScoreboardEditorScreenState extends State<ScoreboardEditorScreen> {
       },
       child: Builder(
         builder: (context) {
-          if (_scoreboardEntity == null || _isLoadingAccess) {
+          if (_isLoadingAccess) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
 
-          final ownerPass = _scoreboardEntity!.access?.owner;
-          if (ownerPass != null && ownerPass.isNotEmpty && !_isOwnerUnlocked) {
+          if (!_isOwnerUnlocked) {
             return PasswordPromptWidget(
-              expectedPassword: ownerPass,
+              onVerify: (password) => _useCase.unlock(widget.id, AccessLevel.owner, password),
               title: "Edit Protected Scoreboard",
               message: "Enter the owner password to edit scoreboard details and players.",
               onSuccess: () {
-                GlobalValues.unlockScoreboardAccess(scoreboardId: widget.id, type: 'owner');
                 setState(() {
                   _isOwnerUnlocked = true;
                 });
+                _loadScoreboard();
               },
               onCancel: () {
                 context.go('/${ScoreboardScoreUpdateScreen.routeName}?id=${widget.id}');
               },
             );
+          }
+
+          if (_scoreboardEntity == null) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
 
           return Scaffold(

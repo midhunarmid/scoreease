@@ -2,15 +2,15 @@ import 'package:scoreease/features/scoreboard/data/models/access_model.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/access_entity.dart';
 
 class AccessMapper {
-  static AccessEntity toEntity(AccessModel model) {
+  static AccessEntity toEntity(AccessMetaModel meta) {
     return AccessEntity(
-      read: model.read,
-      write: model.write,
-      owner: model.owner,
+      readProtected: meta.readProtected,
+      writeProtected: meta.writeProtected,
+      ownerProtected: meta.ownerProtected,
     );
   }
 
-  static AccessModel fromEntity(AccessEntity entity) {
+  static AccessModel secretsFromEntity(AccessEntity entity) {
     return AccessModel(
       read: entity.read,
       write: entity.write,

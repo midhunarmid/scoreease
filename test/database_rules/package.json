@@ -1,0 +1,13 @@
+{
+  "name": "scoreease-database-rules-tests",
+  "private": true,
+  "description": "Tests for database.rules.json, run against the Firebase emulator.",
+  "scripts": {
+    "test": "firebase emulators:exec --only database --project demo-scoreease --config ../../firebase.json \"node --test\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.0",
+    "firebase-tools": "^14.0.0"
+  }
+}

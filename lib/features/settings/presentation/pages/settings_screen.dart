@@ -7,7 +7,8 @@ import 'package:scoreease/core/utils/version_story.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
 import 'package:scoreease/core/widgets/web_optimised_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:scoreease/core/utils/global.dart';
+import 'package:get_it/get_it.dart';
+import 'package:scoreease/features/scoreboard/domain/usecases/score_board_usecase.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:scoreease/core/utils/theme_provider.dart';
@@ -287,7 +288,7 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
     ),
     SettingsItem(
       title: 'Clear Saved Passwords',
-      description: 'Clear all locally saved scoreboard passwords.',
+      description: "Forget every scoreboard password you've entered on this device.",
       icon: Icons.lock_reset_rounded,
       iconColor: Colors.redAccent,
       onTap: () {
@@ -295,11 +296,11 @@ List<SettingsItem> getSettingsItems(BuildContext context) {
           context: context,
           title: "Clear Passwords",
           message:
-              "Are you sure you want to clear all locally saved scoreboard accesses? You will have to enter passwords again.",
+              "Are you sure you want to forget all scoreboard passwords entered on this device? You will have to enter them again.",
           positiveButton: "Clear",
           negativeButton: "Cancel",
           positiveAction: () async {
-            await GlobalValues.clearAllScoreboardAccesses();
+            await GetIt.instance<ScoreboardUseCase>().revokeAllAccess();
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

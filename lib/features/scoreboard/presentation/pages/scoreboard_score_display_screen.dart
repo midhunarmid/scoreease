@@ -6,7 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.dart';
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_update_screen.dart';
-import 'package:scoreease/core/utils/global.dart';
+import 'package:get_it/get_it.dart';
+import 'package:scoreease/core/utils/my_app_exception.dart';
+import 'package:scoreease/features/scoreboard/domain/entities/access_entity.dart';
+import 'package:scoreease/features/scoreboard/domain/usecases/score_board_usecase.dart';
 import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/theme.dart';
 import 'package:scoreease/core/utils/widget_helper.dart';
@@ -52,23 +55,40 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
     }
     return ranks;
   }
+  final ScoreboardUseCase _useCase = GetIt.instance<ScoreboardUseCase>();
   bool _isReadUnlocked = false;
+  bool _isLoadingAccess = true;
 
   @override
   void initState() {
     super.initState();
     _id = widget._id;
-    _checkSavedAccess();
-    _bloc.add(ScoreboardListenPlayerScoreEvent(_id));
+    _checkAccess();
   }
 
-  Future<void> _checkSavedAccess() async {
-    final hasAccess = await GlobalValues.hasScoreboardAccess(scoreboardId: _id, type: 'read');
-    if (hasAccess && mounted) {
-      setState(() {
-        _isReadUnlocked = true;
-      });
+  Future<void> _checkAccess() async {
+    bool hasAccess = false;
+    try {
+      hasAccess = await _useCase.hasAccess(_id, AccessLevel.read);
+    } on MyAppException catch (e) {
+      if (mounted) {
+        showSingleButtonAlertDialog(
+          context: context,
+          title: e.title,
+          message: e.message,
+          positiveAction: () => context.go('/'),
+        );
+      }
+      return;
+    } catch (e) {
+      appLogger.e(e);
     }
+    if (!mounted) return;
+    setState(() {
+      _isReadUnlocked = hasAccess;
+      _isLoadingAccess = false;
+    });
+    if (hasAccess) _bloc.add(ScoreboardListenPlayerScoreEvent(_id));
   }
 
   @override
@@ -113,22 +133,22 @@ class _ScoreboardScoreDisplayScreenState extends State<ScoreboardScoreDisplayScr
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
         bloc: _bloc,
         builder: (ctx, state) {
-          if (_scoreboardEntity != null) {
-            final readPass = _scoreboardEntity!.access?.read;
-            if (readPass != null && readPass.isNotEmpty && !_isReadUnlocked) {
-              return PasswordPromptWidget(
-                expectedPassword: readPass,
-                title: "Protected Scoreboard",
-                message: "Enter the read password to view this scoreboard.",
-                onSuccess: () {
-                  GlobalValues.unlockScoreboardAccess(scoreboardId: _id, type: 'read');
-                  setState(() {
-                    _isReadUnlocked = true;
-                  });
-                },
-                onCancel: () => context.go('/'),
-              );
-            }
+          if (_isLoadingAccess) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          if (!_isReadUnlocked) {
+            return PasswordPromptWidget(
+              onVerify: (password) => _useCase.unlock(_id, AccessLevel.read, password),
+              title: "Protected Scoreboard",
+              message: "Enter the read password to view this scoreboard.",
+              onSuccess: () {
+                setState(() {
+                  _isReadUnlocked = true;
+                });
+                _bloc.add(ScoreboardListenPlayerScoreEvent(_id));
+              },
+              onCancel: () => context.go('/'),
+            );
           }
 
           List<String> playersList = _scoreboardEntity?.players?.keys.toList() ?? [];

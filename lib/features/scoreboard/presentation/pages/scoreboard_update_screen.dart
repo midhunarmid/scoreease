@@ -9,7 +9,10 @@ import 'package:scoreease/features/scoreboard/domain/entities/scoreboard_entity.
 import 'package:scoreease/features/scoreboard/presentation/blocs/score_board_setup/score_board_setup_bloc.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_score_display_screen.dart';
 import 'package:scoreease/features/scoreboard/presentation/pages/scoreboard_editor_screen.dart';
-import 'package:scoreease/core/utils/global.dart';
+import 'package:get_it/get_it.dart';
+import 'package:scoreease/core/utils/my_app_exception.dart';
+import 'package:scoreease/features/scoreboard/domain/entities/access_entity.dart';
+import 'package:scoreease/features/scoreboard/domain/usecases/score_board_usecase.dart';
 import 'package:scoreease/features/settings/presentation/pages/settings_screen.dart';
 import 'package:scoreease/core/utils/constants.dart';
 import 'package:scoreease/core/utils/theme.dart';
@@ -40,16 +43,15 @@ class _ScoreboardScoreUpdateScreenState
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
   final Map<String, GlobalKey<ScoreChangeIndicatorState>> _indicatorKeys = {};
+  final ScoreboardUseCase _useCase = GetIt.instance<ScoreboardUseCase>();
   bool _isWriteUnlocked = false;
+  bool _isLoadingAccess = true;
 
   @override
   void initState() {
     super.initState();
     _scoreboardEntity = widget._scoreboardEntity;
-    _checkSavedAccess();
-    if (_scoreboardEntity == null) {
-      _bloc.add(ScoreboardGetEvent(widget._id));
-    }
+    _checkAccess();
   }
 
   @override
@@ -62,13 +64,34 @@ class _ScoreboardScoreUpdateScreenState
     }
   }
 
-  Future<void> _checkSavedAccess() async {
-    final hasAccess = await GlobalValues.hasScoreboardAccess(
-        scoreboardId: widget._id, type: 'write');
-    if (hasAccess && mounted) {
-      setState(() {
-        _isWriteUnlocked = true;
-      });
+  Future<void> _checkAccess() async {
+    bool hasAccess = false;
+    try {
+      hasAccess = await _useCase.hasAccess(widget._id, AccessLevel.write);
+    } on MyAppException catch (e) {
+      if (mounted) {
+        showSingleButtonAlertDialog(
+          context: context,
+          title: e.title,
+          message: e.message,
+          positiveAction: () => context.go('/'),
+        );
+      }
+      return;
+    } catch (e) {
+      appLogger.e(e);
+    }
+    if (!mounted) return;
+    setState(() {
+      _isWriteUnlocked = hasAccess;
+      _isLoadingAccess = false;
+    });
+    if (hasAccess) _loadScoreboard();
+  }
+
+  void _loadScoreboard() {
+    if (_scoreboardEntity == null) {
+      _bloc.add(ScoreboardGetEvent(widget._id));
     }
   }
 
@@ -138,31 +161,30 @@ class _ScoreboardScoreUpdateScreenState
       child: BlocBuilder<ScoreboardSetupBloc, ScoreboardSetupState>(
         bloc: _bloc,
         builder: (ctx, state) {
-          if (_scoreboardEntity != null) {
-            final writePass = _scoreboardEntity!.access?.write;
-            if (writePass != null &&
-                writePass.isNotEmpty &&
-                !_isWriteUnlocked) {
-              return PasswordPromptWidget(
-                expectedPassword: writePass,
-                title: "Update Protected Scoreboard",
-                message: "Enter the write password to update scores.",
-                onSuccess: () {
-                  GlobalValues.unlockScoreboardAccess(
-                      scoreboardId: widget._id, type: 'write');
-                  setState(() {
-                    _isWriteUnlocked = true;
-                  });
-                },
-                onCancel: () {
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go('/display?id=${widget._id}');
-                  }
-                },
-              );
-            }
+          if (_isLoadingAccess) {
+            return const Scaffold(
+                body: Center(child: CircularProgressIndicator()));
+          }
+          if (!_isWriteUnlocked) {
+            return PasswordPromptWidget(
+              onVerify: (password) =>
+                  _useCase.unlock(widget._id, AccessLevel.write, password),
+              title: "Update Protected Scoreboard",
+              message: "Enter the write password to update scores.",
+              onSuccess: () {
+                setState(() {
+                  _isWriteUnlocked = true;
+                });
+                _loadScoreboard();
+              },
+              onCancel: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/display?id=${widget._id}');
+                }
+              },
+            );
           }
 
           List<String> playersList =

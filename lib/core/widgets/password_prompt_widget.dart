@@ -2,10 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:scoreease/core/utils/theme.dart';
-import 'package:scoreease/core/utils/security_helper.dart';
 
 class PasswordPromptWidget extends StatefulWidget {
-  final String expectedPassword;
+  /// Checks the entered password, normally against the server.
+  final Future<bool> Function(String password) onVerify;
   final String title;
   final String message;
   final VoidCallback onSuccess;
@@ -14,7 +14,7 @@ class PasswordPromptWidget extends StatefulWidget {
 
   const PasswordPromptWidget({
     Key? key,
-    required this.expectedPassword,
+    required this.onVerify,
     required this.title,
     required this.message,
     required this.onSuccess,
@@ -32,6 +32,7 @@ class _PasswordPromptWidgetState extends State<PasswordPromptWidget> {
   String? _errorText;
   bool _isShaking = false;
   bool _isUnlocked = false;
+  bool _isVerifying = false;
 
   @override
   void initState() {
@@ -41,10 +42,29 @@ class _PasswordPromptWidgetState extends State<PasswordPromptWidget> {
     });
   }
 
-  void _submit() {
-    final hashedInput = SecurityHelper.hashPassword(_controller.text);
-    if (hashedInput == widget.expectedPassword) {
+  Future<void> _submit() async {
+    if (_isVerifying || _controller.text.isEmpty) return;
+    setState(() {
+      _isVerifying = true;
+      _errorText = null;
+    });
+
+    bool verified;
+    try {
+      verified = await widget.onVerify(_controller.text);
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
+        _isVerifying = false;
+        _errorText = "Couldn't check the password. Check your connection and try again.";
+      });
+      return;
+    }
+    if (!mounted) return;
+
+    if (verified) {
+      setState(() {
+        _isVerifying = false;
         _isUnlocked = true;
         _errorText = null;
       });
@@ -53,6 +73,7 @@ class _PasswordPromptWidgetState extends State<PasswordPromptWidget> {
       });
     } else {
       setState(() {
+        _isVerifying = false;
         _errorText = "Incorrect password. Please try again.";
         _isShaking = true;
       });
@@ -281,13 +302,19 @@ class _PasswordPromptWidgetState extends State<PasswordPromptWidget> {
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text("Unlock", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                                      SizedBox(width: 8),
-                                      Icon(Icons.arrow_forward_rounded, size: 20),
+                                      const Text("Unlock", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                      const SizedBox(width: 8),
+                                      _isVerifying
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                            )
+                                          : const Icon(Icons.arrow_forward_rounded, size: 20),
                                     ],
                                   ),
                                 ).animate(target: _isUnlocked ? 1 : 0).scale(end: const Offset(1.05, 1.05)),

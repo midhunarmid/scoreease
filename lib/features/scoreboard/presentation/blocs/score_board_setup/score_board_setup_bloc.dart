@@ -55,34 +55,18 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
 
           try {
             ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
-            await scoreboardUseCase.getScoreboard(event.scoreboardEntity.id!);
-            
-            // If we get here, the scoreboard exists, which means the ID is taken!
-            await delayedEmit(
-              emit,
-              ScoreboardSetupErrorState(
-                MessageGenerator.getMessage("ID Unavailable"),
-                MessageGenerator.getMessage("A scoreboard with this ID already exists. Please choose a different ID."),
-                StatusInfoIconEnum.error,
-              ),
-            );
-            return;
-          } on MyAppException catch (e) {
-            // "Scoreboard Not Found" is the expected exception if the ID is available
-            if (e.title == "Scoreboard Not Found") {
-              await delayedEmit(emit, ScoreboardSetupBasicSuccessState(event.scoreboardEntity));
+            if (await scoreboardUseCase.exists(event.scoreboardEntity.id!)) {
+              await delayedEmit(
+                emit,
+                ScoreboardSetupErrorState(
+                  MessageGenerator.getMessage("ID Unavailable"),
+                  MessageGenerator.getMessage("A scoreboard with this ID already exists. Please choose a different ID."),
+                  StatusInfoIconEnum.error,
+                ),
+              );
               return;
             }
-            
-            // Otherwise, it's a different error
-            await delayedEmit(
-              emit,
-              ScoreboardSetupErrorState(
-                MessageGenerator.getMessage(e.title),
-                MessageGenerator.getMessage(e.message),
-                StatusInfoIconEnum.error,
-              ),
-            );
+            await delayedEmit(emit, ScoreboardSetupBasicSuccessState(event.scoreboardEntity));
             return;
           } catch (e) {
             appLogger.e(e);
@@ -137,7 +121,7 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           );
 
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
-          String scoreboardId = await scoreboardUseCase.saveScoreboard(event.scoreboardEntity.copyWith(
+          String scoreboardId = await scoreboardUseCase.createScoreboard(event.scoreboardEntity.copyWith(
             createdAt: DateTime.now(),
           ));
           await delayedEmit(emit, ScoreboardSetupSuccessState(scoreboardId));
@@ -153,18 +137,19 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           );
 
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
-          await scoreboardUseCase.saveScoreboard(event.scoreboardEntity);
+          await scoreboardUseCase.updateScoreboard(event.scoreboardEntity);
           await delayedEmit(emit, ScoreboardScoreUpdateSuccessState(event.scoreboardEntity));
         } else if (event is ScoreboardUpdatePlayerScoreEvent) {
           ScoreboardEntity scoreboardEntity = event.scoreboardEntity;
           String playerName = event.playerName;
+          int newScore = (scoreboardEntity.players?[playerName] ?? 0) + event.delta;
           ScoreboardEntity updatedScoreboardEntity = scoreboardEntity.copyWith(players: {
             ...?scoreboardEntity.players,
-            playerName: (scoreboardEntity.players?[playerName] ?? 0) + event.delta,
+            playerName: newScore,
           });
 
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
-          await scoreboardUseCase.saveScoreboard(updatedScoreboardEntity);
+          await scoreboardUseCase.setPlayerScores(scoreboardEntity.id!, {playerName: newScore});
           emit.call(ScoreboardScoreUpdateSuccessState(updatedScoreboardEntity));
         } else if (event is ScoreboardResetScoresEvent) {
           emit.call(
@@ -185,7 +170,7 @@ class ScoreboardSetupBloc extends Bloc<ScoreboardSetupEvent, ScoreboardSetupStat
           ScoreboardEntity updatedScoreboardEntity = scoreboardEntity.copyWith(players: resetPlayers);
 
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();
-          await scoreboardUseCase.saveScoreboard(updatedScoreboardEntity);
+          await scoreboardUseCase.setPlayerScores(scoreboardEntity.id!, resetPlayers);
           await delayedEmit(emit, ScoreboardScoreUpdateSuccessState(updatedScoreboardEntity));
         } else if (event is ScoreboardListenPlayerScoreEvent) {
           ScoreboardUseCase scoreboardUseCase = GetIt.instance<ScoreboardUseCase>();

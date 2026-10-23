@@ -29,7 +29,6 @@ class ScoreboardMapper {
       ownerId: entity.ownerId,
       createdAt: entity.createdAt?.millisecondsSinceEpoch,
       lastUpdated: entity.lastUpdated?.millisecondsSinceEpoch,
-      access: entity.access == null ? null : AccessMapper.fromEntity(entity.access!),
       players: entity.players,
       isTeamGame: entity.isTeamGame,
       teams: entity.teams?.map((k, v) => MapEntry(k, TeamModel.fromEntity(v))),
