@@ -169,7 +169,7 @@ class _PlayViewState extends State<_PlayView> {
                 ? Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                     Expanded(child: body),
                     const VerticalDivider(width: 1),
-                    SizedBox(width: 340, child: GameSidePanel(snapshot: snapshot)),
+                    SizedBox(width: 340, child: GameSidePanel(snapshot: snapshot, canEdit: state.canScore)),
                   ])
                 : body,
           ),
@@ -256,7 +256,16 @@ class _Menu extends StatelessWidget {
       case _MenuAction.tv:
         context.push(game.isOwner ? '/game/${game.id}/tv' : '/live/${state.liveCode}/tv');
       case _MenuAction.history:
-        showAdaptiveSheet(context, builder: (_) => SizedBox(height: 520, child: GameSidePanel(snapshot: snapshot)));
+        // Live, so changing who scored from the log shows up straight away.
+        showAdaptiveSheet(
+          context,
+          builder: (_) => BlocProvider.value(
+            value: cubit,
+            child: BlocBuilder<PlayCubit, PlayState>(
+              builder: (context, s) => SizedBox(height: 520, child: GameSidePanel(snapshot: s.snapshot ?? snapshot, canEdit: s.canScore)),
+            ),
+          ),
+        );
       case _MenuAction.addRound:
         onAddRound();
       case _MenuAction.endInnings:

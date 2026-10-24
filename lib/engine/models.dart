@@ -120,6 +120,10 @@ class Game {
   /// False for a live game someone else owns that this device joined.
   final bool isOwner;
 
+  /// Points each team member was credited with, by member name. Kept on the
+  /// device for player stats; derived from the events.
+  final Map<String, int> memberPoints;
+
   const Game({
     required this.id,
     required this.title,
@@ -134,6 +138,7 @@ class Game {
     this.summary = '',
     this.shareCode,
     this.isOwner = true,
+    this.memberPoints = const {},
   });
 
   bool get isFinished => status == GameStatus.finished;
@@ -162,6 +167,7 @@ class Game {
     String? shareCode,
     bool clearShareCode = false,
     bool? isOwner,
+    Map<String, int>? memberPoints,
   }) =>
       Game(
         id: id,
@@ -177,6 +183,7 @@ class Game {
         summary: summary ?? this.summary,
         shareCode: clearShareCode ? null : (shareCode ?? this.shareCode),
         isOwner: isOwner ?? this.isOwner,
+        memberPoints: memberPoints ?? this.memberPoints,
       );
 
   /// The part of a game that is shared live (no device-only fields).
@@ -198,6 +205,7 @@ class Game {
         'summary': summary,
         if (shareCode != null) 'shareCode': shareCode,
         'isOwner': isOwner,
+        if (memberPoints.isNotEmpty) 'memberPoints': memberPoints,
       };
 
   factory Game.fromJson(Map json, {String? id}) {
@@ -224,6 +232,11 @@ class Game {
       summary: (json['summary'] ?? '').toString(),
       shareCode: json['shareCode']?.toString(),
       isOwner: json['isOwner'] != false,
+      memberPoints: {
+        if (json['memberPoints'] case final Map raw)
+          for (final MapEntry(:key, :value) in raw.entries)
+            if (value is num) key.toString(): value.toInt(),
+      },
     );
   }
 }

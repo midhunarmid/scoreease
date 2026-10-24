@@ -75,49 +75,31 @@ class PlayersPage extends StatelessWidget {
                 action: FilledButton.icon(onPressed: () => _add(context), icon: const Icon(Icons.person_add_alt), label: const Text('Add player')),
               );
             }
-            final leaders = players.where((p) => (stats[p.name.toLowerCase()]?.played ?? 0) > 0).toList()
-              ..sort((a, b) => (stats[b.name.toLowerCase()]!.wins).compareTo(stats[a.name.toLowerCase()]!.wins));
+            PlayerStats? statsOf(SavedPlayer p) => stats[p.name.toLowerCase()];
+            final leaders = players.where((p) => (statsOf(p)?.played ?? 0) > 0).toList()
+              ..sort((a, b) => statsOf(b)!.wins.compareTo(statsOf(a)!.wins));
+            final scorers = players.where((p) => (statsOf(p)?.points ?? 0) > 0).toList()
+              ..sort((a, b) => statsOf(b)!.points.compareTo(statsOf(a)!.points));
             return ListView(
               padding: EdgeInsets.fromLTRB(context.gutter, Space.sm, context.gutter, Space.xxl),
               children: [
                 MaxWidth(
                   maxWidth: 900,
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    if (leaders.isNotEmpty) ...[
-                      Text('Most wins', style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: Space.sm),
-                      SizedBox(
-                        height: 112,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: leaders.length.clamp(0, 5),
-                          separatorBuilder: (_, __) => const SizedBox(width: Space.sm),
-                          itemBuilder: (context, i) {
-                            final p = leaders[i];
-                            final s = stats[p.name.toLowerCase()]!;
-                            return SizedBox(
-                              width: 150,
-                              child: Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(Space.md),
-                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Row(children: [
-                                      PlayerAvatar(name: p.name, color: p.color, size: 28),
-                                      const SizedBox(width: Space.sm),
-                                      Expanded(child: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.labelLarge)),
-                                    ]),
-                                    const Spacer(),
-                                    Text('${s.wins}', style: scoreStyle(context, 28, color: context.scoreColors.forRank(i + 1))),
-                                    Text('wins · ${(s.winRate * 100).round()}%', style: context.text.labelSmall),
-                                  ]),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                    if (leaders.isNotEmpty)
+                      _LeaderStrip(
+                        title: 'Most wins',
+                        players: leaders,
+                        value: (p) => statsOf(p)!.wins,
+                        caption: (p) => 'wins · ${(statsOf(p)!.winRate * 100).round()}%',
                       ),
-                      const SizedBox(height: Space.xl),
-                    ],
+                    if (scorers.isNotEmpty)
+                      _LeaderStrip(
+                        title: 'Top scorers',
+                        players: scorers,
+                        value: (p) => statsOf(p)!.points,
+                        caption: (p) => 'points in team games',
+                      ),
                     Text('Everyone', style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: Space.sm),
                     Card(
@@ -136,6 +118,52 @@ class PlayersPage extends StatelessWidget {
   }
 }
 
+/// Top five players by [value], as a row of cards.
+class _LeaderStrip extends StatelessWidget {
+  final String title;
+  final List<SavedPlayer> players;
+  final int Function(SavedPlayer) value;
+  final String Function(SavedPlayer) caption;
+
+  const _LeaderStrip({required this.title, required this.players, required this.value, required this.caption});
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(title, style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: Space.sm),
+        SizedBox(
+          height: 112,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: players.length.clamp(0, 5),
+            separatorBuilder: (_, __) => const SizedBox(width: Space.sm),
+            itemBuilder: (context, i) {
+              final p = players[i];
+              return SizedBox(
+                width: 150,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Space.md),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        PlayerAvatar(name: p.name, color: p.color, size: 28),
+                        const SizedBox(width: Space.sm),
+                        Expanded(child: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.labelLarge)),
+                      ]),
+                      const Spacer(),
+                      Text('${value(p)}', style: scoreStyle(context, 28, color: context.scoreColors.forRank(i + 1))),
+                      Text(caption(p), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.labelSmall),
+                    ]),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: Space.xl),
+      ]);
+}
+
 class _PlayerRow extends StatelessWidget {
   final SavedPlayer player;
   final PlayerStats? stats;
@@ -152,7 +180,7 @@ class _PlayerRow extends StatelessWidget {
       subtitle: Text(
         s == null || s.played == 0
             ? 'No finished games yet'
-            : '${s.played} played · ${s.wins} won${s.bestStreak > 1 ? ' · best streak ${s.bestStreak}' : ''}',
+            : '${s.played} played · ${s.wins} won${s.points > 0 ? ' · ${s.points} pts' : ''}${s.bestStreak > 1 ? ' · best streak ${s.bestStreak}' : ''}',
       ),
       trailing: s == null || s.played == 0 ? null : Text('${(s.winRate * 100).round()}%', style: scoreStyle(context, 18)),
     );

@@ -86,6 +86,12 @@ class CounterEngine extends ScoringEngine<CounterState> {
   }
 
   @override
+  Credit? creditable(ScoreEvent event, Game game) {
+    final pid = event.get<String>('p');
+    return event.type == add && pid != null ? (pid: pid, v: event.intOf('v')) : null;
+  }
+
+  @override
   String describe(ScoreEvent e, Game game) => switch (e.type) {
         add => '${game.nameOf(e.get<String>('p') ?? '')} ${signed(e.intOf('v'))}',
         set => '${game.nameOf(e.get<String>('p') ?? '')} set to ${e.intOf('v')}',

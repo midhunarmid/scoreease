@@ -51,6 +51,17 @@ String gameCsv(GameSnapshot snapshot) {
         rows.add([s.rank, game.nameOf(s.participantId), s.score]);
       }
   }
+  final memberPoints = snapshot.memberPoints;
+  if (memberPoints.isNotEmpty) {
+    rows.addAll([[], ['Team', 'Member', 'Points involved']]);
+    for (final p in game.participants) {
+      final points = memberPoints[p.id];
+      if (points == null) continue;
+      for (var i = 0; i < p.members.length; i++) {
+        rows.add([p.name, p.members[i], points[i] ?? 0]);
+      }
+    }
+  }
   if (snapshot.finished) rows.addAll([[], ['Result', snapshot.resultText]]);
   return _csv(rows);
 }

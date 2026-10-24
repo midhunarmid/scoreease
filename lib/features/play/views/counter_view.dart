@@ -12,6 +12,7 @@ import '../../../engine/counter_engine.dart';
 import '../../../engine/engine.dart';
 import '../../common/game_ui.dart';
 import '../play_cubit.dart';
+import '../widgets/who_scored.dart';
 
 class CounterView extends StatelessWidget {
   final GameSnapshot snapshot;
@@ -118,8 +119,17 @@ class _PlayerTile extends StatelessWidget {
     final cubit = context.read<PlayCubit>();
     final steps = CounterEngine.stepsOf(game);
     final color = playerColor(participant.color);
-    void add(int v) => cubit.add(CounterEngine.add, {'p': participant.id, 'v': v});
 
+    return WhoScored(
+      team: participant,
+      builder: (context, score, strip) {
+        void add(int v) => score(() => cubit.add(CounterEngine.add, {'p': participant.id, 'v': v}), v);
+        return _tile(context, steps, color, add, strip);
+      },
+    );
+  }
+
+  Widget _tile(BuildContext context, List<int> steps, Color color, void Function(int) add, Widget? strip) {
     return Card(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Container(height: 4, color: color),
@@ -135,15 +145,18 @@ class _PlayerTile extends StatelessWidget {
           ]),
         ),
         Expanded(
-          child: Semantics(
-            label: '${participant.name}: $score points. Tap to add ${steps.first}.',
-            button: enabled,
-            child: InkWell(
-              onTap: enabled ? () => add(steps.first) : null,
-              onLongPress: enabled ? () => _setExact(context, participant, score) : null,
-              child: Center(child: _AnimatedScore(score: score, size: 52)),
+          child: Stack(fit: StackFit.expand, children: [
+            Semantics(
+              label: '${participant.name}: $score points. Tap to add ${steps.first}.',
+              button: enabled,
+              child: InkWell(
+                onTap: enabled ? () => add(steps.first) : null,
+                onLongPress: enabled ? () => _setExact(context, participant, score) : null,
+                child: Center(child: _AnimatedScore(score: score, size: 52)),
+              ),
             ),
-          ),
+            if (strip != null) Positioned(left: Space.sm, right: Space.sm, bottom: Space.xs, child: strip),
+          ]),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(Space.sm, 0, Space.sm, Space.sm),
@@ -190,8 +203,17 @@ class _BigSide extends StatelessWidget {
     final cubit = context.read<PlayCubit>();
     final steps = CounterEngine.stepsOf(game);
     final color = playerColor(participant.color);
-    void add(int v) => cubit.add(CounterEngine.add, {'p': participant.id, 'v': v});
 
+    return WhoScored(
+      team: participant,
+      builder: (context, score, strip) {
+        void add(int v) => score(() => cubit.add(CounterEngine.add, {'p': participant.id, 'v': v}), v);
+        return _side(context, steps, color, add, strip);
+      },
+    );
+  }
+
+  Widget _side(BuildContext context, List<int> steps, Color color, void Function(int) add, Widget? strip) {
     return Material(
       color: color.withValues(alpha: context.theme.brightness == Brightness.dark ? 0.22 : 0.12),
       shape: RoundedRectangleBorder(borderRadius: Radii.lgAll, side: BorderSide(color: leading ? color : Colors.transparent, width: 2)),
@@ -217,7 +239,11 @@ class _BigSide extends StatelessWidget {
               for (final s in steps.skip(1)) ...[const SizedBox(width: Space.sm), _StepButton(label: '+$s', onPressed: enabled ? () => add(s) : null)],
             ]),
             const SizedBox(height: Space.xs),
-            Text(enabled ? 'Tap to add ${steps.first} · hold to set' : '', style: context.text.labelSmall?.copyWith(color: context.colors.onSurfaceVariant)),
+            strip ??
+                Text(
+                  enabled ? 'Tap to add ${steps.first} · hold to set' : '',
+                  style: context.text.labelSmall?.copyWith(color: context.colors.onSurfaceVariant),
+                ),
           ]),
         ),
       ),

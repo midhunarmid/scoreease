@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -176,8 +177,9 @@ class PlayCubit extends Cubit<PlayState> {
 
   // ---- Scoring ----
 
-  Future<void> add(String type, [Map<String, dynamic> data = const {}]) async {
-    if (!state.canScore || _game == null) return;
+  /// Records an event and returns its id (null when scoring isn't allowed).
+  Future<String?> add(String type, [Map<String, dynamic> data = const {}]) async {
+    if (!state.canScore || _game == null) return null;
     if (_settings.haptics) HapticFeedback.selectionClick();
     final now = DateTime.now().millisecondsSinceEpoch;
     final event = ScoreEvent(id: PushId.next(now), type: type, data: data, ts: now, by: Cloud.uid ?? 'local');
@@ -191,11 +193,21 @@ class PlayCubit extends Cubit<PlayState> {
         if (!_errors.isClosed) _errors.add(e);
       }
     }
+    return event.id;
   }
 
+  /// Undoes the last score. Tags aren't undone on their own: they go with
+  /// the score they belong to, and can be changed from the log.
   Future<void> undo() async {
-    final last = state.snapshot?.effective.lastOrNull;
+    final last = state.snapshot?.effective.lastWhereOrNull((e) => e.type != EventTypes.tag);
     if (last != null) await add(EventTypes.undo, {'target': last.id});
+  }
+
+  /// Credits team [members] (indexes) with scoring event [target].
+  Future<void> tag(String target, Set<int> members) async {
+    final current = state.snapshot?.tags[target] ?? const <int>{};
+    if (current.length == members.length && current.containsAll(members)) return;
+    await add(EventTypes.tag, tagData(target, members.toList()..sort()));
   }
 
   Future<void> redo() async {
@@ -203,7 +215,9 @@ class PlayCubit extends Cubit<PlayState> {
     if (target != null) await add(EventTypes.redo, {'target': target});
   }
 
-  Future<void> endGame() => add(EventTypes.end);
+  Future<void> endGame() async {
+    await add(EventTypes.end);
+  }
 
   // ---- Owner actions ----
 
@@ -273,6 +287,7 @@ class PlayCubit extends Cubit<PlayState> {
       summary: snapshot.summary,
       shareCode: game.shareCode,
       isOwner: game.isOwner,
+      memberPoints: snapshot.memberPointsByName,
     ));
     await _store.saveEvents(localId, _events);
   }

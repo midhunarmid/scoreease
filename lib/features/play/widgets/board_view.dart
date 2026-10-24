@@ -76,7 +76,7 @@ class _RankedBoard extends StatelessWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleMedium?.copyWith(fontSize: 18 * scale, fontWeight: FontWeight.w700)),
-                  if (p.isTeam) Text(p.members.join(', '), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall?.copyWith(fontSize: 12 * scale)),
+                  if (p.isTeam) Text(snapshot.membersLine(p), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall?.copyWith(fontSize: 12 * scale)),
                   if (s.detail.isNotEmpty) Text(s.detail, style: context.text.labelSmall?.copyWith(fontSize: 12 * scale)),
                 ]),
               ),
@@ -118,6 +118,7 @@ class _SetsBoard extends StatelessWidget {
               Text('Sets ${state.setsWon(i)}', style: context.text.labelLarge?.copyWith(fontSize: 14 * scale)),
             ]),
             Text('${state.current[i]}', style: scoreStyle(context, 96 * scale, color: color)),
+            if (p.isTeam) Text(snapshot.membersLine(p), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall?.copyWith(fontSize: 12 * scale)),
           ]),
         ),
       );

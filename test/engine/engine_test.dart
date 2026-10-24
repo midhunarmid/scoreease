@@ -100,6 +100,99 @@ void main() {
     });
   });
 
+  group('who scored', () {
+    Game teams(GameMode mode, {Map<String, dynamic> settings = const {}}) => Game(
+          id: 'g',
+          title: 'Teams',
+          templateId: mode.name,
+          mode: mode,
+          settings: settings,
+          participants: const [
+            Participant(id: 'p0', name: 'Reds', members: ['Ann', 'Bob', 'Cy']),
+            Participant(id: 'p1', name: 'Blues', members: ['Dee', 'Eve']),
+          ],
+          createdAt: DateTime(2026),
+          updatedAt: DateTime(2026),
+        );
+
+    test('every tagged member gets the full points; the latest tag wins', () {
+      final g = teams(GameMode.counter);
+      final log = Log();
+      final goal = log.add('add', {'p': 'p0', 'v': 2});
+      log.add('tag', tagData(goal, [0, 1]));
+      var snap = GameEngine.compute(g, log.events);
+      expect(snap.memberPoints, {'p0': {0: 2, 1: 2}});
+      expect(snap.describe(log.events[0]), 'Reds +2 · Ann, Bob');
+      expect(snap.membersLine(g.participants[0]), 'Ann 2 · Bob 2 · Cy');
+      expect(snap.stateAs<CounterState>().scores['p0'], 2, reason: 'tags never change the score');
+
+      log.add('tag', tagData(goal, [2]));
+      snap = GameEngine.compute(g, log.events);
+      expect(snap.memberPoints, {'p0': {2: 2}});
+      expect(snap.memberPointsByName, {'Cy': 2});
+
+      log.add('tag', tagData(goal, []));
+      expect(GameEngine.compute(g, log.events).memberPoints, isEmpty);
+    });
+
+    test('a tag on an undone score is ignored and undo skips tags', () {
+      final g = teams(GameMode.counter);
+      final log = Log();
+      final goal = log.add('add', {'p': 'p0', 'v': 1});
+      log.add('tag', tagData(goal, [0]));
+      var snap = GameEngine.compute(g, log.events);
+      expect(snap.canUndo, isTrue);
+      expect(snap.log.map((e) => e.type), ['add'], reason: 'tags are not shown as log lines');
+
+      log.add('undo', {'target': goal});
+      snap = GameEngine.compute(g, log.events);
+      expect(snap.memberPoints, isEmpty);
+      expect(snap.canUndo, isFalse, reason: 'only the tag is left');
+    });
+
+    test('tagging does not clear redo', () {
+      final g = teams(GameMode.counter);
+      final log = Log();
+      final first = log.add('add', {'p': 'p0', 'v': 1});
+      final second = log.add('add', {'p': 'p0', 'v': 1});
+      log.add('undo', {'target': second});
+      log.add('tag', tagData(first, [1]));
+      expect(GameEngine.compute(g, log.events).redoTarget, second);
+    });
+
+    test('tags count after the game ends, scores after the end do not', () {
+      final g = teams(GameMode.counter, settings: {'target': 1});
+      final log = Log();
+      final winner = log.add('add', {'p': 'p0', 'v': 1});
+      final late = log.add('add', {'p': 'p1', 'v': 1});
+      log.add('tag', tagData(winner, [0]));
+      log.add('tag', tagData(late, [0]));
+      final snap = GameEngine.compute(g, log.events);
+      expect(snap.finished, isTrue);
+      expect(snap.memberPoints, {'p0': {0: 1}});
+    });
+
+    test('sets points can be tagged; players without teams cannot', () {
+      final g = teams(GameMode.sets);
+      final log = Log();
+      final point = log.add('point', {'p': 'p1'});
+      log.add('tag', tagData(point, [0, 1]));
+      expect(GameEngine.compute(g, log.events).memberPoints, {'p1': {0: 1, 1: 1}});
+
+      final solo = game(GameMode.counter);
+      final soloLog = Log();
+      final add = soloLog.add('add', {'p': 'p0', 'v': 1});
+      soloLog.add('tag', tagData(add, [0]));
+      expect(GameEngine.compute(solo, soloLog.events).creditable, isEmpty);
+    });
+
+    test('member points survive a JSON round trip', () {
+      final g = teams(GameMode.counter).copyWith(memberPoints: {'Ann': 3});
+      expect(Game.fromJson(g.toJson()).memberPoints, {'Ann': 3});
+      expect(g.toMetaJson().containsKey('memberPoints'), isFalse, reason: 'never shared');
+    });
+  });
+
   group('rounds', () {
     test('rummy style elimination leaves the last player as winner', () {
       final g = game(GameMode.rounds, players: 3, settings: {'lowWins': true, 'eliminateAt': 100});
