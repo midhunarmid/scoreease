@@ -146,6 +146,12 @@ class SetsEngine extends ScoringEngine<SetsState> {
   }
 
   @override
+  Credit? creditable(ScoreEvent event, Game game) {
+    final pid = event.get<String>('p');
+    return event.type == point && pid != null && _sideOf(game, pid) >= 0 ? (pid: pid, v: 1) : null;
+  }
+
+  @override
   String describe(ScoreEvent e, Game game) => switch (e.type) {
         point => 'Point ${game.nameOf(e.get<String>('p') ?? '')}',
         serve => '${game.nameOf(e.get<String>('p') ?? '')} to serve',

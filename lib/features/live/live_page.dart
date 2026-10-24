@@ -61,7 +61,7 @@ class _LiveView extends StatelessWidget {
   Widget build(BuildContext context) {
     final game = snapshot.game;
     final template = Templates.byId(game.templateId);
-    final recent = snapshot.effective.reversed.take(8).toList();
+    final recent = snapshot.log.take(8).toList();
     final time = DateFormat.Hm();
 
     final board = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -83,7 +83,7 @@ class _LiveView extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: Space.xs),
                   child: Row(children: [
-                    Expanded(child: Text(GameEngine.describe(game, e))),
+                    Expanded(child: Text(snapshot.describe(e))),
                     Text(time.format(DateTime.fromMillisecondsSinceEpoch(e.ts)), style: context.text.labelSmall),
                   ]),
                 ),

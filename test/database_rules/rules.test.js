@@ -235,6 +235,14 @@ test('boards: events cannot be forged, edited or deleted by scorers', async () =
   await assertFails(remove(ref(db('bob'), 'boards/abc234/events')));
 });
 
+test('boards: scorers can tag who scored', async () => {
+  await assertSucceeds(shareBoard('alice', 'abc234'));
+  const point = eventId();
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${point}`), event('bob', 'point', { p: 'p1' })));
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'tag', { target: point, m: { m0: 1, m1: 1 } })));
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'tag', { target: point })));
+});
+
 test('boards: scorers cannot change the game setup', async () => {
   await assertSucceeds(shareBoard('alice', 'abc234'));
   await assertFails(set(ref(db('bob'), 'boards/abc234/meta/title'), 'hacked'));

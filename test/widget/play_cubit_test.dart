@@ -77,6 +77,38 @@ void main() {
     await again.close();
   });
 
+  test('tags who scored, undo removes the score, and member points persist', () async {
+    final now = DateTime.now();
+    await store.saveGame(Game(
+      id: 'g2',
+      title: 'Football',
+      templateId: 'counter',
+      mode: GameMode.counter,
+      participants: const [
+        Participant(id: 'p0', name: 'Reds', members: ['Ann', 'Bob']),
+        Participant(id: 'p1', name: 'Blues', members: ['Cy']),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    ));
+
+    final c = cubit();
+    await c.openLocal('g2');
+    final goal = await c.add(CounterEngine.add, {'p': 'p0', 'v': 1});
+    expect(goal, isNotNull);
+    await c.tag(goal!, {1});
+    final second = await c.add(CounterEngine.add, {'p': 'p0', 'v': 1});
+    await c.tag(second!, {0, 1});
+    expect(c.state.snapshot!.memberPoints, {'p0': {0: 1, 1: 2}});
+
+    await c.undo();
+    expect(c.state.snapshot!.stateAs<CounterState>().scores['p0'], 1, reason: 'undo takes back the score, not the tag');
+    expect(c.state.snapshot!.memberPoints, {'p0': {1: 1}});
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(store.game('g2')!.memberPoints, {'Bob': 1});
+    await c.close();
+  });
+
   test('a missing game shows an error instead of loading forever', () async {
     final c = cubit();
     await c.openLocal('nope');

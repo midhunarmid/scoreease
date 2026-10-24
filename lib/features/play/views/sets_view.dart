@@ -7,6 +7,7 @@ import '../../../design/widgets.dart';
 import '../../../engine/engine.dart';
 import '../../../engine/sets_engine.dart';
 import '../play_cubit.dart';
+import '../widgets/who_scored.dart';
 
 /// Two big halves; tap a side to give it the rally.
 class SetsView extends StatelessWidget {
@@ -53,15 +54,19 @@ class SetsView extends StatelessWidget {
           final sides = [
             for (var i = 0; i < 2; i++)
               Expanded(
-                child: _Side(
-                  participant: game.participants[i],
-                  points: state.current[i],
-                  setsWon: state.setsWon(i),
-                  serving: state.server == i && !snapshot.finished,
-                  winner: snapshot.winners.contains(game.participants[i].id),
-                  enabled: enabled,
-                  onPoint: () => cubit.add(SetsEngine.point, {'p': game.participants[i].id}),
-                  onServe: enabled && fresh ? () => cubit.add(SetsEngine.serve, {'p': game.participants[i].id}) : null,
+                child: WhoScored(
+                  team: game.participants[i],
+                  builder: (context, score, strip) => _Side(
+                    participant: game.participants[i],
+                    points: state.current[i],
+                    setsWon: state.setsWon(i),
+                    serving: state.server == i && !snapshot.finished,
+                    winner: snapshot.winners.contains(game.participants[i].id),
+                    enabled: enabled,
+                    onPoint: () => score(() => cubit.add(SetsEngine.point, {'p': game.participants[i].id}), 1),
+                    onServe: enabled && fresh ? () => cubit.add(SetsEngine.serve, {'p': game.participants[i].id}) : null,
+                    strip: strip,
+                  ),
                 ),
               ),
           ];
@@ -87,6 +92,9 @@ class _Side extends StatelessWidget {
   final VoidCallback onPoint;
   final VoidCallback? onServe;
 
+  /// "Who scored?" chips for a team, shown briefly after a point.
+  final Widget? strip;
+
   const _Side({
     required this.participant,
     required this.points,
@@ -96,6 +104,7 @@ class _Side extends StatelessWidget {
     required this.enabled,
     required this.onPoint,
     this.onServe,
+    this.strip,
   });
 
   @override
@@ -135,6 +144,7 @@ class _Side extends StatelessWidget {
                   ),
                 ),
               ),
+              if (strip != null) ...[strip!, const SizedBox(height: Space.xs)],
               SizedBox(
                 height: 32,
                 child: serving

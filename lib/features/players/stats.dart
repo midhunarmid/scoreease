@@ -7,6 +7,9 @@ class PlayerStats {
   int wins = 0;
   int currentStreak = 0;
   int bestStreak = 0;
+
+  /// Points this person was tagged in while playing for a team.
+  int points = 0;
   DateTime? lastPlayed;
 
   PlayerStats(this.name);
@@ -15,7 +18,7 @@ class PlayerStats {
 }
 
 /// People are matched by name (case-insensitive). Team members share their
-/// team's result.
+/// team's result; points come from who was tagged as scoring.
 Map<String, PlayerStats> computeStats(List<Game> games) {
   final stats = <String, PlayerStats>{};
   final finished = games.where((g) => g.isFinished).toList()..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
@@ -25,6 +28,7 @@ Map<String, PlayerStats> computeStats(List<Game> games) {
       for (final name in p.isTeam ? p.members : [p.name]) {
         final s = stats.putIfAbsent(name.toLowerCase(), () => PlayerStats(name));
         s.played++;
+        s.points += g.memberPoints[name] ?? 0;
         s.lastPlayed = g.updatedAt;
         if (won) {
           s.wins++;
