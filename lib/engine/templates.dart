@@ -142,6 +142,22 @@ class Templates {
       teamsByDefault: true,
       settings: {'steps': '1', 'periods': 2, 'periodMinutes': 45},
     ),
+    GameTemplate(
+      id: 'musicalchairs',
+      name: 'Musical chairs',
+      blurb: 'Tap who\'s out, last one wins',
+      mode: GameMode.placements,
+      emoji: '🪑',
+      settings: {'order': 'out', 'placePoints': '3,2,1'},
+    ),
+    GameTemplate(
+      id: 'race',
+      name: 'Race',
+      blurb: 'Tap players as they finish',
+      mode: GameMode.placements,
+      emoji: '🏃',
+      settings: {'order': 'finish', 'placePoints': '3,2,1'},
+    ),
   ];
 
   static GameTemplate byId(String id) => all.firstWhere((t) => t.id == id, orElse: () => counter);

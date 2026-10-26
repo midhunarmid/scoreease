@@ -19,6 +19,7 @@ import '../../design/widgets.dart';
 import '../../engine/counter_engine.dart';
 import '../../engine/cricket_engine.dart';
 import '../../engine/engine.dart';
+import '../../engine/placements_engine.dart';
 import '../../engine/sets_engine.dart';
 import '../../engine/templates.dart';
 import '../common/game_ui.dart';
@@ -27,6 +28,7 @@ import 'export.dart';
 import 'play_cubit.dart';
 import 'views/counter_view.dart';
 import 'views/cricket_view.dart';
+import 'views/placements_view.dart';
 import 'views/rounds_view.dart';
 import 'views/sets_view.dart';
 import 'widgets/game_side_panel.dart';
@@ -136,6 +138,7 @@ class _PlayViewState extends State<_PlayView> {
       GameMode.rounds => RoundsView(key: _roundsKey, snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
       GameMode.sets => SetsView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
       GameMode.cricket => CricketView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
+      GameMode.placements => PlacementsView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
     };
 
     final body = Column(children: [
@@ -235,6 +238,11 @@ class _PlayViewState extends State<_PlayView> {
         map[const SingleActivator(LogicalKeyboardKey.keyW)] = () => cubit.add(CricketEngine.ball, {'r': 0, 'w': true});
       case GameMode.rounds:
         map[const SingleActivator(LogicalKeyboardKey.keyN)] = () => _roundsKey.currentState?.addRound();
+      case GameMode.placements:
+        for (var i = 0; i < game.participants.length && i < 9; i++) {
+          final pid = game.participants[i].id;
+          map[SingleActivator(digits[i + 1])] = () => cubit.add(PlacementsEngine.place, {'p': pid});
+        }
     }
     return map;
   }
@@ -319,7 +327,7 @@ class _Menu extends StatelessWidget {
         if (game.mode == GameMode.rounds && canScore) item(_MenuAction.addRound, Icons.playlist_add, 'Add round'),
         if (game.mode == GameMode.cricket && canScore) item(_MenuAction.endInnings, Icons.sports_cricket, 'End innings'),
         if (game.isOwner) item(_MenuAction.rename, Icons.edit, 'Rename'),
-        if (canScore && (game.mode == GameMode.counter || game.mode == GameMode.rounds)) item(_MenuAction.end, Icons.flag, 'End game'),
+        if (canScore && (game.mode == GameMode.counter || game.mode == GameMode.rounds || game.mode == GameMode.placements)) item(_MenuAction.end, Icons.flag, 'End game'),
         if (snapshot.finished) item(_MenuAction.result, Icons.emoji_events, 'Result card'),
         item(_MenuAction.csv, Icons.table_view, 'Export CSV'),
         item(_MenuAction.shortcuts, Icons.keyboard, 'Keyboard shortcuts'),
@@ -339,6 +347,7 @@ void showShortcutsHelp(BuildContext context, GameMode mode) {
       GameMode.rounds => [('N', 'Add round')],
       GameMode.sets => [('← or 1', 'Point to left side'), ('→ or 2', 'Point to right side')],
       GameMode.cricket => [('0–4, 6', 'Runs off the ball'), ('W', 'Wicket')],
+      GameMode.placements => [('1–9', 'Player 1–9 is out (or finishes)')],
     },
   ];
   showDialog(

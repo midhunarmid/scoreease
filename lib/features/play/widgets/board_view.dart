@@ -87,7 +87,9 @@ class _RankedBoard extends StatelessWidget {
         child: Opacity(
           opacity: s.out ? 0.5 : 1,
           child: Row(children: [
-            RankBadge(rank: s.rank, size: 32 * scale),
+            s.rank > 0
+              ? RankBadge(rank: s.rank, size: 32 * scale)
+              : SizedBox(width: 32 * scale, child: Icon(Icons.directions_run, size: 22 * scale, color: context.colors.onSurfaceVariant)),
             SizedBox(width: Space.md * scale),
             PlayerAvatar(name: p.name, color: p.color, size: 36 * scale),
             SizedBox(width: Space.md * scale),

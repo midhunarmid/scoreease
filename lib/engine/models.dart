@@ -1,7 +1,7 @@
 import 'dart:math';
 
-/// The four ways a game can be scored. Each has its own engine.
-enum GameMode { counter, rounds, sets, cricket }
+/// The ways a game can be scored. Each has its own engine.
+enum GameMode { counter, rounds, sets, cricket, placements }
 
 enum GameStatus { active, finished }
 
@@ -14,7 +14,10 @@ class Participant {
   /// Player names when this participant is a team. Empty for individuals.
   final List<String> members;
 
-  const Participant({required this.id, required this.name, this.color = 0, this.members = const []});
+  /// In an event, the event team an individual player scores for.
+  final String? teamId;
+
+  const Participant({required this.id, required this.name, this.color = 0, this.members = const [], this.teamId});
 
   bool get isTeam => members.isNotEmpty;
 
@@ -23,12 +26,14 @@ class Participant {
         name: name ?? this.name,
         color: color ?? this.color,
         members: members ?? this.members,
+        teamId: teamId,
       );
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'color': color,
         if (members.isNotEmpty) 'members': {for (var i = 0; i < members.length; i++) 'm$i': members[i]},
+        if (teamId != null) 'team': teamId,
       };
 
   factory Participant.fromJson(String id, Map json) {
@@ -45,6 +50,7 @@ class Participant {
       name: (json['name'] ?? '').toString(),
       color: (json['color'] as num?)?.toInt() ?? 0,
       members: members,
+      teamId: json['team']?.toString(),
     );
   }
 }
@@ -124,6 +130,9 @@ class Game {
   /// device for player stats; derived from the events.
   final Map<String, int> memberPoints;
 
+  /// The event (a [Meet]) this game counts towards, if any. Device only.
+  final String? eventId;
+
   const Game({
     required this.id,
     required this.title,
@@ -139,6 +148,7 @@ class Game {
     this.shareCode,
     this.isOwner = true,
     this.memberPoints = const {},
+    this.eventId,
   });
 
   bool get isFinished => status == GameStatus.finished;
@@ -184,6 +194,7 @@ class Game {
         shareCode: clearShareCode ? null : (shareCode ?? this.shareCode),
         isOwner: isOwner ?? this.isOwner,
         memberPoints: memberPoints ?? this.memberPoints,
+        eventId: eventId,
       );
 
   /// The part of a game that is shared live (no device-only fields).
@@ -206,6 +217,7 @@ class Game {
         if (shareCode != null) 'shareCode': shareCode,
         'isOwner': isOwner,
         if (memberPoints.isNotEmpty) 'memberPoints': memberPoints,
+        if (eventId != null) 'eventId': eventId,
       };
 
   factory Game.fromJson(Map json, {String? id}) {
@@ -237,6 +249,7 @@ class Game {
           for (final MapEntry(:key, :value) in raw.entries)
             if (value is num) key.toString(): value.toInt(),
       },
+      eventId: json['eventId']?.toString(),
     );
   }
 }

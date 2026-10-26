@@ -112,7 +112,7 @@
             ".validate": "newData.isString() && newData.val().length <= 100"
           },
           "mode": {
-            ".validate": "newData.isString() && newData.val().matches(/^(counter|rounds|sets|cricket)$/)"
+            ".validate": "newData.isString() && newData.val().matches(/^(counter|rounds|sets|cricket|placements)$/)"
           },
           "template": {
             ".validate": "newData.isString() && newData.val().length <= 40"
@@ -138,6 +138,9 @@
                 "$member": {
                   ".validate": "$member.matches(/^m[0-9]{1,2}$/) && newData.isString() && newData.val().length <= 40"
                 }
+              },
+              "team": {
+                ".validate": "newData.isString() && newData.val().length <= 20"
               },
               "$other": {
                 ".validate": false

@@ -45,6 +45,11 @@ String gameCsv(GameSnapshot snapshot) {
       for (final inn in state.innings) {
         rows.add([game.participants[inn.side].name, inn.runs, inn.wickets, inn.overs, inn.extras, inn.deliveries.join(' ')]);
       }
+    case GameMode.placements:
+      rows.add(['Place', 'Name', 'Points']);
+      for (final s in snapshot.standings) {
+        rows.add([s.rank == 0 ? 'Still in' : s.rank, game.nameOf(s.participantId), s.score]);
+      }
     case GameMode.counter:
       rows.add(['Rank', 'Name', 'Score']);
       for (final s in snapshot.standings) {

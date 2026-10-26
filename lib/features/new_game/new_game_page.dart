@@ -12,6 +12,7 @@ import '../../design/tokens.dart';
 import '../../design/widgets.dart';
 import '../../engine/engine.dart';
 import '../../engine/templates.dart';
+import '../common/place_points_field.dart';
 import '../home/home_page.dart';
 
 const _maxParticipants = 50;
@@ -126,6 +127,7 @@ class _NewGamePageState extends State<NewGamePage> {
     if (names.isEmpty) return 'Add at least one ${_teams ? 'team' : 'player'}';
     if (_template.twoSides && names.length != 2) return 'This game needs exactly two sides';
     if (_template.mode == GameMode.rounds && _settings['eliminateAt'] != null && names.length < 2) return 'Elimination needs at least two players';
+    if (_template.mode == GameMode.placements && names.length < 2) return 'Add at least two ${_teams ? 'teams' : 'players'}';
     if (names.map((n) => n.toLowerCase()).toSet().length != names.length) return 'Names must be different';
     return null;
   }
@@ -510,6 +512,32 @@ class _OptionsSection extends StatelessWidget {
           _number('cap', 'Point cap', hint: 'No cap', max: 99),
           _number('decidingPoints', 'Points in deciding set', hint: 'Same as others', max: 99),
           _number('serveEvery', 'Serve changes every', hint: 'Rally winner serves', max: 10),
+        ]);
+      case GameMode.placements:
+        fields.addAll([
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Players are placed', style: context.text.labelLarge),
+            const SizedBox(height: Space.xs),
+            SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'out', label: Text('As they go out')),
+                ButtonSegment(value: 'finish', label: Text('As they finish')),
+              ],
+              selected: {settings['order'] == 'finish' ? 'finish' : 'out'},
+              onSelectionChanged: (s) {
+                settings['order'] = s.first;
+                onChanged();
+              },
+            ),
+          ]),
+          PlacePointsField(
+            value: settings['placePoints']?.toString() ?? '3,2,1',
+            onChanged: (v) {
+              settings['placePoints'] = v;
+              onChanged();
+            },
+          ),
         ]);
       case GameMode.cricket:
         fields.addAll([
