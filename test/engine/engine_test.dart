@@ -65,6 +65,64 @@ void main() {
       final state = GameEngine.compute(g, events).stateAs<CounterState>();
       expect(state.elapsedMs(12000), 5000);
     });
+
+    test('win by 2 plays on past the target until someone leads by 2', () {
+      final g = game(GameMode.counter, settings: {'target': 11, 'winBy': 2});
+      final log = Log()
+        ..add('add', {'p': 'p0', 'v': 10})
+        ..add('add', {'p': 'p1', 'v': 10})
+        ..add('add', {'p': 'p0', 'v': 1});
+      var snap = GameEngine.compute(g, log.events);
+      expect(snap.finished, isFalse, reason: '11-10 is not a 2 point lead');
+      expect(CounterEngine.onGamePoint(snap.stateAs<CounterState>(), g), {'p0'});
+
+      log.add('add', {'p': 'p0', 'v': 1});
+      snap = GameEngine.compute(g, log.events);
+      expect(snap.finished, isTrue);
+      expect(snap.winners, ['p0']);
+    });
+
+    test('game point needs the target within one step', () {
+      final g = game(GameMode.counter, settings: {'target': 25, 'steps': '1,3'});
+      final log = Log()
+        ..add('add', {'p': 'p0', 'v': 21})
+        ..add('add', {'p': 'p1', 'v': 22});
+      final state = GameEngine.compute(g, log.events).stateAs<CounterState>();
+      expect(CounterEngine.onGamePoint(state, g), {'p1'});
+      expect(CounterEngine.onGamePoint(state, game(GameMode.counter)), isEmpty, reason: 'no target');
+    });
+
+    test('countdown starts high, subtracts points and ends at 0', () {
+      final g = game(GameMode.counter, settings: {'startAt': 301, 'steps': '20'});
+      final log = Log()
+        ..add('add', {'p': 'p0', 'v': 281})
+        ..add('add', {'p': 'p1', 'v': 100});
+      var snap = GameEngine.compute(g, log.events);
+      expect(snap.stateAs<CounterState>().scores, {'p0': 20, 'p1': 201});
+      expect(snap.standings.first.participantId, 'p0', reason: 'fewest left leads');
+      expect(CounterEngine.onGamePoint(snap.stateAs<CounterState>(), g), {'p0'});
+      expect(snap.describe(log.events.first), 'P0 -281');
+
+      log.add('add', {'p': 'p0', 'v': 20});
+      snap = GameEngine.compute(g, log.events);
+      expect(snap.finished, isTrue);
+      expect(snap.winners, ['p0']);
+    });
+
+    test('period points split the score by period', () {
+      final g = game(GameMode.counter, settings: {'periods': 4, 'periodMinutes': 10});
+      final log = Log()
+        ..add('add', {'p': 'p0', 'v': 12})
+        ..add('add', {'p': 'p1', 'v': 8})
+        ..add('period')
+        ..add('add', {'p': 'p0', 'v': 3})
+        ..add('add', {'p': 'p1', 'v': 10});
+      final state = GameEngine.compute(g, log.events).stateAs<CounterState>();
+      expect(state.periodPoints(g), [
+        {'p0': 12, 'p1': 8},
+        {'p0': 3, 'p1': 10},
+      ]);
+    });
   });
 
   group('undo / redo', () {

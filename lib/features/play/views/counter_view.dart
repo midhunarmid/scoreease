@@ -24,7 +24,7 @@ class CounterView extends StatelessWidget {
   Widget build(BuildContext context) {
     final game = snapshot.game;
     final state = snapshot.stateAs<CounterState>();
-    final target = game.intSetting('target');
+    final rule = counterRule(game);
     final hasClock = (game.intSetting('periods') ?? 0) > 0;
     final ranks = {for (final s in snapshot.standings) s.participantId: s.rank};
     final st = snapshot.standings;
@@ -32,11 +32,11 @@ class CounterView extends StatelessWidget {
 
     final header = <Widget>[
       if (hasClock) MatchClock(game: game, state: state, enabled: enabled),
-      if (target != null)
+      if (rule != null)
         Padding(
           padding: const EdgeInsets.only(top: Space.sm),
           child: Text(
-            '${game.flag('lowWins') ? 'Ends' : 'First'} at $target',
+            rule,
             textAlign: TextAlign.center,
             style: context.text.labelLarge?.copyWith(color: context.colors.onSurfaceVariant),
           ),
@@ -89,10 +89,23 @@ class CounterView extends StatelessWidget {
   }
 }
 
-Future<void> _setExact(BuildContext context, Participant p, int current) async {
+/// "First to 11 · win by 2", "301 down to 0", or null with no end rule.
+String? counterRule(Game game) {
+  if (CounterEngine.isCountdown(game)) return '${CounterEngine.startOf(game)} down to 0';
+  final target = game.intSetting('target');
+  if (target == null) return null;
+  if (game.flag('lowWins')) return 'Ends at $target';
+  final winBy = CounterEngine.winByOf(game);
+  return 'First to $target${winBy > 1 ? ' · win by $winBy' : ''}';
+}
+
+/// Button label for scoring [v]: a countdown takes points off what is left.
+String _stepLabel(Game game, int v) => signed(CounterEngine.isCountdown(game) ? -v : v).replaceFirst('-', '−');
+
+Future<void> _setExact(BuildContext context, Game game, Participant p, int current) async {
   final text = await promptText(
     context,
-    title: 'Set ${p.name}\'s score',
+    title: CounterEngine.isCountdown(game) ? 'Set what ${p.name} has left' : 'Set ${p.name}\'s score',
     initial: '$current',
     confirmLabel: 'Set',
     keyboardType: const TextInputType.numberWithOptions(signed: true),
@@ -147,11 +160,11 @@ class _PlayerTile extends StatelessWidget {
         Expanded(
           child: Stack(fit: StackFit.expand, children: [
             Semantics(
-              label: '${participant.name}: $score points. Tap to add ${steps.first}.',
+              label: '${participant.name}: $score points. Tap for ${_stepLabel(game, steps.first)}.',
               button: enabled,
               child: InkWell(
                 onTap: enabled ? () => add(steps.first) : null,
-                onLongPress: enabled ? () => _setExact(context, participant, score) : null,
+                onLongPress: enabled ? () => _setExact(context, game, participant, score) : null,
                 child: Center(child: _AnimatedScore(score: score, size: 52)),
               ),
             ),
@@ -161,8 +174,8 @@ class _PlayerTile extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(Space.sm, 0, Space.sm, Space.sm),
           child: Row(children: [
-            _StepButton(label: '−${steps.first}', onPressed: enabled ? () => add(-steps.first) : null, tonal: false),
-            for (final s in steps) ...[const SizedBox(width: Space.xs), _StepButton(label: '+$s', onPressed: enabled ? () => add(s) : null)],
+            _StepButton(label: _stepLabel(game, -steps.first), onPressed: enabled ? () => add(-steps.first) : null, tonal: false),
+            for (final s in steps) ...[const SizedBox(width: Space.xs), _StepButton(label: _stepLabel(game, s), onPressed: enabled ? () => add(s) : null)],
             if (index < 9) ...[
               const SizedBox(width: Space.xs),
               Tooltip(message: 'Key ${index + 1}', child: Text('${index + 1}', style: context.text.labelSmall?.copyWith(color: context.colors.outline))),
@@ -220,7 +233,7 @@ class _BigSide extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: enabled ? () => add(steps.first) : null,
-        onLongPress: enabled ? () => _setExact(context, participant, score) : null,
+        onLongPress: enabled ? () => _setExact(context, game, participant, score) : null,
         child: Padding(
           padding: const EdgeInsets.all(Space.md),
           child: Column(children: [
@@ -235,13 +248,13 @@ class _BigSide extends StatelessWidget {
               ),
             ),
             Row(children: [
-              _StepButton(label: '−${steps.first}', onPressed: enabled ? () => add(-steps.first) : null, tonal: false),
-              for (final s in steps.skip(1)) ...[const SizedBox(width: Space.sm), _StepButton(label: '+$s', onPressed: enabled ? () => add(s) : null)],
+              _StepButton(label: _stepLabel(game, -steps.first), onPressed: enabled ? () => add(-steps.first) : null, tonal: false),
+              for (final s in steps.skip(1)) ...[const SizedBox(width: Space.sm), _StepButton(label: _stepLabel(game, s), onPressed: enabled ? () => add(s) : null)],
             ]),
             const SizedBox(height: Space.xs),
             strip ??
                 Text(
-                  enabled ? 'Tap to add ${steps.first} · hold to set' : '',
+                  enabled ? 'Tap for ${_stepLabel(game, steps.first)} · hold to set' : '',
                   style: context.text.labelSmall?.copyWith(color: context.colors.onSurfaceVariant),
                 ),
           ]),
@@ -306,12 +319,14 @@ class MatchClockState extends State<MatchClock> {
     final minutes = widget.game.intSetting('periodMinutes') ?? 0;
     final elapsed = widget.state.elapsedMs(DateTime.now().millisecondsSinceEpoch);
     final overtime = minutes > 0 && elapsed >= minutes * 60000;
+    final breakdown = periodLine(widget.game, widget.state);
     return Padding(
       padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, 0),
       child: Card(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: Space.md, vertical: Space.sm),
-          child: Row(children: [
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
             Text('Period ${widget.state.period}/$periods', style: context.text.labelLarge),
             const Spacer(),
             Text(_fmt(elapsed), style: scoreStyle(context, 28, color: overtime ? context.scoreColors.negative : null)),
@@ -335,9 +350,29 @@ class MatchClockState extends State<MatchClock> {
               ),
             ] else
               Icon(widget.state.clockRunning ? Icons.timer_outlined : Icons.pause_circle_outline, color: context.colors.onSurfaceVariant),
+            ]),
+            if (breakdown != null)
+              Padding(
+                padding: const EdgeInsets.only(top: Space.xs),
+                child: Text(breakdown, textAlign: TextAlign.center, style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant)),
+              ),
           ]),
         ),
       ),
     );
   }
+}
+
+/// "P1 12–8 · P2 3–10" for two sides, "P1 Ann 5, Bob 3 · ..." for more.
+/// Null until a period has finished.
+String? periodLine(Game game, CounterState state) {
+  if (state.periodScores.isEmpty) return null;
+  final periods = state.periodPoints(game);
+  final ids = game.participants.map((p) => p.id).toList();
+  return [
+    for (var i = 0; i < periods.length; i++)
+      ids.length == 2
+          ? 'P${i + 1} ${periods[i][ids[0]]}–${periods[i][ids[1]]}'
+          : 'P${i + 1} ${game.participants.map((p) => '${p.name} ${periods[i][p.id]}').join(', ')}',
+  ].join(' · ');
 }
