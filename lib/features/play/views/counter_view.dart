@@ -12,6 +12,7 @@ import '../../../engine/counter_engine.dart';
 import '../../../engine/engine.dart';
 import '../../common/game_ui.dart';
 import '../play_cubit.dart';
+import '../widgets/score_change.dart';
 import '../widgets/who_scored.dart';
 
 class CounterView extends StatelessWidget {
@@ -29,6 +30,7 @@ class CounterView extends StatelessWidget {
     final ranks = {for (final s in snapshot.standings) s.participantId: s.rank};
     final st = snapshot.standings;
     final leader = st.length > 1 && st[1].rank > 1 ? st.first.participantId : null;
+    final gamePoint = snapshot.finished ? const <String>{} : CounterEngine.onGamePoint(state, game);
 
     final header = <Widget>[
       if (hasClock) MatchClock(game: game, state: state, enabled: enabled),
@@ -51,7 +53,14 @@ class CounterView extends StatelessWidget {
             final horizontal = c.maxWidth > c.maxHeight * 0.9;
             final sides = [
               for (final p in game.participants)
-                Expanded(child: _BigSide(game: game, participant: p, score: state.scores[p.id] ?? 0, leading: p.id == leader, enabled: enabled)),
+                Expanded(child: _BigSide(
+                    game: game,
+                    participant: p,
+                    score: state.scores[p.id] ?? 0,
+                    leading: p.id == leader,
+                    gamePoint: gamePoint.contains(p.id),
+                    enabled: enabled,
+                  )),
             ];
             return Padding(
               padding: const EdgeInsets.all(Space.sm),
@@ -79,7 +88,15 @@ class CounterView extends StatelessWidget {
             childCount: game.participants.length,
             (context, i) {
               final p = game.participants[i];
-              return _PlayerTile(game: game, participant: p, score: state.scores[p.id] ?? 0, rank: ranks[p.id] ?? 0, enabled: enabled, index: i);
+              return _PlayerTile(
+                game: game,
+                participant: p,
+                score: state.scores[p.id] ?? 0,
+                rank: ranks[p.id] ?? 0,
+                gamePoint: gamePoint.contains(p.id),
+                enabled: enabled,
+                index: i,
+              );
             },
           ),
         ),
@@ -122,10 +139,19 @@ class _PlayerTile extends StatelessWidget {
   final Participant participant;
   final int score;
   final int rank;
+  final bool gamePoint;
   final bool enabled;
   final int index;
 
-  const _PlayerTile({required this.game, required this.participant, required this.score, required this.rank, required this.enabled, required this.index});
+  const _PlayerTile({
+    required this.game,
+    required this.participant,
+    required this.score,
+    required this.rank,
+    required this.gamePoint,
+    required this.enabled,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +170,8 @@ class _PlayerTile extends StatelessWidget {
 
   Widget _tile(BuildContext context, List<int> steps, Color color, void Function(int) add, Widget? strip) {
     return Card(
+      shape: gamePoint ? RoundedRectangleBorder(borderRadius: Radii.mdAll, side: BorderSide(color: context.scoreColors.gold, width: 2)) : null,
+      clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Container(height: 4, color: color),
         Padding(
@@ -154,6 +182,7 @@ class _PlayerTile extends StatelessWidget {
             Expanded(
               child: Text(participant.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
             ),
+            if (gamePoint) ...[const GamePointBadge(), const SizedBox(width: Space.xs)],
             if (rank > 0) RankBadge(rank: rank, size: 24),
           ]),
         ),
@@ -168,6 +197,7 @@ class _PlayerTile extends StatelessWidget {
                 child: Center(child: _AnimatedScore(score: score, size: 52)),
               ),
             ),
+            Positioned(top: Space.xs, right: Space.md, child: ScoreDelta(score: score, size: 20)),
             if (strip != null) Positioned(left: Space.sm, right: Space.sm, bottom: Space.xs, child: strip),
           ]),
         ),
@@ -207,9 +237,17 @@ class _BigSide extends StatelessWidget {
   final Participant participant;
   final int score;
   final bool leading;
+  final bool gamePoint;
   final bool enabled;
 
-  const _BigSide({required this.game, required this.participant, required this.score, required this.leading, required this.enabled});
+  const _BigSide({
+    required this.game,
+    required this.participant,
+    required this.score,
+    required this.leading,
+    required this.gamePoint,
+    required this.enabled,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +267,10 @@ class _BigSide extends StatelessWidget {
   Widget _side(BuildContext context, List<int> steps, Color color, void Function(int) add, Widget? strip) {
     return Material(
       color: color.withValues(alpha: context.theme.brightness == Brightness.dark ? 0.22 : 0.12),
-      shape: RoundedRectangleBorder(borderRadius: Radii.lgAll, side: BorderSide(color: leading ? color : Colors.transparent, width: 2)),
+      shape: RoundedRectangleBorder(
+        borderRadius: Radii.lgAll,
+        side: BorderSide(color: gamePoint ? context.scoreColors.gold : (leading ? color : Colors.transparent), width: gamePoint ? 3 : 2),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: enabled ? () => add(steps.first) : null,
@@ -241,11 +282,15 @@ class _BigSide extends StatelessWidget {
               PlayerAvatar(name: participant.name, color: participant.color, size: 28),
               const SizedBox(width: Space.sm),
               Flexible(child: Text(participant.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleLarge)),
+              if (gamePoint) ...[const SizedBox(width: Space.sm), const GamePointBadge()],
             ]),
             Expanded(
-              child: FittedBox(
-                child: Padding(padding: const EdgeInsets.all(Space.sm), child: _AnimatedScore(score: score, size: 120, color: color)),
-              ),
+              child: Stack(fit: StackFit.expand, children: [
+                FittedBox(
+                  child: Padding(padding: const EdgeInsets.all(Space.sm), child: _AnimatedScore(score: score, size: 120, color: color)),
+                ),
+                Positioned(top: 0, right: 0, child: ScoreDelta(score: score, size: 28)),
+              ]),
             ),
             Row(children: [
               _StepButton(label: _stepLabel(game, -steps.first), onPressed: enabled ? () => add(-steps.first) : null, tonal: false),
