@@ -19,7 +19,11 @@ class CounterView extends StatelessWidget {
   final GameSnapshot snapshot;
   final bool enabled;
 
-  const CounterView({super.key, required this.snapshot, required this.enabled});
+  /// Turns the top side around in a stacked two-player layout, so players
+  /// facing each other across a table each read their own score.
+  final bool faceToFace;
+
+  const CounterView({super.key, required this.snapshot, required this.enabled, this.faceToFace = false});
 
   @override
   Widget build(BuildContext context) {
@@ -52,15 +56,20 @@ class CounterView extends StatelessWidget {
           child: LayoutBuilder(builder: (context, c) {
             final horizontal = c.maxWidth > c.maxHeight * 0.9;
             final sides = [
-              for (final p in game.participants)
-                Expanded(child: _BigSide(
-                    game: game,
-                    participant: p,
-                    score: state.scores[p.id] ?? 0,
-                    leading: p.id == leader,
-                    gamePoint: gamePoint.contains(p.id),
-                    enabled: enabled,
-                  )),
+              for (final (i, p) in game.participants.indexed)
+                Expanded(
+                  child: RotatedBox(
+                    quarterTurns: !horizontal && faceToFace && i == 0 ? 2 : 0,
+                    child: _BigSide(
+                      game: game,
+                      participant: p,
+                      score: state.scores[p.id] ?? 0,
+                      leading: p.id == leader,
+                      gamePoint: gamePoint.contains(p.id),
+                      enabled: enabled,
+                    ),
+                  ),
+                ),
             ];
             return Padding(
               padding: const EdgeInsets.all(Space.sm),

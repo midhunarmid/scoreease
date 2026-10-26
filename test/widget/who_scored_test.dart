@@ -72,7 +72,7 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {bool faceToFace = false}) async {
     tester.view.physicalSize = const Size(500, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -81,7 +81,7 @@ void main() {
       home: BlocProvider.value(
         value: cubit,
         child: Scaffold(
-          body: BlocBuilder<PlayCubit, PlayState>(builder: (context, s) => CounterView(snapshot: s.snapshot!, enabled: true)),
+          body: BlocBuilder<PlayCubit, PlayState>(builder: (context, s) => CounterView(snapshot: s.snapshot!, enabled: true, faceToFace: faceToFace)),
         ),
       ),
     ));
@@ -152,6 +152,22 @@ void main() {
     await tester.tap(find.text('Set score to 5'));
     await tester.pumpAndSettle();
     expect(scoreOf('p1'), 5);
+    await tester.pump(WhoScored.visibleFor);
+  });
+
+  testWidgets('face to face turns the top side around', (tester) async {
+    int turnsOf(String name) => tester.widget<RotatedBox>(find.ancestor(of: find.text(name), matching: find.byType(RotatedBox))).quarterTurns;
+
+    await pump(tester);
+    expect(turnsOf('Reds'), 0);
+
+    await pump(tester, faceToFace: true);
+    expect(turnsOf('Reds'), 2);
+    expect(turnsOf('Blues'), 0);
+
+    await tester.tap(find.text('Reds'));
+    await tester.pump();
+    expect(scoreOf('p0'), 1, reason: 'the turned side still scores');
     await tester.pump(WhoScored.visibleFor);
   });
 }
