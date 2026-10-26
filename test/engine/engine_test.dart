@@ -126,6 +126,68 @@ void main() {
     });
   });
 
+  group('placements', () {
+    test('musical chairs: players go out from last place up, the last one in wins', () {
+      final g = game(GameMode.placements, players: 4, settings: {'order': 'out', 'placePoints': '3,2,1'});
+      final log = Log()..add('place', {'p': 'p2'});
+      var snap = GameEngine.compute(g, log.events);
+      expect(snap.finished, isFalse);
+      expect(snap.standings.map((s) => (s.participantId, s.rank, s.score)), [
+        ('p0', 0, 0),
+        ('p1', 0, 0),
+        ('p3', 0, 0),
+        ('p2', 4, 0),
+      ], reason: 'players still in lead; 4th gets no points');
+      expect(snap.summary, '3 still in');
+
+      log
+        ..add('place', {'p': 'p2'})
+        ..add('place', {'p': 'p0'})
+        ..add('place', {'p': 'p3'});
+      snap = GameEngine.compute(g, log.events);
+      expect(snap.finished, isTrue);
+      expect(snap.winners, ['p1']);
+      expect({for (final s in snap.standings) s.participantId: (s.rank, s.score)}, {'p1': (1, 3), 'p3': (2, 2), 'p0': (3, 1), 'p2': (4, 0)});
+      expect(snap.standings.first.detail, '1st');
+      expect(snap.standings[1].detail, 'Out · 2nd');
+      expect(snap.describe(log.events.first), 'P2 is out');
+    });
+
+    test('race: players finish from first place down', () {
+      final g = game(GameMode.placements, players: 3, settings: {'order': 'finish', 'placePoints': '5,3'});
+      final log = Log()
+        ..add('place', {'p': 'p1'})
+        ..add('place', {'p': 'p0'});
+      final snap = GameEngine.compute(g, log.events);
+      expect(snap.finished, isTrue);
+      expect(snap.winners, ['p1']);
+      expect({for (final s in snap.standings) s.participantId: (s.rank, s.score)}, {'p1': (1, 5), 'p0': (2, 3), 'p2': (3, 0)});
+      expect(snap.summary, '1st P1 · 2nd P0 · 3rd P2');
+    });
+
+    test('undo brings a player back; ending early shares 1st among those still in', () {
+      final g = game(GameMode.placements, players: 4);
+      final log = Log();
+      final out = log.add('place', {'p': 'p0'});
+      log.add('undo', {'target': out});
+      expect(GameEngine.compute(g, log.events).stateAs<PlacementsState>().order, isEmpty);
+
+      log
+        ..add('place', {'p': 'p3'})
+        ..add('end');
+      final snap = GameEngine.compute(g, log.events);
+      expect(snap.winners, ['p0', 'p1', 'p2']);
+    });
+
+    test('point tables and ordinals', () {
+      expect(parsePlacePoints('5, 3,1'), [5, 3, 1]);
+      expect(parsePlacePoints(''), [3, 2, 1]);
+      expect(parsePlacePoints('x'), [3, 2, 1]);
+      expect(pointsForPlace([3, 2, 1], 4), 0);
+      expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101].map(ordinal), ['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '23rd', '101st']);
+    });
+  });
+
   group('undo / redo', () {
     test('undo removes the target and redo restores it', () {
       final g = game(GameMode.counter);

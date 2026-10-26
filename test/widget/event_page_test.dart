@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,59 +11,16 @@ import 'package:scoreease/engine/engine.dart';
 import 'package:scoreease/engine/meet.dart';
 import 'package:scoreease/features/events/event_page.dart';
 
-/// Keeps everything in memory: Hive's disk writes never finish on a widget
-/// test's fake clock.
-class _MemoryStore extends LocalStore {
-  final _games = <String, Game>{};
-  final _events = <String, List<ScoreEvent>>{};
-  final _meets = <String, Meet>{};
-  final _changes = StreamController<void>.broadcast();
-
-  _MemoryStore(super.games, super.events, super.players, super.settings) : super.withBoxes();
-
-  @override
-  Stream<void> get gameChanges => _changes.stream;
-  @override
-  Stream<void> get meetChanges => _changes.stream;
-  @override
-  List<Game> games() => _games.values.toList();
-  @override
-  Game? game(String id) => _games[id];
-  @override
-  List<ScoreEvent> events(String gameId) => _events[gameId] ?? [];
-  @override
-  Future<void> saveGame(Game game) async {
-    _games[game.id] = game;
-    _changes.add(null);
-  }
-
-  @override
-  Future<void> saveEvents(String gameId, List<ScoreEvent> events) async => _events[gameId] = events;
-  @override
-  List<Meet> meets() => _meets.values.toList();
-  @override
-  Meet? meet(String id) => _meets[id];
-  @override
-  Future<void> saveMeet(Meet meet) async {
-    _meets[meet.id] = meet;
-    _changes.add(null);
-  }
-}
+import 'memory_store.dart';
 
 void main() {
   late Directory dir;
-  late _MemoryStore store;
+  late MemoryStore store;
 
   setUp(() async {
     useGoogleFonts = false;
     dir = await Directory.systemTemp.createTemp('scoreease_event');
-    Hive.init(dir.path);
-    store = _MemoryStore(
-      await Hive.openBox<String>('games'),
-      await Hive.openBox<String>('events'),
-      await Hive.openBox<String>('players'),
-      await Hive.openBox('settings'),
-    );
+    store = await MemoryStore.open(dir);
     await getIt.reset();
     getIt
       ..registerSingleton<LocalStore>(store)

@@ -31,6 +31,7 @@ class EventTvPage extends StatefulWidget {
 class _EventTvPageState extends State<EventTvPage> {
   final _store = getIt<LocalStore>();
   late bool _announce = widget.announce;
+  final _announcement = GlobalKey<_AnnouncementState>();
 
   @override
   void initState() {
@@ -59,6 +60,9 @@ class _EventTvPageState extends State<EventTvPage> {
                 bindings: {
                   const SingleActivator(LogicalKeyboardKey.escape): () => goBack(context, '/event/${widget.id}'),
                   const SingleActivator(LogicalKeyboardKey.keyA): () => setState(() => _announce = !_announce),
+                  const SingleActivator(LogicalKeyboardKey.space): () => _announcement.currentState?._next(),
+                  const SingleActivator(LogicalKeyboardKey.arrowRight): () => _announcement.currentState?._next(),
+                  const SingleActivator(LogicalKeyboardKey.keyR): () => _announcement.currentState?._replay(),
                 },
                 child: Focus(
                   autofocus: true,
@@ -96,7 +100,7 @@ class _EventTvPageState extends State<EventTvPage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             header,
             SizedBox(height: Space.lg * scale),
-            Expanded(child: _announce ? _Announcement(standings: standings, scale: scale) : _Scoreboard(standings: standings, scale: scale, wide: c.maxWidth > c.maxHeight)),
+            Expanded(child: _announce ? _Announcement(key: _announcement, standings: standings, scale: scale) : _Scoreboard(standings: standings, scale: scale, wide: c.maxWidth > c.maxHeight)),
           ]),
         );
       });
@@ -137,7 +141,7 @@ class _Scoreboard extends StatelessWidget {
 class _Announcement extends StatefulWidget {
   final MeetStandings standings;
   final double scale;
-  const _Announcement({required this.standings, required this.scale});
+  const _Announcement({super.key, required this.standings, required this.scale});
 
   @override
   State<_Announcement> createState() => _AnnouncementState();
@@ -196,33 +200,24 @@ class _AnnouncementState extends State<_Announcement> {
           _Podium(standings: s, scale: scale),
         ]),
     };
+    // Space, → and R come through the page's shortcuts.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _stage < 2 ? _next : null,
-      child: CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.space): _next,
-          const SingleActivator(LogicalKeyboardKey.arrowRight): _next,
-          const SingleActivator(LogicalKeyboardKey.keyR): _replay,
-        },
-        child: Focus(
-          autofocus: true,
-          child: Stack(children: [
-            Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 600),
-                transitionBuilder: (child, anim) => FadeTransition(
-                  opacity: anim,
-                  child: ScaleTransition(scale: Tween(begin: 0.85, end: 1.0).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutBack)), child: child),
-                ),
-                child: child,
-              ),
+      child: Stack(children: [
+        Center(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 600),
+            transitionBuilder: (child, anim) => FadeTransition(
+              opacity: anim,
+              child: ScaleTransition(scale: Tween(begin: 0.85, end: 1.0).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutBack)), child: child),
             ),
-            if (_stage == 2)
-              Positioned(right: 0, bottom: 0, child: TextButton.icon(onPressed: _replay, icon: const Icon(Icons.replay), label: const Text('Replay (R)'))),
-          ]),
+            child: child,
+          ),
         ),
-      ),
+        if (_stage == 2)
+          Positioned(right: 0, bottom: 0, child: TextButton.icon(onPressed: _replay, icon: const Icon(Icons.replay), label: const Text('Replay (R)'))),
+      ]),
     );
   }
 }
