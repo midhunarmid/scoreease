@@ -340,6 +340,7 @@ class PlayCubit extends Cubit<PlayState> {
       shareCode: game.shareCode,
       isOwner: game.isOwner,
       memberPoints: snapshot.memberPointsByName,
+      eventId: game.eventId,
     ));
     await _store.saveEvents(localId, _events);
   }

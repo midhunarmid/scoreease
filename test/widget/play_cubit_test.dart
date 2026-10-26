@@ -141,6 +141,29 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 50));
   });
 
+  test('saving a scored game keeps its event', () async {
+    final now = DateTime.now();
+    await store.saveGame(Game(
+      id: 'g4',
+      title: 'Race',
+      templateId: 'race',
+      mode: GameMode.placements,
+      participants: const [Participant(id: 'p0', name: 'Ann', teamId: 't0'), Participant(id: 'p1', name: 'Bob', teamId: 't1')],
+      createdAt: now,
+      updatedAt: now,
+      eventId: 'm1',
+    ));
+    final c = cubit();
+    await c.openLocal('g4');
+    await c.add('place', {'p': 'p0'});
+    await c.close();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    final saved = store.game('g4')!;
+    expect(saved.eventId, 'm1');
+    expect(saved.isFinished, isTrue);
+    expect(saved.participants.first.teamId, 't0');
+  });
+
   test('a missing game shows an error instead of loading forever', () async {
     final c = cubit();
     await c.openLocal('nope');
