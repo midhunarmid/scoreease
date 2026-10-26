@@ -473,7 +473,6 @@ class _OptionsSection extends StatelessWidget {
       case GameMode.counter:
         final countdown = settings['startAt'] != null;
         fields.addAll([
-          _number('startAt', 'Count down from', hint: 'Count up from 0', max: 100000),
           if (!countdown) _number('target', 'Winning score', hint: 'No target'),
           if (!countdown && settings['target'] != null && settings['lowWins'] != true) _number('winBy', 'Must win by', hint: 'Any lead', max: 10),
           _StepsField(
@@ -486,6 +485,7 @@ class _OptionsSection extends StatelessWidget {
           ),
           _number('periods', 'Periods with a clock', hint: 'No clock', max: 12),
           if (settings['periods'] != null) _number('periodMinutes', 'Minutes per period', optional: false, max: 240),
+          _number('startAt', 'Count down from', hint: 'Count up from 0', max: 100000),
           if (!countdown) _switch(context, 'lowWins', 'Lowest score wins', 'e.g. golf or penalty points'),
         ]);
       case GameMode.rounds:
