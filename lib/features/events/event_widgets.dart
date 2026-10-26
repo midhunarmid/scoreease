@@ -4,7 +4,6 @@ import '../../design/theme.dart';
 import '../../design/tokens.dart';
 import '../../design/widgets.dart';
 import '../../engine/event_scoring.dart';
-import '../../engine/placements_engine.dart';
 import '../common/game_ui.dart';
 import '../play/widgets/score_change.dart';
 
@@ -107,7 +106,7 @@ class EventLeaderboard extends StatelessWidget {
                   [
                     standings.meet.team(p.teamId)?.name ?? 'No team',
                     'played ${p.played}',
-                    if (p.wins > 0) '${p.wins}× ${ordinal(1)}',
+                    if (p.wins > 0) '${p.wins} win${p.wins == 1 ? '' : 's'}',
                     if (anyScored && p.scored > 0) 'scored ${p.scored}',
                   ].join(' · '),
                   maxLines: 1,
