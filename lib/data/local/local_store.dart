@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
 import '../../engine/engine.dart';
+import '../../engine/meet.dart';
 
 /// Everything kept on the device. Values are stored as JSON strings so no
 /// Hive type adapters or code generation are needed.
@@ -12,6 +13,7 @@ class LocalStore {
   late final Box<String> _events;
   late final Box<String> _players;
   late final Box _settings;
+  Box<String>? _meets;
 
   Box get settingsBox => _settings;
 
@@ -21,14 +23,17 @@ class LocalStore {
     _events = await Hive.openBox<String>('events');
     _players = await Hive.openBox<String>('players');
     _settings = await Hive.openBox('settings');
+    _meets = await Hive.openBox<String>('meets');
   }
 
-  /// For tests: use already-open boxes.
-  LocalStore.withBoxes(Box<String> games, Box<String> events, Box<String> players, Box settings) {
+  /// For tests: use already-open boxes. [meets] is only needed by tests
+  /// that use events.
+  LocalStore.withBoxes(Box<String> games, Box<String> events, Box<String> players, Box settings, {Box<String>? meets}) {
     _games = games;
     _events = events;
     _players = players;
     _settings = settings;
+    _meets = meets;
   }
 
   LocalStore();
@@ -69,7 +74,10 @@ class LocalStore {
     await _events.delete(id);
   }
 
-  // ---- Events ----
+  /// Games played as part of event [meetId].
+  List<Game> gamesInMeet(String meetId) => games().where((g) => g.eventId == meetId).toList();
+
+  // ---- Score events ----
 
   List<ScoreEvent> events(String gameId) {
     final raw = _events.get(gameId);
@@ -82,6 +90,38 @@ class LocalStore {
 
   Future<void> saveEvents(String gameId, List<ScoreEvent> events) =>
       _events.put(gameId, jsonEncode({for (final e in events) e.id: e.toJson()}));
+
+  // ---- Meets (what the app calls events) ----
+
+  Stream<void> get meetChanges => _meets?.watch().map((_) {}) ?? const Stream.empty();
+
+  List<Meet> meets() {
+    final list = <Meet>[];
+    for (final raw in _meets?.values ?? const <String>[]) {
+      try {
+        list.add(Meet.fromJson(jsonDecode(raw) as Map));
+      } catch (_) {
+        // Skip a corrupt entry rather than breaking the whole list.
+      }
+    }
+    list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return list;
+  }
+
+  Meet? meet(String id) {
+    final raw = _meets?.get(id);
+    return raw == null ? null : Meet.fromJson(jsonDecode(raw) as Map);
+  }
+
+  Future<void> saveMeet(Meet meet) async => _meets?.put(meet.id, jsonEncode(meet.toJson()));
+
+  /// Deletes an event and the games played in it.
+  Future<void> deleteMeet(String id) async {
+    for (final g in gamesInMeet(id)) {
+      await deleteGame(g.id);
+    }
+    await _meets?.delete(id);
+  }
 
   // ---- Players ----
 
@@ -131,6 +171,7 @@ class LocalStore {
           for (final g in games()) {'game': g.toJson(), 'events': {for (final e in events(g.id)) e.id: e.toJson()}},
         ],
         'players': [for (final p in players()) {'id': p.id, ...p.toJson()}],
+        'meets': [for (final m in meets()) m.toJson()],
       };
 
   /// Merges a backup made by [exportAll]. Returns how many games were added
@@ -151,6 +192,9 @@ class LocalStore {
     for (final item in (json['players'] as List? ?? const [])) {
       final map = item as Map;
       await savePlayer(SavedPlayer.fromJson(map['id'].toString(), map));
+    }
+    for (final item in (json['meets'] as List? ?? const [])) {
+      await saveMeet(Meet.fromJson(item as Map));
     }
     return count;
   }
