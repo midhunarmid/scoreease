@@ -119,18 +119,139 @@ String? counterRule(Game game) {
 /// Button label for scoring [v]: a countdown takes points off what is left.
 String _stepLabel(Game game, int v) => signed(CounterEngine.isCountdown(game) ? -v : v).replaceFirst('-', '−');
 
-Future<void> _setExact(BuildContext context, Game game, Participant p, int current) async {
-  final text = await promptText(
+/// Opens the keypad to score any amount, take it back, or set the score.
+/// [add] records points the same way the step buttons do.
+Future<void> _scoreAmount(BuildContext context, Game game, Participant p, int current, void Function(int) add) async {
+  final cubit = context.read<PlayCubit>();
+  final result = await showAdaptiveSheet<(_AmountAction, int)>(
     context,
-    title: CounterEngine.isCountdown(game) ? 'Set what ${p.name} has left' : 'Set ${p.name}\'s score',
-    initial: '$current',
-    confirmLabel: 'Set',
-    keyboardType: const TextInputType.numberWithOptions(signed: true),
-    validator: (v) => int.tryParse(v.trim()) == null ? 'Enter a whole number' : null,
+    builder: (_) => _AmountSheet(game: game, participant: p, current: current),
   );
-  final value = text == null ? null : int.tryParse(text.trim());
-  if (value != null && value != current && context.mounted) {
-    context.read<PlayCubit>().add(CounterEngine.set, {'p': p.id, 'v': value});
+  if (result == null) return;
+  final (action, value) = result;
+  switch (action) {
+    case _AmountAction.add:
+      add(value);
+    case _AmountAction.takeBack:
+      add(-value);
+    case _AmountAction.set:
+      if (value != current) await cubit.add(CounterEngine.set, {'p': p.id, 'v': value});
+  }
+}
+
+enum _AmountAction { add, takeBack, set }
+
+class _AmountSheet extends StatefulWidget {
+  final Game game;
+  final Participant participant;
+  final int current;
+  const _AmountSheet({required this.game, required this.participant, required this.current});
+
+  @override
+  State<_AmountSheet> createState() => _AmountSheetState();
+}
+
+class _AmountSheetState extends State<_AmountSheet> {
+  String _digits = '';
+
+  int? get _value => int.tryParse(_digits);
+
+  void _type(String key) => setState(() {
+        if (key == '⌫') {
+          if (_digits.isNotEmpty) _digits = _digits.substring(0, _digits.length - 1);
+        } else if (_digits.length < 6) {
+          _digits = _digits == '0' ? key : _digits + key;
+        }
+      });
+
+  void _done(_AmountAction action) {
+    final v = _value;
+    if (v == null || (v == 0 && action != _AmountAction.set)) return;
+    Navigator.pop(context, (action, v));
+  }
+
+  KeyEventResult _onKey(FocusNode _, KeyEvent e) {
+    if (e is! KeyDownEvent) return KeyEventResult.ignored;
+    final ch = e.character;
+    if (ch != null && RegExp(r'^[0-9]$').hasMatch(ch)) {
+      _type(ch);
+    } else if (e.logicalKey == LogicalKeyboardKey.backspace) {
+      _type('⌫');
+    } else if (e.logicalKey == LogicalKeyboardKey.enter || e.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      _done(_AmountAction.add);
+    } else {
+      return KeyEventResult.ignored;
+    }
+    return KeyEventResult.handled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final game = widget.game;
+    final v = _value;
+    final countdown = CounterEngine.isCountdown(game);
+    final ready = v != null && v > 0;
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _onKey,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(Space.lg, Space.md, Space.lg, Space.lg),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              PlayerAvatar(name: widget.participant.name, color: widget.participant.color, size: 28),
+              const SizedBox(width: Space.sm),
+              Expanded(child: Text(widget.participant.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleLarge)),
+              Text('${countdown ? 'Left' : 'Now'} ${widget.current}', style: context.text.labelLarge?.copyWith(color: context.colors.onSurfaceVariant)),
+            ]),
+            const SizedBox(height: Space.md),
+            Text(_digits.isEmpty ? '0' : _digits, textAlign: TextAlign.center, style: scoreStyle(context, 56, color: _digits.isEmpty ? context.colors.outline : null)),
+            const SizedBox(height: Space.md),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 3,
+              mainAxisSpacing: Space.sm,
+              crossAxisSpacing: Space.sm,
+              childAspectRatio: 2,
+              children: [
+                for (final k in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'])
+                  k.isEmpty
+                      ? const SizedBox()
+                      : FilledButton.tonal(
+                          onPressed: () => _type(k),
+                          style: FilledButton.styleFrom(padding: EdgeInsets.zero),
+                          child: k == '⌫' ? const Icon(Icons.backspace_outlined, semanticLabel: 'Delete') : Text(k, style: scoreStyle(context, 22)),
+                        ),
+              ],
+            ),
+            const SizedBox(height: Space.lg),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: ready ? () => _done(_AmountAction.takeBack) : null,
+                  child: Text(ready ? _stepLabel(game, -v) : 'Take back'),
+                ),
+              ),
+              const SizedBox(width: Space.sm),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  onPressed: ready ? () => _done(_AmountAction.add) : null,
+                  child: Text(ready ? _stepLabel(game, v) : 'Score'),
+                ),
+              ),
+            ]),
+            const SizedBox(height: Space.xs),
+            TextButton(
+              onPressed: v == null ? null : () => _done(_AmountAction.set),
+              child: Text(v == null ? (countdown ? 'Set what is left' : 'Set score') : (countdown ? 'Set left to $v' : 'Set score to $v')),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 }
 
@@ -193,7 +314,7 @@ class _PlayerTile extends StatelessWidget {
               button: enabled,
               child: InkWell(
                 onTap: enabled ? () => add(steps.first) : null,
-                onLongPress: enabled ? () => _setExact(context, game, participant, score) : null,
+                onLongPress: enabled ? () => _scoreAmount(context, game, participant, score, add) : null,
                 child: Center(child: _AnimatedScore(score: score, size: 52)),
               ),
             ),
@@ -272,37 +393,46 @@ class _BigSide extends StatelessWidget {
         side: BorderSide(color: gamePoint ? context.scoreColors.gold : (leading ? color : Colors.transparent), width: gamePoint ? 3 : 2),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: enabled ? () => add(steps.first) : null,
-        onLongPress: enabled ? () => _setExact(context, game, participant, score) : null,
-        child: Padding(
-          padding: const EdgeInsets.all(Space.md),
-          child: Column(children: [
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              PlayerAvatar(name: participant.name, color: participant.color, size: 28),
-              const SizedBox(width: Space.sm),
-              Flexible(child: Text(participant.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleLarge)),
-              if (gamePoint) ...[const SizedBox(width: Space.sm), const GamePointBadge()],
-            ]),
-            Expanded(
-              child: Stack(fit: StackFit.expand, children: [
-                FittedBox(
-                  child: Padding(padding: const EdgeInsets.all(Space.sm), child: _AnimatedScore(score: score, size: 120, color: color)),
-                ),
-                Positioned(top: 0, right: 0, child: ScoreDelta(score: score, size: 28)),
+      child: GestureDetector(
+        // Swipe up to score, down to take back: quick with one thumb.
+        onVerticalDragEnd: enabled
+            ? (d) {
+                final v = d.primaryVelocity ?? 0;
+                if (v.abs() > 250) add(v < 0 ? steps.first : -steps.first);
+              }
+            : null,
+        child: InkWell(
+          onTap: enabled ? () => add(steps.first) : null,
+          onLongPress: enabled ? () => _scoreAmount(context, game, participant, score, add) : null,
+          child: Padding(
+            padding: const EdgeInsets.all(Space.md),
+            child: Column(children: [
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                PlayerAvatar(name: participant.name, color: participant.color, size: 28),
+                const SizedBox(width: Space.sm),
+                Flexible(child: Text(participant.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleLarge)),
+                if (gamePoint) ...[const SizedBox(width: Space.sm), const GamePointBadge()],
               ]),
-            ),
-            Row(children: [
-              _StepButton(label: _stepLabel(game, -steps.first), onPressed: enabled ? () => add(-steps.first) : null, tonal: false),
-              for (final s in steps.skip(1)) ...[const SizedBox(width: Space.sm), _StepButton(label: _stepLabel(game, s), onPressed: enabled ? () => add(s) : null)],
+              Expanded(
+                child: Stack(fit: StackFit.expand, children: [
+                  FittedBox(
+                    child: Padding(padding: const EdgeInsets.all(Space.sm), child: _AnimatedScore(score: score, size: 120, color: color)),
+                  ),
+                  Positioned(top: 0, right: 0, child: ScoreDelta(score: score, size: 28)),
+                ]),
+              ),
+              Row(children: [
+                _StepButton(label: _stepLabel(game, -steps.first), onPressed: enabled ? () => add(-steps.first) : null, tonal: false),
+                for (final s in steps.skip(1)) ...[const SizedBox(width: Space.sm), _StepButton(label: _stepLabel(game, s), onPressed: enabled ? () => add(s) : null)],
+              ]),
+              const SizedBox(height: Space.xs),
+              strip ??
+                  Text(
+                    enabled ? 'Tap or swipe ↑ ${_stepLabel(game, steps.first)} · swipe ↓ ${_stepLabel(game, -steps.first)} · hold for more' : '',
+                    style: context.text.labelSmall?.copyWith(color: context.colors.onSurfaceVariant),
+                  ),
             ]),
-            const SizedBox(height: Space.xs),
-            strip ??
-                Text(
-                  enabled ? 'Tap for ${_stepLabel(game, steps.first)} · hold to set' : '',
-                  style: context.text.labelSmall?.copyWith(color: context.colors.onSurfaceVariant),
-                ),
-          ]),
+          ),
         ),
       ),
     );

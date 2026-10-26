@@ -116,4 +116,42 @@ void main() {
     expect(find.text('Who?'), findsNothing);
     expect(cubit.state.snapshot!.tags, isEmpty);
   });
+
+  int scoreOf(String id) => cubit.state.snapshot!.stateAs<CounterState>().scores[id]!;
+
+  testWidgets('swiping a side up scores and down takes it back', (tester) async {
+    await pump(tester);
+    await tester.fling(find.text('Reds'), const Offset(0, -150), 1000);
+    await tester.pump();
+    expect(scoreOf('p0'), 1);
+    await tester.pump(WhoScored.visibleFor);
+
+    await tester.fling(find.text('Reds'), const Offset(0, 150), 1000);
+    await tester.pump();
+    expect(scoreOf('p0'), 0);
+    await tester.pump(WhoScored.visibleFor);
+  });
+
+  testWidgets('holding a side opens a keypad to score or set any amount', (tester) async {
+    await pump(tester);
+    await tester.longPress(find.text('Blues'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '1'));
+    await tester.tap(find.widgetWithText(FilledButton, '2'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '+12'));
+    await tester.pumpAndSettle();
+    expect(scoreOf('p1'), 12);
+    expect(find.text('Who?'), findsOneWidget, reason: 'a keypad score can be tagged too');
+    await tester.pump(WhoScored.visibleFor);
+
+    await tester.longPress(find.text('Blues'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '5'));
+    await tester.pump();
+    await tester.tap(find.text('Set score to 5'));
+    await tester.pumpAndSettle();
+    expect(scoreOf('p1'), 5);
+    await tester.pump(WhoScored.visibleFor);
+  });
 }
