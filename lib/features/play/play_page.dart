@@ -125,7 +125,14 @@ class _PlayViewState extends State<_PlayView> {
     final expanded = context.isExpanded;
 
     final modeView = switch (game.mode) {
-      GameMode.counter => CounterView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
+      GameMode.counter => ListenableBuilder(
+          listenable: getIt<SettingsStore>(),
+          builder: (_, __) => CounterView(
+            snapshot: snapshot,
+            enabled: state.canScore && !snapshot.finished,
+            faceToFace: getIt<SettingsStore>().faceToFace,
+          ),
+        ),
       GameMode.rounds => RoundsView(key: _roundsKey, snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
       GameMode.sets => SetsView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
       GameMode.cricket => CricketView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
@@ -210,8 +217,8 @@ class _PlayViewState extends State<_PlayView> {
         final step = CounterEngine.stepsOf(game).first;
         for (var i = 0; i < game.participants.length && i < 9; i++) {
           final pid = game.participants[i].id;
-          map[SingleActivator(digits[i + 1])] = () => cubit.add(CounterEngine.add, {'p': pid, 'v': step});
-          map[SingleActivator(digits[i + 1], shift: true)] = () => cubit.add(CounterEngine.add, {'p': pid, 'v': -step});
+          map[SingleActivator(digits[i + 1])] = () => cubit.addPoints(pid, step);
+          map[SingleActivator(digits[i + 1], shift: true)] = () => cubit.addPoints(pid, -step);
         }
       case GameMode.sets:
         if (game.participants.length >= 2) {
@@ -240,7 +247,7 @@ class _PlayViewState extends State<_PlayView> {
   }
 }
 
-enum _MenuAction { tv, history, addRound, endInnings, rename, end, csv, result, shortcuts, delete }
+enum _MenuAction { tv, history, faceToFace, addRound, endInnings, rename, end, csv, result, shortcuts, delete }
 
 class _Menu extends StatelessWidget {
   final PlayState state;
@@ -266,6 +273,9 @@ class _Menu extends StatelessWidget {
             ),
           ),
         );
+      case _MenuAction.faceToFace:
+        final settings = getIt<SettingsStore>();
+        settings.faceToFace = !settings.faceToFace;
       case _MenuAction.addRound:
         onAddRound();
       case _MenuAction.endInnings:
@@ -304,6 +314,8 @@ class _Menu extends StatelessWidget {
       itemBuilder: (context) => [
         item(_MenuAction.tv, Icons.tv, 'TV mode'),
         if (!context.isExpanded) item(_MenuAction.history, Icons.history, 'History & standings'),
+        if (game.mode == GameMode.counter && game.participants.length == 2)
+          item(_MenuAction.faceToFace, Icons.screen_rotation_alt, getIt<SettingsStore>().faceToFace ? 'Side by side' : 'Face to face'),
         if (game.mode == GameMode.rounds && canScore) item(_MenuAction.addRound, Icons.playlist_add, 'Add round'),
         if (game.mode == GameMode.cricket && canScore) item(_MenuAction.endInnings, Icons.sports_cricket, 'End innings'),
         if (game.isOwner) item(_MenuAction.rename, Icons.edit, 'Rename'),

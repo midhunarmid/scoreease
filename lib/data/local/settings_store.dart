@@ -16,6 +16,11 @@ class SettingsStore extends ChangeNotifier {
   bool get keepAwake => _box.get('keepAwake', defaultValue: true) as bool;
   set keepAwake(bool v) => _put('keepAwake', v);
 
+  /// Two-player counter games turn the top half around, for a tablet lying
+  /// flat between the players.
+  bool get faceToFace => _box.get('faceToFace', defaultValue: false) as bool;
+  set faceToFace(bool v) => _put('faceToFace', v);
+
   /// Board ids this device unlocked with a password, so they can be revoked.
   List<String> get unlockedBoards => List<String>.from(_box.get('unlockedBoards', defaultValue: const <String>[]) as List);
   set unlockedBoards(List<String> ids) => _put('unlockedBoards', ids);

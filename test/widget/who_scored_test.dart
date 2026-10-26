@@ -72,7 +72,7 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {bool faceToFace = false}) async {
     tester.view.physicalSize = const Size(500, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -81,7 +81,7 @@ void main() {
       home: BlocProvider.value(
         value: cubit,
         child: Scaffold(
-          body: BlocBuilder<PlayCubit, PlayState>(builder: (context, s) => CounterView(snapshot: s.snapshot!, enabled: true)),
+          body: BlocBuilder<PlayCubit, PlayState>(builder: (context, s) => CounterView(snapshot: s.snapshot!, enabled: true, faceToFace: faceToFace)),
         ),
       ),
     ));
@@ -115,5 +115,59 @@ void main() {
     await tester.pump(WhoScored.visibleFor);
     expect(find.text('Who?'), findsNothing);
     expect(cubit.state.snapshot!.tags, isEmpty);
+  });
+
+  int scoreOf(String id) => cubit.state.snapshot!.stateAs<CounterState>().scores[id]!;
+
+  testWidgets('swiping a side up scores and down takes it back', (tester) async {
+    await pump(tester);
+    await tester.fling(find.text('Reds'), const Offset(0, -150), 1000);
+    await tester.pump();
+    expect(scoreOf('p0'), 1);
+    await tester.pump(WhoScored.visibleFor);
+
+    await tester.fling(find.text('Reds'), const Offset(0, 150), 1000);
+    await tester.pump();
+    expect(scoreOf('p0'), 0);
+    await tester.pump(WhoScored.visibleFor);
+  });
+
+  testWidgets('holding a side opens a keypad to score or set any amount', (tester) async {
+    await pump(tester);
+    await tester.longPress(find.text('Blues'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '1'));
+    await tester.tap(find.widgetWithText(FilledButton, '2'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '+12'));
+    await tester.pumpAndSettle();
+    expect(scoreOf('p1'), 12);
+    expect(find.text('Who?'), findsOneWidget, reason: 'a keypad score can be tagged too');
+    await tester.pump(WhoScored.visibleFor);
+
+    await tester.longPress(find.text('Blues'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '5'));
+    await tester.pump();
+    await tester.tap(find.text('Set score to 5'));
+    await tester.pumpAndSettle();
+    expect(scoreOf('p1'), 5);
+    await tester.pump(WhoScored.visibleFor);
+  });
+
+  testWidgets('face to face turns the top side around', (tester) async {
+    int turnsOf(String name) => tester.widget<RotatedBox>(find.ancestor(of: find.text(name), matching: find.byType(RotatedBox))).quarterTurns;
+
+    await pump(tester);
+    expect(turnsOf('Reds'), 0);
+
+    await pump(tester, faceToFace: true);
+    expect(turnsOf('Reds'), 2);
+    expect(turnsOf('Blues'), 0);
+
+    await tester.tap(find.text('Reds'));
+    await tester.pump();
+    expect(scoreOf('p0'), 1, reason: 'the turned side still scores');
+    await tester.pump(WhoScored.visibleFor);
   });
 }

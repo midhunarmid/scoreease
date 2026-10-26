@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../app/router.dart';
@@ -27,6 +28,8 @@ class TvPage extends StatefulWidget {
 }
 
 class _TvPageState extends State<TvPage> {
+  /// Shows a QR code in the corner so people in the room can follow along.
+  bool _showQr = true;
   @override
   void initState() {
     super.initState();
@@ -61,7 +64,10 @@ class _TvPageState extends State<TvPage> {
               }
               final snapshot = state.snapshot;
               return CallbackShortcuts(
-                bindings: {const SingleActivator(LogicalKeyboardKey.escape): () => goBack(context)},
+                bindings: {
+                  const SingleActivator(LogicalKeyboardKey.escape): () => goBack(context),
+                  const SingleActivator(LogicalKeyboardKey.keyQ): () => setState(() => _showQr = !_showQr),
+                },
                 child: Focus(
                   autofocus: true,
                   child: Scaffold(
@@ -84,6 +90,12 @@ class _TvPageState extends State<TvPage> {
                                     const LiveBadge(),
                                     const SizedBox(width: Space.md),
                                     Text(state.liveCode!.toUpperCase(), style: scoreStyle(context, 22, color: Colors.white70)),
+                                    const SizedBox(width: Space.sm),
+                                    IconButton(
+                                      tooltip: _showQr ? 'Hide join code (Q)' : 'Show join code (Q)',
+                                      onPressed: () => setState(() => _showQr = !_showQr),
+                                      icon: Icon(_showQr ? Icons.qr_code_2 : Icons.qr_code),
+                                    ),
                                   ],
                                 ]),
                                 if (snapshot.finished)
@@ -92,7 +104,16 @@ class _TvPageState extends State<TvPage> {
                                     child: Text('🏆 ${snapshot.resultText}', textAlign: TextAlign.center, style: context.text.headlineMedium?.copyWith(color: context.scoreColors.gold)),
                                   ),
                                 const SizedBox(height: Space.lg),
-                                Expanded(child: Center(child: BoardView(snapshot: snapshot, tv: true))),
+                                Expanded(
+                                  child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                                    Expanded(child: Center(child: BoardView(snapshot: snapshot, tv: true))),
+                                    // Beside the board on a landscape screen; a portrait phone has no room.
+                                    if (_showQr && state.liveCode != null && MediaQuery.sizeOf(context).aspectRatio > 1) ...[
+                                      const SizedBox(width: Space.xl),
+                                      Align(alignment: Alignment.bottomRight, child: _JoinQr(code: state.liveCode!)),
+                                    ],
+                                  ]),
+                                ),
                               ]),
                             ),
                     ),
@@ -103,4 +124,24 @@ class _TvPageState extends State<TvPage> {
           ),
         ),
       );
+}
+
+/// "Scan to follow" corner card with the live link.
+class _JoinQr extends StatelessWidget {
+  final String code;
+  const _JoinQr({required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = (MediaQuery.sizeOf(context).shortestSide * 0.2).clamp(96.0, 200.0);
+    return Container(
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: Radii.mdAll),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        QrImageView(data: liveLink(code), size: size, padding: EdgeInsets.zero, backgroundColor: Colors.white),
+        const SizedBox(height: Space.sm),
+        Text('Scan to follow', style: context.text.labelLarge?.copyWith(color: Colors.black87, fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
 }
