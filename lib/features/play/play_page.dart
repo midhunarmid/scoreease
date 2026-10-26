@@ -19,10 +19,12 @@ import '../../design/widgets.dart';
 import '../../engine/counter_engine.dart';
 import '../../engine/cricket_engine.dart';
 import '../../engine/engine.dart';
+import '../../engine/event_scoring.dart';
 import '../../engine/placements_engine.dart';
 import '../../engine/sets_engine.dart';
 import '../../engine/templates.dart';
 import '../common/game_ui.dart';
+import '../events/event_data.dart';
 import '../share/share_sheet.dart';
 import 'export.dart';
 import 'play_cubit.dart';
@@ -77,7 +79,14 @@ class _PlayViewState extends State<_PlayView> {
     if (_settings.keepAwake) WakelockPlus.enable().ignore();
     final cubit = context.read<PlayCubit>();
     _finishSub = cubit.onFinished.listen((snapshot) {
-      if (mounted) showResultDialog(context, snapshot);
+      if (!mounted) return;
+      showResultDialog(context, snapshot);
+      final meetId = snapshot.game.eventId;
+      final meet = meetId == null ? null : getIt<LocalStore>().meet(meetId);
+      if (meet != null) {
+        final points = scoreMeet(meet, [snapshot]).games.first.teamPoints;
+        toast(context, '${meet.name}: ${points.isEmpty ? 'no points' : awardLine(meet, points)}');
+      }
     });
     _errorSub = cubit.actionErrors.listen((e) {
       if (mounted) toast(context, e is CloudException ? e.message : 'Couldn\'t sync. Will retry when online.');
@@ -125,6 +134,7 @@ class _PlayViewState extends State<_PlayView> {
     final game = snapshot.game;
     final template = Templates.byId(game.templateId);
     final expanded = context.isExpanded;
+    final meet = game.eventId == null ? null : getIt<LocalStore>().meet(game.eventId!);
 
     final modeView = switch (game.mode) {
       GameMode.counter => ListenableBuilder(
@@ -138,7 +148,11 @@ class _PlayViewState extends State<_PlayView> {
       GameMode.rounds => RoundsView(key: _roundsKey, snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
       GameMode.sets => SetsView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
       GameMode.cricket => CricketView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
-      GameMode.placements => PlacementsView(snapshot: snapshot, enabled: state.canScore && !snapshot.finished),
+      GameMode.placements => PlacementsView(
+          snapshot: snapshot,
+          enabled: state.canScore && !snapshot.finished,
+          teams: {for (final t in meet?.teams ?? const []) t.id: (name: t.name, color: t.color)},
+        ),
     };
 
     final body = Column(children: [
@@ -152,12 +166,19 @@ class _PlayViewState extends State<_PlayView> {
         autofocus: true,
         child: Scaffold(
           appBar: AppBar(
-            leading: BackButton(onPressed: () => goBack(context)),
+            leading: BackButton(onPressed: () => goBack(context, meet == null ? '/' : '/event/${meet.id}')),
             titleSpacing: 0,
             title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(game.title, maxLines: 1, overflow: TextOverflow.ellipsis),
               Row(children: [
-                Text('${template.emoji} ${template.name}', style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant)),
+                Flexible(
+                  child: Text(
+                    '${template.emoji} ${template.name}${meet == null ? '' : ' · 🏆 ${meet.name}'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant),
+                  ),
+                ),
                 if (state.liveCode != null) ...[const SizedBox(width: Space.sm), const LiveBadge(compact: true)],
               ]),
             ]),

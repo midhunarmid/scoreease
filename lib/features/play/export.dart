@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../design/widgets.dart';
 import '../../engine/cricket_engine.dart';
 import '../../engine/engine.dart';
+import '../../engine/event_scoring.dart';
 import '../../engine/rounds_engine.dart';
 import '../../engine/sets_engine.dart';
 
@@ -68,6 +69,25 @@ String gameCsv(GameSnapshot snapshot) {
     }
   }
   if (snapshot.finished) rows.addAll([[], ['Result', snapshot.resultText]]);
+  return _csv(rows);
+}
+
+/// A spreadsheet-friendly copy of an event: teams, games and people.
+String meetCsv(MeetStandings standings) {
+  final meet = standings.meet;
+  final rows = <List<Object?>>[
+    [meet.name],
+    [],
+    ['Team', 'Points', 'Players'],
+    for (final t in standings.rankedTeams) [t.name, standings.teamTotals[t.id] ?? 0, t.members.join('; ')],
+    [],
+    ['Game', 'Status', for (final t in meet.teams) t.name],
+    for (final g in standings.games) [g.game.title, g.counted ? 'Finished' : 'In progress', for (final t in meet.teams) g.teamPoints[t.id] ?? 0],
+    [],
+    ['Name', 'Team', 'Points', 'Played', 'Wins', 'Scored'],
+    for (final p in standings.people) [p.name, meet.team(p.teamId)?.name ?? '', p.points, p.played, p.wins, p.scored],
+  ];
+  if (standings.resultText != null) rows.addAll([[], ['Result', standings.resultText]]);
   return _csv(rows);
 }
 
