@@ -71,40 +71,46 @@ class _RankedBoard extends StatelessWidget {
   Widget _row(BuildContext context, Standing s, bool gamePoint) {
     final p = snapshot.game.participant(s.participantId)!;
     final leader = s.rank == 1 && !s.out;
-    return AnimatedContainer(
-      duration: motionMedium,
-      padding: EdgeInsets.symmetric(horizontal: Space.lg * scale, vertical: Space.md * scale),
-      decoration: BoxDecoration(
-        color: leader ? context.scoreColors.gold.withValues(alpha: 0.12) : context.colors.surfaceContainerLow,
-        borderRadius: Radii.mdAll,
-        border: Border.all(color: leader ? context.scoreColors.gold : context.colors.outlineVariant),
-      ),
-      child: Opacity(
-        opacity: s.out ? 0.5 : 1,
-        child: Row(children: [
-          RankBadge(rank: s.rank, size: 32 * scale),
-          SizedBox(width: Space.md * scale),
-          PlayerAvatar(name: p.name, color: p.color, size: 36 * scale),
-          SizedBox(width: Space.md * scale),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Flexible(
-                  child: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleMedium?.copyWith(fontSize: 18 * scale, fontWeight: FontWeight.w700)),
-                ),
-                if (gamePoint) ...[SizedBox(width: Space.sm * scale), GamePointBadge(scale: scale)],
+    final countsDown = snapshot.game.mode == GameMode.counter && CounterEngine.isCountdown(snapshot.game);
+    return ScorePulse(
+      score: s.score,
+      color: playerColor(p.color),
+      countsDown: countsDown,
+      child: AnimatedContainer(
+        duration: motionMedium,
+        padding: EdgeInsets.symmetric(horizontal: Space.lg * scale, vertical: Space.md * scale),
+        decoration: BoxDecoration(
+          color: leader ? context.scoreColors.gold.withValues(alpha: 0.12) : context.colors.surfaceContainerLow,
+          borderRadius: Radii.mdAll,
+          border: Border.all(color: leader ? context.scoreColors.gold : context.colors.outlineVariant),
+        ),
+        child: Opacity(
+          opacity: s.out ? 0.5 : 1,
+          child: Row(children: [
+            RankBadge(rank: s.rank, size: 32 * scale),
+            SizedBox(width: Space.md * scale),
+            PlayerAvatar(name: p.name, color: p.color, size: 36 * scale),
+            SizedBox(width: Space.md * scale),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Flexible(
+                    child: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleMedium?.copyWith(fontSize: 18 * scale, fontWeight: FontWeight.w700)),
+                  ),
+                  if (gamePoint) ...[SizedBox(width: Space.sm * scale), GamePointBadge(scale: scale)],
+                ]),
+                if (p.isTeam) Text(snapshot.membersLine(p), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall?.copyWith(fontSize: 12 * scale)),
+                if (s.detail.isNotEmpty) Text(s.detail, style: context.text.labelSmall?.copyWith(fontSize: 12 * scale)),
               ]),
-              if (p.isTeam) Text(snapshot.membersLine(p), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall?.copyWith(fontSize: 12 * scale)),
-              if (s.detail.isNotEmpty) Text(s.detail, style: context.text.labelSmall?.copyWith(fontSize: 12 * scale)),
-            ]),
-          ),
-          ScoreDelta(score: s.score, size: 20 * scale),
-          SizedBox(width: Space.sm * scale),
-          AnimatedSwitcher(
-            duration: motionFast,
-            child: Text(formatScore(s.score), key: ValueKey(s.score), style: scoreStyle(context, 40 * scale, color: playerColor(p.color))),
-          ),
-        ]),
+            ),
+            ScoreDelta(score: s.score, size: 20 * scale, countsDown: countsDown),
+            SizedBox(width: Space.sm * scale),
+            AnimatedSwitcher(
+              duration: motionFast,
+              child: Text(formatScore(s.score), key: ValueKey(s.score), style: scoreStyle(context, 40 * scale, color: playerColor(p.color))),
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -124,20 +130,26 @@ class _SetsBoard extends StatelessWidget {
       final p = game.participants[i];
       final color = playerColor(p.color);
       return Expanded(
-        child: Container(
-          padding: EdgeInsets.all(Space.lg * scale),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: Radii.lgAll),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleLarge?.copyWith(fontSize: 22 * scale)),
-            SizedBox(height: Space.xs * scale),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              if (state.server == i && !snapshot.finished) Icon(Icons.sports_tennis, size: 18 * scale, color: color),
-              SizedBox(width: Space.xs * scale),
-              Text('Sets ${state.setsWon(i)}', style: context.text.labelLarge?.copyWith(fontSize: 14 * scale)),
+        // Points across all sets, so the point that wins a set pulses too.
+        child: ScorePulse(
+          score: state.sets.fold(0, (sum, set) => sum + set[i]) + state.current[i],
+          color: color,
+          borderRadius: Radii.lgAll,
+          child: Container(
+            padding: EdgeInsets.all(Space.lg * scale),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: Radii.lgAll),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleLarge?.copyWith(fontSize: 22 * scale)),
+              SizedBox(height: Space.xs * scale),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                if (state.server == i && !snapshot.finished) Icon(Icons.sports_tennis, size: 18 * scale, color: color),
+                SizedBox(width: Space.xs * scale),
+                Text('Sets ${state.setsWon(i)}', style: context.text.labelLarge?.copyWith(fontSize: 14 * scale)),
+              ]),
+              Text('${state.current[i]}', style: scoreStyle(context, 96 * scale, color: color)),
+              if (p.isTeam) Text(snapshot.membersLine(p), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall?.copyWith(fontSize: 12 * scale)),
             ]),
-            Text('${state.current[i]}', style: scoreStyle(context, 96 * scale, color: color)),
-            if (p.isTeam) Text(snapshot.membersLine(p), maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall?.copyWith(fontSize: 12 * scale)),
-          ]),
+          ),
         ),
       );
     }

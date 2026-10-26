@@ -12,7 +12,10 @@ class ScoreDelta extends StatefulWidget {
   final num score;
   final double size;
 
-  const ScoreDelta({super.key, required this.score, this.size = 16});
+  /// The score is what is left (a countdown), so going down is good news.
+  final bool countsDown;
+
+  const ScoreDelta({super.key, required this.score, this.size = 16, this.countsDown = false});
 
   static const visibleFor = Duration(seconds: 2);
 
@@ -46,6 +49,7 @@ class _ScoreDeltaState extends State<ScoreDelta> {
   @override
   Widget build(BuildContext context) {
     final up = _delta > 0;
+    final good = up != widget.countsDown;
     final text = _delta == 0 ? '' : (up ? '+' : '−') + formatNum(_delta.abs());
     return ExcludeSemantics(
       child: AnimatedOpacity(
@@ -54,7 +58,7 @@ class _ScoreDeltaState extends State<ScoreDelta> {
         child: AnimatedSlide(
           offset: _visible ? Offset.zero : const Offset(0, -0.4),
           duration: motionMedium,
-          child: Text(text, style: scoreStyle(context, widget.size, color: up ? context.scoreColors.positive : context.scoreColors.negative)),
+          child: Text(text, style: scoreStyle(context, widget.size, color: good ? context.scoreColors.positive : context.scoreColors.negative)),
         ),
       ),
     );
@@ -75,4 +79,58 @@ class GamePointBadge extends StatelessWidget {
       child: Text('Game point', style: context.text.labelSmall?.copyWith(fontSize: 11 * scale, fontWeight: FontWeight.w800, color: gold)),
     );
   }
+}
+
+/// Flashes a glow in [color] around [child] when [score] goes up (down for
+/// a countdown), so people across the room notice who just scored.
+class ScorePulse extends StatefulWidget {
+  final num score;
+  final Color color;
+  final BorderRadius borderRadius;
+  final bool countsDown;
+  final Widget child;
+
+  const ScorePulse({
+    super.key,
+    required this.score,
+    required this.color,
+    required this.child,
+    this.borderRadius = Radii.mdAll,
+    this.countsDown = false,
+  });
+
+  @override
+  State<ScorePulse> createState() => _ScorePulseState();
+}
+
+class _ScorePulseState extends State<ScorePulse> with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900), value: 1);
+
+  @override
+  void didUpdateWidget(ScorePulse old) {
+    super.didUpdateWidget(old);
+    if (widget.countsDown ? widget.score < old.score : widget.score > old.score) _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        child: widget.child,
+        builder: (context, child) {
+          final glow = Curves.easeOut.transform(1 - _controller.value);
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: widget.borderRadius,
+              boxShadow: [if (glow > 0) BoxShadow(color: widget.color.withValues(alpha: 0.7 * glow), blurRadius: 28 * glow, spreadRadius: 4 * glow)],
+            ),
+            child: child,
+          );
+        },
+      );
 }

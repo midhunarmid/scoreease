@@ -318,7 +318,7 @@ class _PlayerTile extends StatelessWidget {
                 child: Center(child: _AnimatedScore(score: score, size: 52)),
               ),
             ),
-            Positioned(top: Space.xs, right: Space.md, child: ScoreDelta(score: score, size: 20)),
+            Positioned(top: Space.xs, right: Space.md, child: ScoreDelta(score: score, size: 20, countsDown: CounterEngine.isCountdown(game))),
             if (strip != null) Positioned(left: Space.sm, right: Space.sm, bottom: Space.xs, child: strip),
           ]),
         ),
@@ -418,7 +418,7 @@ class _BigSide extends StatelessWidget {
                   FittedBox(
                     child: Padding(padding: const EdgeInsets.all(Space.sm), child: _AnimatedScore(score: score, size: 120, color: color)),
                   ),
-                  Positioned(top: 0, right: 0, child: ScoreDelta(score: score, size: 28)),
+                  Positioned(top: 0, right: 0, child: ScoreDelta(score: score, size: 28, countsDown: CounterEngine.isCountdown(game))),
                 ]),
               ),
               Row(children: [
