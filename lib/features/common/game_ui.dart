@@ -10,6 +10,9 @@ const appBaseUrl = 'https://scoreease.armid.in';
 
 String liveLink(String code) => '$appBaseUrl/live/$code';
 
+/// Opens the read-only TV scoreboard directly, for a TV or a propped-up tablet.
+String tvLink(String code) => '${liveLink(code)}/tv';
+
 /// Pulls a share code out of a pasted link or plain code.
 String? parseJoinCode(String input) {
   final text = input.trim().toLowerCase();

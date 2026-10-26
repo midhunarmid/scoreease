@@ -28,6 +28,7 @@ class _ShareSheetState extends State<_ShareSheet> {
   final _write = TextEditingController();
   bool _busy = false;
   bool _editPasswords = false;
+  bool _tv = false;
 
   @override
   void dispose() {
@@ -81,10 +82,25 @@ class _ShareSheetState extends State<_ShareSheet> {
       ]);
 
   Widget _shared(BuildContext context, String code) {
-    final link = liveLink(code);
+    final link = _tv ? tvLink(code) : liveLink(code);
     return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [Text('Live now', style: context.text.titleLarge), const SizedBox(width: Space.sm), const LiveBadge()]),
       const SizedBox(height: Space.lg),
+      SegmentedButton<bool>(
+        segments: const [
+          ButtonSegment(value: false, icon: Icon(Icons.smartphone), label: Text('Follow link')),
+          ButtonSegment(value: true, icon: Icon(Icons.tv), label: Text('TV link')),
+        ],
+        selected: {_tv},
+        onSelectionChanged: (s) => setState(() => _tv = s.first),
+      ),
+      const SizedBox(height: Space.sm),
+      Text(
+        _tv ? 'Opens straight into the big-screen scoreboard. Watch only.' : 'Opens the live page, where people can watch or keep score.',
+        textAlign: TextAlign.center,
+        style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
+      ),
+      const SizedBox(height: Space.md),
       Center(
         child: Container(
           padding: const EdgeInsets.all(Space.md),
@@ -95,13 +111,15 @@ class _ShareSheetState extends State<_ShareSheet> {
       const SizedBox(height: Space.md),
       Center(child: SelectableText(code.toUpperCase(), style: scoreStyle(context, 36).copyWith(letterSpacing: 6))),
       Center(child: Text('Join code', style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant))),
+      const SizedBox(height: Space.sm),
+      Center(child: SelectableText(link.replaceFirst('https://', ''), style: context.text.bodySmall)),
       const SizedBox(height: Space.lg),
       Row(children: [
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: link));
-              if (context.mounted) toast(context, 'Link copied');
+              if (context.mounted) toast(context, _tv ? 'TV link copied' : 'Link copied');
             },
             icon: const Icon(Icons.link),
             label: const Text('Copy link'),
@@ -110,7 +128,7 @@ class _ShareSheetState extends State<_ShareSheet> {
         const SizedBox(width: Space.sm),
         Expanded(
           child: FilledButton.icon(
-            onPressed: () => SharePlus.instance.share(ShareParams(uri: Uri.parse(link), subject: 'Follow the score live')).ignore(),
+            onPressed: () => SharePlus.instance.share(ShareParams(uri: Uri.parse(link), subject: _tv ? 'Live scoreboard for the TV' : 'Follow the score live')).ignore(),
             icon: const Icon(Icons.share),
             label: const Text('Share'),
           ),
