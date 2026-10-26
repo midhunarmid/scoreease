@@ -10,6 +10,7 @@ import '../../data/cloud/cloud.dart';
 import '../../data/cloud/live_board_remote.dart';
 import '../../data/local/local_store.dart';
 import '../../data/local/settings_store.dart';
+import '../../engine/counter_engine.dart';
 import '../../engine/engine.dart';
 
 class PlayState {
@@ -75,6 +76,13 @@ class PlayCubit extends Cubit<PlayState> {
   String? _code;
   AccessLevel _level = AccessLevel.read;
   bool _wasFinished = false;
+
+  /// A counter score shown here but not sent yet, while taps keep coming.
+  ScoreEvent? _burst;
+  Timer? _burstTimer;
+
+  /// Taps on the same side closer together than this become one event.
+  static const burstWindow = Duration(milliseconds: 1500);
 
   /// Fires once when the game ends, for the celebration.
   final _finished = StreamController<GameSnapshot>.broadcast();
@@ -151,7 +159,8 @@ class PlayCubit extends Cubit<PlayState> {
           _game = local != null && local.isOwner
               ? local.copyWith(title: board.game.title, participants: board.game.participants, settings: board.game.settings)
               : board.game;
-          _events = board.events;
+          final burst = _burst;
+          _events = [...board.events, if (burst != null && board.events.every((e) => e.id != burst.id)) burst];
           _emitSnapshot(canScore: canScore, liveCode: code);
           _persist();
         },
@@ -178,22 +187,62 @@ class PlayCubit extends Cubit<PlayState> {
   // ---- Scoring ----
 
   /// Records an event and returns its id (null when scoring isn't allowed).
-  Future<String?> add(String type, [Map<String, dynamic> data = const {}]) async {
+  Future<String?> add(String type, [Map<String, dynamic> data = const {}]) => _record(type, data);
+
+  /// Adds counter points for [pid]. Quick taps on the same side add up into
+  /// one event, so the log and "who scored" see one +5 instead of five +1s.
+  /// The score shows here at once and reaches others when the taps stop.
+  Future<String?> addPoints(String pid, int v) async {
+    final open = _burst;
+    final merge = open != null && open.get<String>('p') == pid && open.intOf('v').sign == v.sign;
+    if (!merge || !state.canScore || (state.snapshot?.finished ?? false)) {
+      return _record(CounterEngine.add, {'p': pid, 'v': v}, burst: true);
+    }
+    if (_settings.haptics) HapticFeedback.selectionClick();
+    final merged = ScoreEvent(id: open.id, type: open.type, data: {'p': pid, 'v': open.intOf('v') + v}, ts: open.ts, by: open.by);
+    _burst = merged;
+    _events = [for (final e in _events) e.id == open.id ? merged : e];
+    _emitSnapshot();
+    _persist();
+    _burstTimer?.cancel();
+    _burstTimer = Timer(burstWindow, flushBurst);
+    return open.id;
+  }
+
+  /// Sends the score still gathering taps, if any.
+  void flushBurst() {
+    _burstTimer?.cancel();
+    _burstTimer = null;
+    final event = _burst;
+    _burst = null;
+    if (event != null) unawaited(_send(event));
+  }
+
+  Future<String?> _record(String type, Map<String, dynamic> data, {bool burst = false}) async {
     if (!state.canScore || _game == null) return null;
+    flushBurst();
     if (_settings.haptics) HapticFeedback.selectionClick();
     final now = DateTime.now().millisecondsSinceEpoch;
     final event = ScoreEvent(id: PushId.next(now), type: type, data: data, ts: now, by: Cloud.uid ?? 'local');
     _events = [..._events, event];
     _emitSnapshot();
     _persist();
-    if (state.liveCode != null) {
-      try {
-        await _remote.addEvent(state.liveCode!, event);
-      } catch (e) {
-        if (!_errors.isClosed) _errors.add(e);
-      }
+    if (burst) {
+      _burst = event;
+      _burstTimer = Timer(burstWindow, flushBurst);
+    } else {
+      await _send(event);
     }
     return event.id;
+  }
+
+  Future<void> _send(ScoreEvent event) async {
+    if (state.liveCode == null) return;
+    try {
+      await _remote.addEvent(state.liveCode!, event);
+    } catch (e) {
+      if (!_errors.isClosed) _errors.add(e);
+    }
   }
 
   /// Undoes the last score. Tags aren't undone on their own: they go with
@@ -229,6 +278,8 @@ class PlayCubit extends Cubit<PlayState> {
   }
 
   Future<String> share({String readPassword = '', String writePassword = ''}) async {
+    // Published with the rest of the log; sending it again would be refused.
+    flushBurst();
     final code = await _remote.publish(_game!, _events, readPassword: readPassword, writePassword: writePassword);
     _game = _game!.copyWith(shareCode: code);
     await _saveLocal(_game!);
@@ -240,6 +291,7 @@ class PlayCubit extends Cubit<PlayState> {
   Future<void> stopSharing() async {
     final code = state.liveCode;
     if (code == null) return;
+    flushBurst();
     await _liveSub?.cancel();
     _liveSub = null;
     await _remote.unpublish(code);
@@ -299,6 +351,7 @@ class PlayCubit extends Cubit<PlayState> {
 
   @override
   Future<void> close() async {
+    flushBurst();
     await _liveSub?.cancel();
     await _finished.close();
     await _errors.close();

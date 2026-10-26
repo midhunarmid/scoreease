@@ -136,7 +136,7 @@ class _PlayerTile extends StatelessWidget {
     return WhoScored(
       team: participant,
       builder: (context, score, strip) {
-        void add(int v) => score(() => cubit.add(CounterEngine.add, {'p': participant.id, 'v': v}), v);
+        void add(int v) => score(() => cubit.addPoints(participant.id, v), v);
         return _tile(context, steps, color, add, strip);
       },
     );
@@ -220,7 +220,7 @@ class _BigSide extends StatelessWidget {
     return WhoScored(
       team: participant,
       builder: (context, score, strip) {
-        void add(int v) => score(() => cubit.add(CounterEngine.add, {'p': participant.id, 'v': v}), v);
+        void add(int v) => score(() => cubit.addPoints(participant.id, v), v);
         return _side(context, steps, color, add, strip);
       },
     );

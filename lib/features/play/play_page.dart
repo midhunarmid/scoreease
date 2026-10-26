@@ -210,8 +210,8 @@ class _PlayViewState extends State<_PlayView> {
         final step = CounterEngine.stepsOf(game).first;
         for (var i = 0; i < game.participants.length && i < 9; i++) {
           final pid = game.participants[i].id;
-          map[SingleActivator(digits[i + 1])] = () => cubit.add(CounterEngine.add, {'p': pid, 'v': step});
-          map[SingleActivator(digits[i + 1], shift: true)] = () => cubit.add(CounterEngine.add, {'p': pid, 'v': -step});
+          map[SingleActivator(digits[i + 1])] = () => cubit.addPoints(pid, step);
+          map[SingleActivator(digits[i + 1], shift: true)] = () => cubit.addPoints(pid, -step);
         }
       case GameMode.sets:
         if (game.participants.length >= 2) {

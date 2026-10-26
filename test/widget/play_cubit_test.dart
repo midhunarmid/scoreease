@@ -109,6 +109,38 @@ void main() {
     await c.close();
   });
 
+  test('quick taps on one side become one event; undo takes back the burst', () async {
+    final now = DateTime.now();
+    await store.saveGame(Game(
+      id: 'g3',
+      title: 'Basketball',
+      templateId: 'counter',
+      mode: GameMode.counter,
+      participants: const [Participant(id: 'p0', name: 'Ann'), Participant(id: 'p1', name: 'Bob')],
+      createdAt: now,
+      updatedAt: now,
+    ));
+
+    final c = cubit();
+    await c.openLocal('g3');
+    final first = await c.addPoints('p0', 1);
+    expect(await c.addPoints('p0', 2), first);
+    expect(await c.addPoints('p0', 1), first);
+    expect(c.state.snapshot!.stateAs<CounterState>().scores['p0'], 4, reason: 'shows at once');
+    expect(c.state.snapshot!.log.map(c.state.snapshot!.describe), ['Ann +4']);
+
+    await c.addPoints('p1', 1);
+    await c.addPoints('p0', -1);
+    expect(c.state.snapshot!.log.length, 3, reason: 'another side or a minus starts a new event');
+
+    await c.undo();
+    await c.undo();
+    await c.undo();
+    expect(c.state.snapshot!.stateAs<CounterState>().scores, {'p0': 0, 'p1': 0});
+    await c.close();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  });
+
   test('a missing game shows an error instead of loading forever', () async {
     final c = cubit();
     await c.openLocal('nope');
