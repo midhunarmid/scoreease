@@ -259,6 +259,14 @@ test('boards: view and scoring passwords', async () => {
   await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob')));
 });
 
+test('boards: event games can be placements with players on event teams', async () => {
+  await assertSucceeds(shareBoard('alice', 'abc234'));
+  await assertSucceeds(set(ref(db('alice'), 'boards/abc234/meta/mode'), 'placements'));
+  await assertSucceeds(set(ref(db('alice'), 'boards/abc234/meta/participants/p2'), { name: 'Dee', color: 1, team: 't1' }));
+  await assertFails(set(ref(db('alice'), 'boards/abc234/meta/participants/p3'), { name: 'Eve', team: 'x'.repeat(21) }));
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'place', { p: 'p2' })));
+});
+
 test('boards: malformed data is rejected', async () => {
   await assertSucceeds(shareBoard('alice', 'abc234'));
   await assertFails(set(ref(db('alice'), 'boards/abc234/meta/mode'), 'poker'));

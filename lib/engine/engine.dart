@@ -3,6 +3,7 @@ import 'counter_engine.dart';
 import 'rounds_engine.dart';
 import 'sets_engine.dart';
 import 'cricket_engine.dart';
+import 'placements_engine.dart';
 
 export 'models.dart';
 
@@ -196,6 +197,7 @@ class GameEngine {
         GameMode.rounds => const RoundsEngine(),
         GameMode.sets => const SetsEngine(),
         GameMode.cricket => const CricketEngine(),
+        GameMode.placements => const PlacementsEngine(),
       };
 
   static GameSnapshot compute(Game game, List<ScoreEvent> events) {

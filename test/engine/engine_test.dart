@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scoreease/engine/counter_engine.dart';
 import 'package:scoreease/engine/cricket_engine.dart';
 import 'package:scoreease/engine/engine.dart';
+import 'package:scoreease/engine/placements_engine.dart';
 import 'package:scoreease/engine/rounds_engine.dart';
 import 'package:scoreease/engine/sets_engine.dart';
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +13,9 @@ import '../../design/theme.dart';
 import '../../design/tokens.dart';
 import '../../design/widgets.dart';
 import '../../engine/engine.dart';
+import '../../engine/meet.dart';
 import '../../engine/templates.dart';
+import '../common/place_points_field.dart';
 import '../home/home_page.dart';
 
 const _maxParticipants = 50;
@@ -30,7 +34,10 @@ class NewGamePage extends StatefulWidget {
   final String? templateId;
   final String? rematchOf;
 
-  const NewGamePage({super.key, this.templateId, this.rematchOf});
+  /// Adds the game to this event; players are picked from its teams.
+  final String? eventId;
+
+  const NewGamePage({super.key, this.templateId, this.rematchOf, this.eventId});
 
   @override
   State<NewGamePage> createState() => _NewGamePageState();
@@ -45,6 +52,14 @@ class _NewGamePageState extends State<NewGamePage> {
   final _title = TextEditingController();
   bool _titleEdited = false;
 
+  /// Set when the game is part of an event.
+  Meet? _meet;
+
+  /// In an event: whole teams play as sides, or players picked from them.
+  bool _eventTeams = false;
+  final Set<String> _pickedTeams = {};
+  final Map<String, Set<String>> _picked = {};
+
   /// On phones the template grid is folded away once a template is chosen.
   late bool _pickTemplate = widget.templateId == null && widget.rematchOf == null;
 
@@ -52,6 +67,15 @@ class _NewGamePageState extends State<NewGamePage> {
   void initState() {
     super.initState();
     final rematch = widget.rematchOf == null ? null : _store.game(widget.rematchOf!);
+    final meetId = widget.eventId ?? rematch?.eventId;
+    _meet = meetId == null ? null : _store.meet(meetId);
+    final meet = _meet;
+    if (meet != null) {
+      _pickedTeams.addAll(meet.teams.map((t) => t.id));
+      for (final t in meet.teams) {
+        _picked[t.id] = {};
+      }
+    }
     if (rematch != null) {
       _template = Templates.byId(rematch.templateId);
       _settings = Map.of(rematch.settings);
@@ -61,6 +85,18 @@ class _NewGamePageState extends State<NewGamePage> {
       _teams = rematch.participants.any((p) => p.isTeam);
       _title.text = rematch.title;
       _titleEdited = true;
+      if (meet != null) {
+        _eventTeams = _teams;
+        if (_eventTeams) {
+          _pickedTeams
+            ..clear()
+            ..addAll(rematch.participants.map((p) => p.teamId).whereType<String>());
+        } else {
+          for (final p in rematch.participants) {
+            if (p.teamId != null) _picked[p.teamId]?.add(p.name);
+          }
+        }
+      }
     } else {
       _selectTemplate(Templates.byId(widget.templateId ?? 'counter'), initial: true);
     }
@@ -79,7 +115,15 @@ class _NewGamePageState extends State<NewGamePage> {
     void apply() {
       _template = t;
       _settings = Map.of(t.settings);
-      if (!_titleEdited) _title.text = '${t.name} · ${DateFormat.MMMd().format(DateTime.now())}';
+      final meet = _meet;
+      if (!_titleEdited) {
+        final played = meet == null ? 0 : _store.gamesInMeet(meet.id).where((g) => g.templateId == t.id).length;
+        _title.text = meet != null ? '${t.name}${played > 0 ? ' ${played + 1}' : ''}' : '${t.name} · ${DateFormat.MMMd().format(DateTime.now())}';
+      }
+      if (meet != null) {
+        _eventTeams = t.teamsByDefault;
+        if (t.mode == GameMode.placements) _settings['placePoints'] = meet.placePoints;
+      }
       if (t.twoSides) {
         while (_drafts.length > 2) {
           _drafts.removeLast().name.dispose();
@@ -126,18 +170,44 @@ class _NewGamePageState extends State<NewGamePage> {
     if (names.isEmpty) return 'Add at least one ${_teams ? 'team' : 'player'}';
     if (_template.twoSides && names.length != 2) return 'This game needs exactly two sides';
     if (_template.mode == GameMode.rounds && _settings['eliminateAt'] != null && names.length < 2) return 'Elimination needs at least two players';
+    if (_template.mode == GameMode.placements && names.length < 2) return 'Add at least two ${_teams ? 'teams' : 'players'}';
     if (names.map((n) => n.toLowerCase()).toSet().length != names.length) return 'Names must be different';
     return null;
   }
 
+  /// Players or teams for an event game.
+  List<Participant> _eventParticipants(Meet meet) {
+    final out = <Participant>[];
+    for (final t in meet.teams) {
+      if (_eventTeams) {
+        if (_pickedTeams.contains(t.id)) out.add(Participant(id: 'p${out.length}', name: t.name, color: t.color, members: t.members, teamId: t.id));
+      } else {
+        for (final m in t.members.where(_picked[t.id]!.contains)) {
+          out.add(Participant(id: 'p${out.length}', name: m, color: t.color, teamId: t.id));
+        }
+      }
+    }
+    return out;
+  }
+
+  String? _validateEvent(List<Participant> participants) {
+    final noun = _eventTeams ? 'teams' : 'players';
+    if (_template.twoSides && participants.length != 2) return 'This game needs exactly two ${_eventTeams ? 'teams' : 'players'}';
+    if (participants.length < 2) return 'Pick at least two $noun';
+    if (participants.length > _maxParticipants) return 'Pick at most $_maxParticipants $noun';
+    return null;
+  }
+
   Future<void> _start() async {
-    final error = _validate();
+    final meet = _meet;
+    final eventParticipants = meet == null ? null : _eventParticipants(meet);
+    final error = eventParticipants == null ? _validate() : _validateEvent(eventParticipants);
     if (error != null) {
       toast(context, error);
       return;
     }
     final now = DateTime.now();
-    final participants = [
+    final participants = eventParticipants ?? [
       for (var i = 0; i < _drafts.length; i++)
         Participant(
           id: 'p$i',
@@ -155,6 +225,7 @@ class _NewGamePageState extends State<NewGamePage> {
       participants: participants,
       createdAt: now,
       updatedAt: now,
+      eventId: meet?.id,
     );
     await _store.saveGame(game);
     await _store.saveEvents(game.id, const []);
@@ -179,7 +250,18 @@ class _NewGamePageState extends State<NewGamePage> {
       onChanged: (_) => _titleEdited = true,
       inputFormatters: [LengthLimitingTextInputFormatter(60)],
     );
-    final players = _ParticipantsSection(
+    final meet = _meet;
+    final players = meet != null
+        ? _EventPlayersSection(
+            meet: meet,
+            teamsPlay: _eventTeams,
+            twoSides: _template.twoSides,
+            pickedTeams: _pickedTeams,
+            picked: _picked,
+            onTeamsPlay: (v) => setState(() => _eventTeams = v),
+            onChanged: () => setState(() {}),
+          )
+        : _ParticipantsSection(
       drafts: _drafts,
       teams: _teams,
       fixedTwo: _template.twoSides,
@@ -194,14 +276,15 @@ class _NewGamePageState extends State<NewGamePage> {
     final options = _OptionsSection(
       template: _template,
       settings: _settings,
-      sideNames: _drafts.map((d) => d.name.text.trim()).toList(),
+      sideNames: meet != null && _eventTeams ? meet.teams.where((t) => _pickedTeams.contains(t.id)).map((t) => t.name).toList() : _drafts.map((d) => d.name.text.trim()).toList(),
+      eventPoints: meet?.placePoints,
       onChanged: () => setState(() {}),
     );
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.close), tooltip: 'Close', onPressed: () => goBack(context)),
-        title: Text(widget.rematchOf != null ? 'Rematch' : 'New game'),
+        title: Text(meet != null ? 'New game · ${meet.name}' : (widget.rematchOf != null ? 'Rematch' : 'New game')),
         actions: [
           if (wide) Padding(padding: const EdgeInsets.only(right: Space.lg), child: FilledButton.icon(onPressed: _start, icon: const Icon(Icons.play_arrow), label: const Text('Start game'))),
         ],
@@ -345,6 +428,129 @@ class _ParticipantsSection extends StatelessWidget {
   }
 }
 
+/// Who plays an event game: whole teams as sides, or players picked from
+/// each team (e.g. three from each for musical chairs).
+class _EventPlayersSection extends StatefulWidget {
+  final Meet meet;
+  final bool teamsPlay;
+  final bool twoSides;
+  final Set<String> pickedTeams;
+  final Map<String, Set<String>> picked;
+  final ValueChanged<bool> onTeamsPlay;
+  final VoidCallback onChanged;
+
+  const _EventPlayersSection({
+    required this.meet,
+    required this.teamsPlay,
+    required this.twoSides,
+    required this.pickedTeams,
+    required this.picked,
+    required this.onTeamsPlay,
+    required this.onChanged,
+  });
+
+  @override
+  State<_EventPlayersSection> createState() => _EventPlayersSectionState();
+}
+
+class _EventPlayersSectionState extends State<_EventPlayersSection> {
+  late int _perTeam = widget.twoSides ? 1 : 3;
+
+  int get _smallestTeam => widget.meet.teams.map((t) => t.members.length).reduce(min);
+
+  void _pickRandomly() {
+    final random = Random();
+    for (final t in widget.meet.teams) {
+      widget.picked[t.id] = ({...(t.members.toList()..shuffle(random)).take(_perTeam)});
+    }
+    widget.onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final meet = widget.meet;
+    final total = widget.picked.values.fold(0, (sum, s) => sum + s.length);
+    return SectionCard(
+      title: 'Who plays',
+      trailing: SegmentedButton<bool>(
+        showSelectedIcon: false,
+        segments: const [ButtonSegment(value: false, label: Text('Players')), ButtonSegment(value: true, label: Text('Teams'))],
+        selected: {widget.teamsPlay},
+        onSelectionChanged: (s) => widget.onTeamsPlay(s.first),
+      ),
+      child: widget.teamsPlay
+          ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Wrap(spacing: Space.sm, runSpacing: Space.sm, children: [
+                for (final t in meet.teams)
+                  FilterChip(
+                    avatar: PlayerAvatar(name: t.name, color: t.color, size: 24),
+                    label: Text('${t.name} (${t.members.length})'),
+                    selected: widget.pickedTeams.contains(t.id),
+                    onSelected: (on) {
+                      on ? widget.pickedTeams.add(t.id) : widget.pickedTeams.remove(t.id);
+                      widget.onChanged();
+                    },
+                  ),
+              ]),
+              const SizedBox(height: Space.sm),
+              Text('Each team plays as one side. Places earn points for the team.', style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant)),
+            ])
+          : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: Space.sm, runSpacing: Space.sm, children: [
+                Text('From each team', style: context.text.labelLarge),
+                IconButton.outlined(
+                  tooltip: 'Fewer',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _perTeam > 1 ? () => setState(() => _perTeam--) : null,
+                  icon: const Icon(Icons.remove),
+                ),
+                Text('$_perTeam', style: scoreStyle(context, 20)),
+                IconButton.outlined(
+                  tooltip: 'More',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _perTeam < _smallestTeam ? () => setState(() => _perTeam++) : null,
+                  icon: const Icon(Icons.add),
+                ),
+                FilledButton.tonalIcon(onPressed: _pickRandomly, icon: const Icon(Icons.shuffle), label: const Text('Pick randomly')),
+                if (total > 0)
+                  TextButton(
+                    onPressed: () {
+                      for (final s in widget.picked.values) {
+                        s.clear();
+                      }
+                      widget.onChanged();
+                    },
+                    child: const Text('Clear'),
+                  ),
+              ]),
+              for (final t in meet.teams) ...[
+                const SizedBox(height: Space.md),
+                Row(children: [
+                  PlayerAvatar(name: t.name, color: t.color, size: 20),
+                  const SizedBox(width: Space.sm),
+                  Text('${t.name} · ${widget.picked[t.id]!.length} picked', style: context.text.labelLarge),
+                ]),
+                const SizedBox(height: Space.xs),
+                Wrap(spacing: Space.xs, runSpacing: Space.xs, children: [
+                  for (final m in t.members)
+                    FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(m),
+                      selected: widget.picked[t.id]!.contains(m),
+                      onSelected: (on) {
+                        on ? widget.picked[t.id]!.add(m) : widget.picked[t.id]!.remove(m);
+                        widget.onChanged();
+                      },
+                    ),
+                ]),
+              ],
+              const SizedBox(height: Space.sm),
+              Text('$total playing. Their places earn points for them and their team.', style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant)),
+            ]),
+    );
+  }
+}
+
 class _ParticipantRow extends StatelessWidget {
   final _Draft draft;
   final int index;
@@ -436,7 +642,10 @@ class _OptionsSection extends StatelessWidget {
   final List<String> sideNames;
   final VoidCallback onChanged;
 
-  const _OptionsSection({required this.template, required this.settings, required this.sideNames, required this.onChanged});
+  /// The event's points table, when the game is part of an event.
+  final String? eventPoints;
+
+  const _OptionsSection({required this.template, required this.settings, required this.sideNames, required this.onChanged, this.eventPoints});
 
   Widget _number(String key, String label, {String? hint, bool optional = true, int min = 1, int max = 9999}) => _NumberField(
         key: ValueKey('${template.id}-$key'),
@@ -511,6 +720,32 @@ class _OptionsSection extends StatelessWidget {
           _number('decidingPoints', 'Points in deciding set', hint: 'Same as others', max: 99),
           _number('serveEvery', 'Serve changes every', hint: 'Rally winner serves', max: 10),
         ]);
+      case GameMode.placements:
+        fields.addAll([
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Players are placed', style: context.text.labelLarge),
+            const SizedBox(height: Space.xs),
+            SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'out', label: Text('As they go out')),
+                ButtonSegment(value: 'finish', label: Text('As they finish')),
+              ],
+              selected: {settings['order'] == 'finish' ? 'finish' : 'out'},
+              onSelectionChanged: (s) {
+                settings['order'] = s.first;
+                onChanged();
+              },
+            ),
+          ]),
+          PlacePointsField(
+            value: settings['placePoints']?.toString() ?? '3,2,1',
+            onChanged: (v) {
+              settings['placePoints'] = v;
+              onChanged();
+            },
+          ),
+        ]);
       case GameMode.cricket:
         fields.addAll([
           _number('overs', 'Overs per side', optional: false, max: 50),
@@ -525,6 +760,16 @@ class _OptionsSection extends StatelessWidget {
             },
           ),
         ]);
+    }
+    if (eventPoints != null && template.mode != GameMode.placements) {
+      fields.add(PlacePointsField(
+        label: 'Event points for places',
+        value: settings['placePoints']?.toString() ?? eventPoints!,
+        onChanged: (v) {
+          settings['placePoints'] = v;
+          onChanged();
+        },
+      ));
     }
     return SectionCard(
       title: 'Rules',

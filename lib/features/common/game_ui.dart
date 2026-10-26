@@ -54,7 +54,7 @@ class LiveBadge extends StatelessWidget {
   }
 }
 
-/// Medal-coloured rank number.
+/// Medal-coloured rank number. Rank 0 means not placed yet (still in).
 class RankBadge extends StatelessWidget {
   final int rank;
   final double size;
@@ -62,6 +62,13 @@ class RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (rank <= 0) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Icon(Icons.directions_run, size: size * 0.7, color: context.colors.onSurfaceVariant, semanticLabel: 'Still in'),
+      );
+    }
     final medal = context.scoreColors.forRank(rank);
     return Container(
       width: size,

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/events/event_page.dart';
+import '../features/events/event_tv_page.dart';
+import '../features/events/new_event_page.dart';
 import '../features/history/history_page.dart';
 import '../features/home/home_page.dart';
 import '../features/live/legacy_board_page.dart';
@@ -35,7 +38,21 @@ final appRouter = GoRouter(
       builder: (_, state) => NewGamePage(
         templateId: state.uri.queryParameters['template'],
         rematchOf: state.uri.queryParameters['rematch'],
+        eventId: state.uri.queryParameters['event'],
       ),
+    ),
+    GoRoute(path: '/events/new', parentNavigatorKey: _rootKey, builder: (_, __) => const NewEventPage()),
+    GoRoute(
+      path: '/event/:id',
+      parentNavigatorKey: _rootKey,
+      builder: (_, state) => EventPage(id: state.pathParameters['id']!),
+      routes: [
+        GoRoute(
+          path: 'tv',
+          parentNavigatorKey: _rootKey,
+          builder: (_, state) => EventTvPage(id: state.pathParameters['id']!, announce: state.uri.queryParameters['announce'] == '1'),
+        ),
+      ],
     ),
     GoRoute(
       path: '/game/:id',
