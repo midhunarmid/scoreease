@@ -61,7 +61,7 @@ class Templates {
       mode: GameMode.sets,
       emoji: '🏸',
       twoSides: true,
-      settings: {'points': 21, 'winBy': 2, 'cap': 30, 'sets': 2, 'serveEvery': 0},
+      settings: {'points': 21, 'winBy': 2, 'cap': 30, 'sets': 2, 'serveEvery': 0, 'courts': 'badminton'},
     ),
     GameTemplate(
       id: 'volleyball',

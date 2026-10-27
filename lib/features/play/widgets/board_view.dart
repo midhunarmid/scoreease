@@ -156,6 +156,16 @@ class _SetsBoard extends StatelessWidget {
 
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [side(0), SizedBox(width: Space.md * scale), side(1)]),
+      if (SetsEngine.tracksCourts(game) && !snapshot.finished) ...[
+        SizedBox(height: Space.md * scale),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.sports_tennis, size: 20 * scale, color: playerColor(game.participants[state.server].color)),
+          SizedBox(width: Space.sm * scale),
+          Flexible(
+            child: Text(SetsEngine.serveLine(state, game), style: context.text.titleMedium?.copyWith(fontSize: 20 * scale, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+      ],
       if (state.sets.isNotEmpty) ...[
         SizedBox(height: Space.md * scale),
         Wrap(spacing: Space.sm, children: [

@@ -26,6 +26,8 @@ class SetsView extends StatelessWidget {
     final deciding = SetsEngine.isDecidingSet(state, game);
     final target = SetsEngine.pointsForSet(state, game);
     final need = SetsEngine.setsToWin(game);
+    final courts = SetsEngine.tracksCourts(game) && !snapshot.finished;
+    final doubles = courts && SetsEngine.isDoubles(game);
 
     return Column(children: [
       Padding(
@@ -48,6 +50,13 @@ class SetsView extends StatelessWidget {
           padding: const EdgeInsets.only(top: Space.xs),
           child: Text('↔ Switch ends', style: context.text.labelLarge?.copyWith(color: context.colors.primary, fontWeight: FontWeight.w700)),
         ),
+      if (courts)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, 0),
+          child: doubles
+              ? _MiniCourt(snapshot: snapshot, enabled: enabled, fresh: fresh)
+              : Text(SetsEngine.serveLine(state, game), style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        ),
       Expanded(
         child: LayoutBuilder(builder: (context, c) {
           final horizontal = c.maxWidth > c.maxHeight * 0.9;
@@ -61,6 +70,11 @@ class SetsView extends StatelessWidget {
                     points: state.current[i],
                     setsWon: state.setsWon(i),
                     serving: state.server == i && !snapshot.finished,
+                    serveNote: doubles
+                        ? state.server == i
+                            ? '${game.participants[i].members[state.serverMember]} serving · ${state.serveFromRight ? 'right' : 'left'}'
+                            : '${game.participants[i].members[state.receiverMember]} receiving'
+                        : null,
                     winner: snapshot.winners.contains(game.participants[i].id),
                     enabled: enabled,
                     onPoint: () => score(() => cubit.add(SetsEngine.point, {'p': game.participants[i].id}), 1),
@@ -87,6 +101,9 @@ class _Side extends StatelessWidget {
   final int points;
   final int setsWon;
   final bool serving;
+
+  /// Doubles: "Ann serving · right" or "Dee receiving".
+  final String? serveNote;
   final bool winner;
   final bool enabled;
   final VoidCallback onPoint;
@@ -100,6 +117,7 @@ class _Side extends StatelessWidget {
     required this.points,
     required this.setsWon,
     required this.serving,
+    this.serveNote,
     required this.winner,
     required this.enabled,
     required this.onPoint,
@@ -151,16 +169,120 @@ class _Side extends StatelessWidget {
                     ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Icon(Icons.sports_tennis, size: 18, color: color),
                         const SizedBox(width: Space.xs),
-                        Text('Serving', style: context.text.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700)),
+                        Text(serveNote ?? 'Serving', style: context.text.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w700)),
                       ])
                     : onServe != null
                         ? TextButton(onPressed: onServe, child: const Text('Serves first'))
-                        : null,
+                        : serveNote != null
+                            ? Center(child: Text(serveNote!, style: context.text.labelLarge?.copyWith(color: context.colors.onSurfaceVariant)))
+                            : null,
               ),
             ]),
           ),
         ),
       ),
     );
+  }
+}
+
+/// Badminton doubles: a small court showing who stands where, with the
+/// server filled in and the receiver diagonally opposite outlined. At 0-0
+/// tapping a player picks the server or receiver; mid-game the swap buttons
+/// fix a service court error without touching the score.
+class _MiniCourt extends StatelessWidget {
+  final GameSnapshot snapshot;
+  final bool enabled;
+  final bool fresh;
+
+  const _MiniCourt({required this.snapshot, required this.enabled, required this.fresh});
+
+  @override
+  Widget build(BuildContext context) {
+    final game = snapshot.game;
+    final state = snapshot.stateAs<SetsState>();
+    final cubit = context.read<PlayCubit>();
+    final right = state.serveFromRight;
+    final serverSide = state.server;
+
+    void pick(int side, int member) => cubit.add(SetsEngine.serve, {
+          'p': game.participants[serverSide].id,
+          'm': side == serverSide ? member : state.serverMember,
+          'r': side == serverSide ? state.receiverMember : member,
+        });
+
+    // Side 0 plays from the left facing right, so its right court is the
+    // lower box; side 1 faces left, so its right court is the upper one.
+    // The two right courts are then diagonal, like on a real court.
+    Widget cell(int side, bool rightCourt) {
+      final p = game.participants[side];
+      final member = state.memberIn(side, right: rightCourt);
+      final active = rightCourt == right;
+      final isServer = active && side == serverSide;
+      final isReceiver = active && side != serverSide;
+      final color = playerColor(p.color);
+      final name = p.members[member];
+      return Expanded(
+        child: Material(
+          color: isServer ? color : color.withValues(alpha: isReceiver ? 0.22 : 0.08),
+          shape: RoundedRectangleBorder(
+            borderRadius: Radii.smAll,
+            side: isReceiver ? BorderSide(color: color, width: 2) : BorderSide.none,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: enabled && fresh ? () => pick(side, member) : null,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Space.xs),
+                child: AnimatedSwitcher(
+                  duration: motionFast,
+                  child: Row(key: ValueKey('$name$isServer$isReceiver'), mainAxisSize: MainAxisSize.min, children: [
+                    if (isServer) ...[const Icon(Icons.sports_tennis, size: 14, color: Colors.white), const SizedBox(width: 2)],
+                    Flexible(
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.labelLarge?.copyWith(
+                          fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+                          color: isServer ? Colors.white : null,
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget swap(int side) => IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Swap ${game.participants[side].name} courts',
+          icon: const Icon(Icons.swap_vert),
+          onPressed: enabled && !fresh ? () => cubit.add(SetsEngine.positions, {'p': game.participants[side].id}) : null,
+        );
+
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(SetsEngine.serveLine(state, game), style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+      if (fresh && enabled)
+        Text('Tap a player to pick who serves and receives', style: context.text.labelSmall?.copyWith(color: context.colors.onSurfaceVariant)),
+      const SizedBox(height: Space.xs),
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: SizedBox(
+          height: 72,
+          child: Row(children: [
+            swap(0),
+            Expanded(child: Column(children: [cell(0, false), const SizedBox(height: 2), cell(0, true)])),
+            Container(width: 3, margin: const EdgeInsets.symmetric(horizontal: Space.xs), color: context.colors.outline),
+            Expanded(child: Column(children: [cell(1, true), const SizedBox(height: 2), cell(1, false)])),
+            swap(1),
+          ]),
+        ),
+      ),
+    ]);
   }
 }
