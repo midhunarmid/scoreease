@@ -62,6 +62,7 @@ Perfect for families, clubs, coaches, schools, office tournaments and anyone who
 - Tags to pick: Scoreboard, Sports, Board games, Card games, Productivity
 - Contact email: required; use the address you want shown publicly
 - Website: https://scoreease.armid.in/
+- Privacy policy (App content → Privacy policy): https://scoreease.armid.in/privacy.html. It goes live once this branch is merged and master deploys.
 
 ## Graphics
 
