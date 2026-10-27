@@ -6,7 +6,9 @@ import 'engine.dart';
 /// Settings: `points` (to win a set), `winBy` (lead needed, default 2), `cap`
 /// (points at which the next point wins regardless), `sets` (sets needed to
 /// win the match), `decidingPoints` (points in the deciding set),
-/// `serveEvery` (0 = rally winner serves, n = serve changes every n points).
+/// `serveEvery` (0 = rally winner serves, n = serve changes every n points),
+/// `courts` (`badminton` = track service courts and, in doubles, who serves
+/// to whom; the game winner serves first in the next game).
 class SetsState {
   /// Finished sets as [side A points, side B points].
   final List<List<int>> sets;
@@ -18,9 +20,37 @@ class SetsState {
   /// Who served first in the current set.
   final int setFirstServer;
 
-  const SetsState({this.sets = const [], this.current = const [0, 0], this.server = 0, this.setFirstServer = 0});
+  /// Doubles: for each side, the member index standing in the right service
+  /// court. The partner is in the left.
+  final List<int> rightCourt;
+
+  const SetsState({
+    this.sets = const [],
+    this.current = const [0, 0],
+    this.server = 0,
+    this.setFirstServer = 0,
+    this.rightCourt = const [0, 0],
+  });
+
+  SetsState copyWith({List<List<int>>? sets, List<int>? current, int? server, int? setFirstServer, List<int>? rightCourt}) => SetsState(
+        sets: sets ?? this.sets,
+        current: current ?? this.current,
+        server: server ?? this.server,
+        setFirstServer: setFirstServer ?? this.setFirstServer,
+        rightCourt: rightCourt ?? this.rightCourt,
+      );
 
   int setsWon(int side) => sets.where((s) => s[side] > s[1 - side]).length;
+
+  /// The server serves from the right court on an even score, else the left.
+  bool get serveFromRight => current[server].isEven;
+
+  /// Member index of [side]'s player in the right or left court.
+  int memberIn(int side, {required bool right}) => right ? rightCourt[side] : 1 - rightCourt[side];
+
+  /// Doubles: the member serving, and the one diagonally opposite receiving.
+  int get serverMember => memberIn(server, right: serveFromRight);
+  int get receiverMember => memberIn(1 - server, right: serveFromRight);
 }
 
 class SetsEngine extends ScoringEngine<SetsState> {
@@ -29,8 +59,30 @@ class SetsEngine extends ScoringEngine<SetsState> {
   /// Point to a side: `{p: pid}`.
   static const point = 'point';
 
-  /// Change who serves: `{p: pid}`.
+  /// Change who serves: `{p: pid}`. In doubles also `m` (serving member)
+  /// and `r` (receiving member of the other side).
   static const serve = 'serve';
+
+  /// Doubles: swap the two players of a side between courts: `{p: pid}`.
+  /// Fixes a service court error without touching the score.
+  static const positions = 'positions';
+
+  /// Badminton service rules: courts by score, positions in doubles.
+  static bool tracksCourts(Game game) =>
+      (game.stringSetting('courts') ?? (game.templateId == 'badminton' ? 'badminton' : null)) == 'badminton';
+
+  /// Two players a side, so the app can say who serves to whom.
+  static bool isDoubles(Game game) =>
+      tracksCourts(game) && game.participants.length >= 2 && game.participants.take(2).every((p) => p.members.length == 2);
+
+  /// "Ann → Dee · right court", or for singles "Ann · serve from right".
+  static String serveLine(SetsState state, Game game) {
+    final court = state.serveFromRight ? 'right' : 'left';
+    final server = game.participants[state.server];
+    if (!isDoubles(game)) return '${server.name} · serve from $court';
+    final receiver = game.participants[1 - state.server];
+    return '${server.members[state.serverMember]} → ${receiver.members[state.receiverMember]} · $court court';
+  }
 
   static int setsToWin(Game game) => game.intSetting('sets') ?? 2;
 
@@ -71,20 +123,39 @@ class SetsEngine extends ScoringEngine<SetsState> {
   SetsState apply(SetsState state, ScoreEvent e, Game game) {
     final side = _sideOf(game, e.get<String>('p'));
     if (side < 0) return state;
+    final courts = tracksCourts(game);
     if (e.type == serve) {
-      return state.current[0] + state.current[1] == 0
-          ? SetsState(sets: state.sets, current: state.current, server: side, setFirstServer: side)
-          : SetsState(sets: state.sets, current: state.current, server: side, setFirstServer: state.setFirstServer);
+      final fresh = state.current[0] + state.current[1] == 0;
+      var next = state.copyWith(server: side, setFirstServer: fresh ? side : null);
+      final m = e.get<num>('m')?.toInt(), r = e.get<num>('r')?.toInt();
+      if (courts && (m != null || r != null)) {
+        // Put the chosen server and receiver in the court the score calls for.
+        final right = next.serveFromRight;
+        final rightCourt = [...next.rightCourt];
+        if (m == 0 || m == 1) rightCourt[side] = right ? m! : 1 - m!;
+        if (r == 0 || r == 1) rightCourt[1 - side] = right ? r! : 1 - r!;
+        next = next.copyWith(rightCourt: rightCourt);
+      }
+      return next;
+    }
+    if (e.type == positions) {
+      return state.copyWith(rightCourt: [for (var i = 0; i < 2; i++) i == side ? 1 - state.rightCourt[i] : state.rightCourt[i]]);
     }
     if (e.type != point) return state;
 
     final current = [...state.current];
     current[side]++;
     if (setWon(current, side, game, state)) {
-      // The side that received first in this set serves first in the next.
-      final nextFirst = 1 - state.setFirstServer;
-      return SetsState(sets: [...state.sets, current], current: const [0, 0], server: nextFirst, setFirstServer: nextFirst);
+      // Badminton: the game winner serves first in the next. Otherwise the
+      // side that received first in this set does.
+      final nextFirst = courts ? side : 1 - state.setFirstServer;
+      return state.copyWith(sets: [...state.sets, current], current: const [0, 0], server: nextFirst, setFirstServer: nextFirst);
     }
+
+    // Badminton: the serving side scores and its players switch courts.
+    final rightCourt = courts && side == state.server
+        ? [for (var i = 0; i < 2; i++) i == side ? 1 - state.rightCourt[i] : state.rightCourt[i]]
+        : state.rightCourt;
 
     final every = game.intSetting('serveEvery') ?? 0;
     int server;
@@ -97,7 +168,7 @@ class SetsEngine extends ScoringEngine<SetsState> {
       final changes = played >= deuceFrom ? (deuceFrom ~/ every) + (played - deuceFrom) : played ~/ every;
       server = changes.isEven ? state.setFirstServer : 1 - state.setFirstServer;
     }
-    return SetsState(sets: state.sets, current: current, server: server, setFirstServer: state.setFirstServer);
+    return state.copyWith(current: current, server: server, rightCourt: rightCourt);
   }
 
   @override
@@ -154,7 +225,17 @@ class SetsEngine extends ScoringEngine<SetsState> {
   @override
   String describe(ScoreEvent e, Game game) => switch (e.type) {
         point => 'Point ${game.nameOf(e.get<String>('p') ?? '')}',
-        serve => '${game.nameOf(e.get<String>('p') ?? '')} to serve',
+        serve => _describeServe(e, game),
+        positions => '${game.nameOf(e.get<String>('p') ?? '')} switched courts',
         _ => e.type,
       };
+
+  String _describeServe(ScoreEvent e, Game game) {
+    final side = _sideOf(game, e.get<String>('p'));
+    final m = e.get<num>('m')?.toInt(), r = e.get<num>('r')?.toInt();
+    if (side < 0 || m == null || r == null || !isDoubles(game)) return '${game.nameOf(e.get<String>('p') ?? '')} to serve';
+    final members = game.participants[side].members, others = game.participants[1 - side].members;
+    if (m < 0 || m > 1 || r < 0 || r > 1) return '${game.nameOf(e.get<String>('p') ?? '')} to serve';
+    return '${members[m]} serves to ${others[r]}';
+  }
 }

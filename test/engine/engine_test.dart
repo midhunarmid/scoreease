@@ -417,6 +417,78 @@ void main() {
       points(log, 'p0', 1);
       expect(server(), 0);
     });
+
+    group('badminton courts', () {
+      Game doubles() => Game(
+            id: 'g',
+            title: 'Test',
+            templateId: 'badminton',
+            mode: GameMode.sets,
+            settings: const {'points': 21, 'winBy': 2, 'cap': 30, 'sets': 2, 'courts': 'badminton'},
+            participants: const [
+              Participant(id: 'p0', name: 'AB', members: ['A', 'B']),
+              Participant(id: 'p1', name: 'CD', members: ['C', 'D']),
+            ],
+            createdAt: DateTime(2026),
+            updatedAt: DateTime(2026),
+          );
+
+      String line(Game g, Log log) => SetsEngine.serveLine(GameEngine.compute(g, log.events).stateAs<SetsState>(), g);
+
+      test('follows who serves to whom through rallies', () {
+        final g = doubles();
+        final log = Log()..add('serve', {'p': 'p0', 'm': 0, 'r': 0});
+        expect(line(g, log), 'A → C · right court');
+        log.add('point', {'p': 'p0'}); // 1-0, A and B switch
+        expect(line(g, log), 'A → D · left court');
+        log.add('point', {'p': 'p1'}); // 1-1, no one moves, CD serve from left
+        expect(line(g, log), 'D → A · left court');
+        log.add('point', {'p': 'p1'}); // 1-2, C and D switch
+        expect(line(g, log), 'D → B · right court');
+        log.add('point', {'p': 'p0'}); // 2-2, AB serve from right
+        expect(line(g, log), 'B → D · right court');
+      });
+
+      test('picking server and receiver, and fixing positions', () {
+        final g = doubles();
+        final log = Log()..add('serve', {'p': 'p1', 'm': 1, 'r': 1});
+        expect(line(g, log), 'D → B · right court');
+        expect(SetsEngine().describe(log.events.last, g), 'D serves to B');
+        log.add('positions', {'p': 'p0'});
+        expect(line(g, log), 'D → A · right court');
+        final undo = Log()
+          ..events.addAll(log.events)
+          ..add('undo', {'target': log.events.last.id});
+        expect(line(g, undo), 'D → B · right court');
+      });
+
+      test('game winner serves first in the next game', () {
+        final g = doubles();
+        final log = Log()..add('serve', {'p': 'p0'});
+        points(log, 'p1', 21);
+        final state = GameEngine.compute(g, log.events).stateAs<SetsState>();
+        expect(state.sets.length, 1);
+        expect(state.server, 1);
+      });
+
+      test('singles shows the service court only', () {
+        final g = game(GameMode.sets, settings: {'points': 21, 'sets': 2, 'courts': 'badminton'});
+        final log = Log();
+        expect(line(g, log), 'P0 · serve from right');
+        log.add('point', {'p': 'p0'});
+        expect(line(g, log), 'P0 · serve from left');
+        log.add('point', {'p': 'p1'});
+        expect(line(g, log), 'P1 · serve from left');
+      });
+
+      test('table tennis keeps its rules', () {
+        final g = game(GameMode.sets, settings: {'points': 11, 'sets': 2, 'serveEvery': 2});
+        expect(SetsEngine.tracksCourts(g), isFalse);
+        final log = Log();
+        points(log, 'p1', 11);
+        expect(GameEngine.compute(g, log.events).stateAs<SetsState>().server, 1, reason: 'receiver of the first set serves next');
+      });
+    });
   });
 
   group('cricket', () {
