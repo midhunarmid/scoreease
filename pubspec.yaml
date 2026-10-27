@@ -1,7 +1,7 @@
 name: scoreease
 description: Keep score of anything. Offline first, live when you share.
 publish_to: 'none'
-version: 2.0.0+6
+version: 2.0.0+7
 
 environment:
   sdk: '>=3.0.6 <4.0.0'
