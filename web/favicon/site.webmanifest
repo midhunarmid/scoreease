@@ -1,6 +1,6 @@
 {
-  "name": "Scoreease",
-  "short_name": "Scoreease",
+  "name": "ScoreEase",
+  "short_name": "ScoreEase",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -15,7 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
+  "theme_color": "#10B981",
   "background_color": "#ffffff",
   "display": "standalone"
 }

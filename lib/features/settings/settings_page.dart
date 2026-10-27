@@ -15,6 +15,7 @@ import '../../design/responsive.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.dart';
 import '../../design/widgets.dart';
+import '../common/game_ui.dart' show appBaseUrl;
 import '../play/export.dart';
 
 const _repo = 'https://github.com/midhunarmid/scoreease';
@@ -140,6 +141,7 @@ class SettingsPage extends StatelessWidget {
                     _link(Icons.bug_report_outlined, 'Report a problem', '$_repo/issues/new?template=bug_report.md'),
                     _link(Icons.lightbulb_outline, 'Suggest a feature', '$_repo/issues/new?template=feature_request.md'),
                     _link(Icons.code, 'Source code', _repo),
+                    _link(Icons.privacy_tip_outlined, 'Privacy policy', '$appBaseUrl/privacy.html'),
                   ]),
                 ),
               ]),

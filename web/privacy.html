@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How ScoreEase handles your data.">
+  <title>Privacy Policy · ScoreEase</title>
+  <link rel="icon" type="image/png" href="favicon/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg" />
+  <style>
+    :root {
+      --bg: #f8faf9; --fg: #1f2937; --muted: #4b5563; --accent: #059669; --line: #e5e7eb;
+      color-scheme: light dark;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0f1512; --fg: #e5e7eb; --muted: #9ca3af; --accent: #34d399; --line: #1f2a24; }
+    }
+    html, body { margin: 0; background: var(--bg); color: var(--fg); }
+    body { font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    header img { width: 40px; height: 40px; border-radius: 10px; }
+    h1 { font-size: 1.75rem; margin: 0; }
+    h2 { font-size: 1.15rem; margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+    p, li { color: var(--muted); }
+    strong { color: var(--fg); }
+    a { color: var(--accent); }
+    .date { color: var(--muted); font-size: .9rem; margin: 0 0 24px; }
+  </style>
+</head>
+
+<body>
+  <main>
+    <header>
+      <img src="favicon/web-app-manifest-192x192.png" alt="" onerror="this.remove()">
+      <h1>ScoreEase Privacy Policy</h1>
+    </header>
+    <p class="date">Last updated: 27 October 2026</p>
+
+    <p>ScoreEase is a scorekeeping app for Android and the web, available at
+      <a href="https://scoreease.armid.in/">scoreease.armid.in</a>. This policy explains what data the app handles,
+      where it goes and the choices you have. In short: there is no sign-up, no ads, no analytics and no tracking.
+      Your games stay on your device unless you choose to share one.</p>
+
+    <h2>Data stored on your device</h2>
+    <p>The games you create, the player and team names you type, scores, history, events and your settings
+      (such as theme, vibration and keep-screen-on) are saved only on your device. They are not sent to us or to anyone
+      else. Uninstalling the app, or clearing the site's data in your browser, deletes them.</p>
+
+    <h2>Data sent when you share a game</h2>
+    <p>Sharing is optional. When you share a game live, join a shared game by code, or open an old shared board, the
+      app connects to Google Firebase:</p>
+    <ul>
+      <li><strong>Anonymous sign-in.</strong> Firebase Authentication gives your app a random anonymous ID. It is not
+        linked to your name, email address, phone number or Google account. It is used only to know who owns a shared
+        game and who has entered its password.</li>
+      <li><strong>The shared game.</strong> The game's title and description, player and team names, settings and
+        each score change are stored in the Firebase Realtime Database so others can follow along live. Each score
+        change records the anonymous ID of the device that made it.</li>
+      <li><strong>Passwords.</strong> If you protect a game with a password, only a one-way hash of it is stored. The
+        password itself never leaves your device.</li>
+    </ul>
+    <p>Anyone with the link, QR code or 6-letter code can view a shared game, unless you add a viewing password.
+      Only enter names you are happy for those people to see.</p>
+    <p>Firebase is operated by Google, which may process technical data such as your IP address to provide the
+      service. See <a href="https://firebase.google.com/support/privacy">Firebase privacy and security</a> and the
+      <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</p>
+
+    <h2>Fonts</h2>
+    <p>The app may download its fonts from Google Fonts the first time they are needed. This request does not
+      include any of your game data. See the <a href="https://developers.google.com/fonts/faq/privacy">Google Fonts
+        privacy FAQ</a>.</p>
+
+    <h2>What we do not collect</h2>
+    <ul>
+      <li>No accounts, email addresses or phone numbers.</li>
+      <li>No location, contacts, photos, camera or microphone access.</li>
+      <li>No advertising, analytics or crash-reporting SDKs.</li>
+      <li>We do not sell or share your data with anyone.</li>
+    </ul>
+
+    <h2>Files you export or import</h2>
+    <p>Backups, CSV exports and result cards are created on your device. They go only where you choose to send them,
+      using your device's share sheet. Importing a backup reads the file you pick, on your device.</p>
+
+    <h2>Keeping and deleting your data</h2>
+    <ul>
+      <li><strong>Local games:</strong> delete them in the app, or uninstall the app.</li>
+      <li><strong>Shared games:</strong> the owner can stop sharing a game in the app, which deletes it, its scores
+        and its password hashes from the server. Your local copy stays.</li>
+      <li><strong>Saved passwords:</strong> use <em>Settings → Forget saved passwords</em> to remove them from the
+        server.</li>
+    </ul>
+    <p>If you can no longer reach a game you shared and want it removed, contact us with its code and we will delete
+      it.</p>
+
+    <h2>Security</h2>
+    <p>Data sent to Firebase is encrypted in transit (HTTPS). Database security rules allow only the owner of a game,
+      or someone with its password, to change it.</p>
+
+    <h2>Children</h2>
+    <p>ScoreEase is suitable for all ages and does not knowingly collect personal information from children. It has no
+      accounts, ads or chat. If a child's name was entered in a shared game, the game's owner can stop sharing it, or
+      you can contact us to remove it.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes, the new version will be posted on this page with a new date above.</p>
+
+    <h2>Contact</h2>
+    <p>Questions or deletion requests: open an issue at
+      <a href="https://github.com/midhunarmid/scoreease/issues">github.com/midhunarmid/scoreease/issues</a>.</p>
+  </main>
+</body>
+
+</html>
