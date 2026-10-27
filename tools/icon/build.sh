@@ -52,6 +52,9 @@ render icon-full.svg 192 "$fav/web-app-manifest-192x192.png"
 render icon-full.svg 512 "$fav/web-app-manifest-512x512.png"
 render icon-rounded.svg 256 ico.png && magick ico.png -define icon:auto-resize=48,32,16 "$fav/favicon.ico" && rm ico.png
 
+# In-app logo (app shell and home header); the widgets round the corners.
+render icon-full.svg 192 "$root/assets/images/brand_icon.png"
+
 mkdir -p "$root/store"
 render icon-full.svg 512 "$root/store/play-icon-512.png"
 echo "icons written"
