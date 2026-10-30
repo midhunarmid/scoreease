@@ -171,4 +171,88 @@ void main() {
     expect(c.state.error, isNotNull);
     await c.close();
   });
+
+  Game team(String id, {Map<String, dynamic> settings = const {}}) {
+    final now = DateTime.now();
+    return Game(
+      id: id,
+      title: 'Football',
+      templateId: 'counter',
+      mode: GameMode.counter,
+      settings: settings,
+      participants: const [
+        Participant(id: 'p0', name: 'Reds', members: ['Ann', 'Bob']),
+        Participant(id: 'p1', name: 'Blues', members: ['Cy']),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    );
+  }
+
+  test('retitling a finished game keeps its result', () async {
+    await store.saveGame(team('g5', settings: const {'target': 1}));
+    final c = cubit();
+    await c.openLocal('g5');
+    final id = await c.add(CounterEngine.add, {'p': 'p0', 'v': 1});
+    await c.tag(id!, {0});
+    await c.retitle('The final');
+    await c.close();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    final saved = store.game('g5')!;
+    expect(saved.title, 'The final');
+    expect(saved.isFinished, isTrue);
+    expect(saved.winners, ['p0']);
+    expect(saved.memberPoints, {'Ann': 1});
+    expect(saved.summary, isNotEmpty);
+  });
+
+  test('a sub is saved as a lineup, undoes, and reopens the same', () async {
+    await store.saveGame(team('g6'));
+    final c = cubit();
+    await c.openLocal('g6');
+    await c.add(CounterEngine.add, {'p': 'p0', 'v': 1});
+    await c.substitute('p0', out: 0, name: 'Eli');
+    await c.add(CounterEngine.add, {'p': 'p0', 'v': 1});
+    expect(c.state.game!.participant('p0')!.onCourt, [2, 1]);
+
+    await c.undo();
+    await c.undo();
+    expect(c.state.game!.participant('p0')!.members, ['Ann', 'Bob'], reason: 'the point, then the sub');
+    await c.redo();
+    await c.renameName('Eli', 'Elias');
+    await c.close();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    final saved = store.game('g6')!;
+    expect(saved.participants.first.members, ['Ann', 'Bob'], reason: 'the setup never changes');
+    expect(saved.current.first.members, ['Ann', 'Bob', 'Elias']);
+
+    final again = cubit();
+    await again.openLocal('g6');
+    expect(again.state.game!.participant('p0')!.members, ['Ann', 'Bob', 'Elias']);
+    expect(again.state.game!.participant('p0')!.onCourt, [2, 1]);
+    await again.undo();
+    expect(again.state.game!.participant('p0')!.members, ['Ann', 'Bob'], reason: 'undo skips the spelling fix');
+    await again.close();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  });
+
+  test('adding and retiring sides is saved for lists', () async {
+    await store.saveGame(team('g7'));
+    final c = cubit();
+    await c.openLocal('g7');
+    await c.addSide('Greens', color: 2, members: const ['Gus']);
+    final id = c.state.game!.participants.last.id;
+    await c.add(CounterEngine.add, {'p': id, 'v': 2});
+    await c.retireSide('p1');
+    await c.close();
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    final saved = store.game('g7')!;
+    expect(saved.participants, hasLength(2));
+    expect(saved.nameOf(id), 'Greens');
+    expect(saved.sides.map((p) => p.name), ['Reds', 'Greens']);
+    expect(saved.summary, contains('Greens 2'));
+  });
 }

@@ -20,8 +20,9 @@ class SetsState {
   /// Who served first in the current set.
   final int setFirstServer;
 
-  /// Doubles: for each side, the member index standing in the right service
-  /// court. The partner is in the left.
+  /// Doubles: for each side, the slot standing in the right service court.
+  /// The partner is in the left. A substitute takes over the slot of the
+  /// player they replace.
   final List<int> rightCourt;
 
   const SetsState({
@@ -45,7 +46,7 @@ class SetsState {
   /// The server serves from the right court on an even score, else the left.
   bool get serveFromRight => current[server].isEven;
 
-  /// Member index of [side]'s player in the right or left court.
+  /// Court slot of [side]'s player in the right or left court.
   int memberIn(int side, {required bool right}) => right ? rightCourt[side] : 1 - rightCourt[side];
 
   /// Doubles: the member serving, and the one diagonally opposite receiving.
@@ -59,8 +60,8 @@ class SetsEngine extends ScoringEngine<SetsState> {
   /// Point to a side: `{p: pid}`.
   static const point = 'point';
 
-  /// Change who serves: `{p: pid}`. In doubles also `m` (serving member)
-  /// and `r` (receiving member of the other side).
+  /// Change who serves: `{p: pid}`. In doubles also `m` (serving court slot)
+  /// and `r` (receiving slot of the other side).
   static const serve = 'serve';
 
   /// Doubles: swap the two players of a side between courts: `{p: pid}`.
@@ -73,7 +74,7 @@ class SetsEngine extends ScoringEngine<SetsState> {
 
   /// Two players a side, so the app can say who serves to whom.
   static bool isDoubles(Game game) =>
-      tracksCourts(game) && game.participants.length >= 2 && game.participants.take(2).every((p) => p.members.length == 2);
+      tracksCourts(game) && game.participants.length >= 2 && game.participants.take(2).every((p) => p.onCourt.length == 2);
 
   /// "Ann → Dee · right court", or for singles "Ann · serve from right".
   static String serveLine(SetsState state, Game game) {
@@ -81,7 +82,7 @@ class SetsEngine extends ScoringEngine<SetsState> {
     final server = game.participants[state.server];
     if (!isDoubles(game)) return '${server.name} · serve from $court';
     final receiver = game.participants[1 - state.server];
-    return '${server.members[state.serverMember]} → ${receiver.members[state.receiverMember]} · $court court';
+    return '${server.playerIn(state.serverMember)} → ${receiver.playerIn(state.receiverMember)} · $court court';
   }
 
   static int setsToWin(Game game) => game.intSetting('sets') ?? 2;
@@ -112,6 +113,9 @@ class SetsEngine extends ScoringEngine<SetsState> {
     if (pid == game.participants[1].id) return 1;
     return -1;
   }
+
+  @override
+  bool fixedTeams(Game game) => tracksCourts(game);
 
   @override
   SetsState initial(Game game) {
@@ -234,8 +238,7 @@ class SetsEngine extends ScoringEngine<SetsState> {
     final side = _sideOf(game, e.get<String>('p'));
     final m = e.get<num>('m')?.toInt(), r = e.get<num>('r')?.toInt();
     if (side < 0 || m == null || r == null || !isDoubles(game)) return '${game.nameOf(e.get<String>('p') ?? '')} to serve';
-    final members = game.participants[side].members, others = game.participants[1 - side].members;
     if (m < 0 || m > 1 || r < 0 || r > 1) return '${game.nameOf(e.get<String>('p') ?? '')} to serve';
-    return '${members[m]} serves to ${others[r]}';
+    return '${game.participants[side].playerIn(m)} serves to ${game.participants[1 - side].playerIn(r)}';
   }
 }

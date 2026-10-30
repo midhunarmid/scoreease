@@ -85,23 +85,30 @@ class CounterEngine extends ScoringEngine<CounterState> {
   /// Participants one step away from winning.
   static Set<String> onGamePoint(CounterState state, Game game) {
     final steps = stepsOf(game);
+    final scores = _inPlay(state, game);
     if (isCountdown(game)) {
       return {
-        for (final MapEntry(key: id, value: left) in state.scores.entries)
+        for (final MapEntry(key: id, value: left) in scores.entries)
           if (left > 0 && steps.any((s) => s >= left)) id,
       };
     }
     final target = game.intSetting('target');
     if (target == null || target <= 0 || game.flag('lowWins')) return const {};
     return {
-      for (final MapEntry(key: id, value: score) in state.scores.entries)
-        if (steps.any((s) => _wins(score + s, _bestOther(state, id), target, winByOf(game)))) id,
+      for (final MapEntry(key: id, value: score) in scores.entries)
+        if (steps.any((s) => _wins(score + s, _bestOther(scores, id), target, winByOf(game)))) id,
     };
   }
 
+  /// Scores of the sides that haven't retired.
+  static Map<String, int> _inPlay(CounterState state, Game game) => {
+        for (final p in game.sides)
+          if (state.scores[p.id] case final score?) p.id: score,
+      };
+
   /// The best score among everyone but [id]; null when playing alone.
-  static int? _bestOther(CounterState state, String id) =>
-      state.scores.entries.where((e) => e.key != id).fold<int?>(null, (m, e) => m == null || e.value > m ? e.value : m);
+  static int? _bestOther(Map<String, int> scores, String id) =>
+      scores.entries.where((e) => e.key != id).fold<int?>(null, (m, e) => m == null || e.value > m ? e.value : m);
 
   static bool _wins(int score, int? other, int target, int winBy) => score >= target && (other == null || score - other >= winBy);
 
@@ -115,12 +122,18 @@ class CounterEngine extends ScoringEngine<CounterState> {
   CounterState initial(Game game) => CounterState(scores: {for (final p in game.participants) p.id: startOf(game)});
 
   @override
+  bool canChangeSides(CounterState state, Game game) => true;
+
+  @override
+  CounterState addSide(CounterState state, Participant side, Game game) => state.copyWith(scores: {...state.scores, side.id: startOf(game)});
+
+  @override
   CounterState apply(CounterState state, ScoreEvent e, Game game) {
     switch (e.type) {
       case add:
       case set:
         final pid = e.get<String>('p');
-        if (pid == null || !state.scores.containsKey(pid)) return state;
+        if (pid == null || !state.scores.containsKey(pid) || (game.participant(pid)?.retired ?? false)) return state;
         final scores = Map<String, int>.from(state.scores);
         final v = e.intOf('v');
         scores[pid] = e.type == set ? v : scores[pid]! + (isCountdown(game) ? -v : v);
@@ -142,17 +155,21 @@ class CounterEngine extends ScoringEngine<CounterState> {
 
   @override
   List<Standing> standings(CounterState state, Game game) => rankStandings(
-        [for (final p in game.participants) Standing(participantId: p.id, score: state.scores[p.id] ?? 0)],
+        [
+          for (final p in game.participants)
+            Standing(participantId: p.id, score: state.scores[p.id] ?? 0, out: p.retired, detail: p.retired ? 'Retired' : ''),
+        ],
         lowWins: lowWins(game),
       );
 
   @override
   bool isFinished(CounterState state, Game game) {
-    if (isCountdown(game)) return state.scores.values.any((s) => s <= 0);
+    final scores = _inPlay(state, game);
+    if (isCountdown(game)) return scores.values.any((s) => s <= 0);
     final target = game.intSetting('target');
     if (target == null || target <= 0) return false;
-    if (game.flag('lowWins')) return state.scores.values.any((s) => s >= target);
-    return state.scores.entries.any((e) => _wins(e.value, _bestOther(state, e.key), target, winByOf(game)));
+    if (game.flag('lowWins')) return scores.values.any((s) => s >= target);
+    return scores.entries.any((e) => _wins(e.value, _bestOther(scores, e.key), target, winByOf(game)));
   }
 
   @override

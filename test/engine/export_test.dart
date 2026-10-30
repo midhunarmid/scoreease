@@ -79,4 +79,43 @@ void main() {
     expect(lines, containsAllInOrder(['Name,Team,Points,Played,Wins,Scored', 'Cy,Blues,3,1,1,0', 'Ann,Reds,2,1,0,0']));
     expect(lines.last, 'Result,Blues won!');
   });
+
+  test('a sub shows in the member table, and a retired side instead of a rank', () {
+    final snap = _play(
+      _game(GameMode.counter, const [
+        Participant(id: 'p0', name: 'Reds', members: ['Ann', 'Bob']),
+        Participant(id: 'p1', name: 'Blues', members: ['Cy']),
+        Participant(id: 'p2', name: 'Greens', members: ['Dee']),
+      ]),
+      [
+        ('add', {'p': 'p0', 'v': 2}),
+        ('tag', {'target': 'e0000', 'm': {'m0': 1}}),
+        ('sub', {'p': 'p0', 'o': 0, 'n': 'Eli'}),
+        ('add', {'p': 'p0', 'v': 1}),
+        ('tag', {'target': 'e0003', 'm': {'m2': 1}}),
+        ('add', {'p': 'p2', 'v': 5}),
+        ('retire', {'p': 'p2'}),
+      ],
+    );
+    expect(gameCsv(snap).split('\n'), [
+      'Rank,Name,Score',
+      '1,Reds,3',
+      '2,Blues,0',
+      'Retired,Greens,5',
+      '',
+      'Team,Member,Points involved',
+      'Reds,Ann,2',
+      'Reds,Bob,0',
+      'Reds,Eli,1',
+    ]);
+  });
+
+  test('a player who joined a rounds game has blanks for the rounds before', () {
+    final snap = _play(_game(GameMode.rounds, const [Participant(id: 'p0', name: 'Ann'), Participant(id: 'p1', name: 'Bob')]), [
+      ('round', {'s': {'p0': 1, 'p1': 2}}),
+      ('addSide', {'n': 'Cy', 'c': 2}),
+      ('round', {'s': {'p0': 3, 'p1': 4, 'e0001': 5}}),
+    ]);
+    expect(gameCsv(snap).split('\n'), ['Round,Ann,Bob,Cy', '1,1,2,', '2,3,4,5', 'Total,4,6,5']);
+  });
 }

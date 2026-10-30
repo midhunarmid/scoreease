@@ -72,8 +72,8 @@ class SetsView extends StatelessWidget {
                     serving: state.server == i && !snapshot.finished,
                     serveNote: doubles
                         ? state.server == i
-                            ? '${game.participants[i].members[state.serverMember]} serving · ${state.serveFromRight ? 'right' : 'left'}'
-                            : '${game.participants[i].members[state.receiverMember]} receiving'
+                            ? '${game.participants[i].playerIn(state.serverMember)} serving · ${state.serveFromRight ? 'right' : 'left'}'
+                            : '${game.participants[i].playerIn(state.receiverMember)} receiving'
                         : null,
                     winner: snapshot.winners.contains(game.participants[i].id),
                     enabled: enabled,
@@ -220,7 +220,7 @@ class _MiniCourt extends StatelessWidget {
       final isServer = active && side == serverSide;
       final isReceiver = active && side != serverSide;
       final color = playerColor(p.color);
-      final name = p.members[member];
+      final name = p.playerIn(member);
       return Expanded(
         child: Material(
           color: isServer ? color : color.withValues(alpha: isReceiver ? 0.22 : 0.08),

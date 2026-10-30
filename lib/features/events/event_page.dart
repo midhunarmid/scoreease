@@ -45,7 +45,7 @@ class EventPage extends StatelessWidget {
   }
 }
 
-enum _Action { announce, reopen, rename, points, csv, delete }
+enum _Action { announce, reopen, players, rename, points, csv, delete }
 
 class _EventView extends StatelessWidget {
   final Meet meet;
@@ -70,6 +70,8 @@ class _EventView extends StatelessWidget {
         if (context.mounted) context.push('/event/${meet.id}/tv?announce=1');
       case _Action.reopen:
         await _store.saveMeet(meet.copyWith(finished: false, updatedAt: DateTime.now()));
+      case _Action.players:
+        context.push('/event/${meet.id}/roster');
       case _Action.rename:
         final name = await promptText(context, title: 'Rename event', initial: meet.name, confirmLabel: 'Save');
         if (name != null && name.trim().isNotEmpty) await _store.saveMeet(meet.copyWith(name: name.trim(), updatedAt: DateTime.now()));
@@ -139,6 +141,7 @@ class _EventView extends StatelessWidget {
             onSelected: (a) => _onAction(context, a),
             itemBuilder: (_) => [
               PopupMenuItem(value: meet.finished ? _Action.reopen : _Action.announce, child: Text(meet.finished ? 'Reopen event' : 'Finish & announce')),
+              const PopupMenuItem(value: _Action.players, child: Text('Teams & players')),
               const PopupMenuItem(value: _Action.rename, child: Text('Rename')),
               const PopupMenuItem(value: _Action.points, child: Text('Points for places')),
               const PopupMenuItem(value: _Action.csv, child: Text('Export CSV')),
@@ -170,7 +173,7 @@ class _EventView extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: Space.sm),
-              TeamTotals(standings: standings, scale: wide ? 1.2 : 1),
+              TeamTotals(standings: standings, scale: wide ? 1.2 : 1, onPlayers: () => context.push('/event/${meet.id}/roster')),
               const SizedBox(height: Space.lg),
               if (wide)
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

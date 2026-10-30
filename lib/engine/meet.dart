@@ -65,6 +65,38 @@ class Meet {
     return null;
   }
 
+  List<MeetTeam> _editTeams(MeetTeam Function(MeetTeam) edit) => [for (final t in teams) edit(t)];
+
+  static List<String> _replaced(List<String> members, String from, String to) => [
+        for (final m in members) m.toLowerCase() == from.toLowerCase() ? to : m,
+      ];
+
+  /// With [from] corrected to [to], as a team name or a person.
+  Meet renamed(String from, String to) => copyWith(
+        teams: _editTeams((t) => t.copyWith(
+              name: t.name.toLowerCase() == from.toLowerCase() ? to : t.name,
+              members: _replaced(t.members, from, to),
+            )),
+      );
+
+  /// With [person] on team [teamId].
+  Meet withPerson(String person, String teamId) =>
+      copyWith(teams: _editTeams((t) => t.id == teamId ? t.copyWith(members: [...t.members, person]) : t));
+
+  /// With [person] off every team.
+  Meet without(String person) => copyWith(
+        teams: _editTeams((t) => t.copyWith(members: t.members.where((m) => m.toLowerCase() != person.toLowerCase()).toList())),
+      );
+
+  /// With [person] moved to team [teamId].
+  Meet moved(String person, String teamId) => without(person).withPerson(teamOf(person)?.members.firstWhere((m) => m.toLowerCase() == person.toLowerCase()) ?? person, teamId);
+
+  /// With [a] and [b] in each other's places.
+  Meet swapped(String a, String b) {
+    const hold = '\u0000';
+    return renamed(a, hold).renamed(b, a).renamed(hold, b);
+  }
+
   Meet copyWith({String? name, List<MeetTeam>? teams, String? placePoints, DateTime? updatedAt, bool? finished}) => Meet(
         id: id,
         name: name ?? this.name,

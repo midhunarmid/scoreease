@@ -131,7 +131,8 @@ class _Strip extends StatelessWidget {
       );
 }
 
-/// One chip per team member plus "All". Used by the strip and the edit sheet.
+/// One chip per member playing plus "All". Used by the strip and the edit
+/// sheet.
 class MemberChips extends StatelessWidget {
   final Participant team;
   final Set<int> selected;
@@ -144,7 +145,7 @@ class MemberChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final all = {for (var i = 0; i < team.members.length; i++) i};
+    final all = team.onCourt.toSet();
     final density = dense ? VisualDensity.compact : null;
     final chips = <Widget>[
       for (final i in all)
@@ -156,7 +157,7 @@ class MemberChips extends StatelessWidget {
           selected: selected.contains(i),
           onSelected: (on) => onChanged(on ? {...selected, i} : ({...selected}..remove(i))),
         ),
-      if (team.members.length > 1)
+      if (all.length > 1)
         FilterChip(
           visualDensity: density,
           label: const Text('All'),
@@ -173,7 +174,8 @@ class MemberChips extends StatelessWidget {
 /// Opens a sheet to change who is credited with scoring event [eventId].
 Future<void> editWhoScored(BuildContext context, GameSnapshot snapshot, String eventId) async {
   final credit = snapshot.creditable[eventId];
-  final team = credit == null ? null : snapshot.game.participant(credit.pid);
+  // Whoever was playing then, not now.
+  final team = credit == null ? null : snapshot.gameAt(eventId).participant(credit.pid);
   if (credit == null || team == null) return;
   final cubit = context.read<PlayCubit>();
   final result = await showAdaptiveSheet<Set<int>>(

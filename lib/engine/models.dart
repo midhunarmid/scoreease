@@ -17,23 +17,74 @@ class Participant {
   /// In an event, the event team an individual player scores for.
   final String? teamId;
 
-  const Participant({required this.id, required this.name, this.color = 0, this.members = const [], this.teamId});
+  /// Who is playing now: an index into [members] for each court slot. Null
+  /// while that is still everyone, in order. Worked out from the game's
+  /// events, so never shared.
+  final List<int>? court;
+
+  /// Earlier players of an individual side, swapped out during the game.
+  final List<String> former;
+
+  /// Left the game: keeps its score but plays no more.
+  final bool retired;
+
+  const Participant({
+    required this.id,
+    required this.name,
+    this.color = 0,
+    this.members = const [],
+    this.teamId,
+    this.court,
+    this.former = const [],
+    this.retired = false,
+  });
 
   bool get isTeam => members.isNotEmpty;
 
-  Participant copyWith({String? name, int? color, List<String>? members}) => Participant(
+  /// [members] indexes playing now. Member lists only grow during a game, so
+  /// an index always means the same person.
+  List<int> get onCourt => court ?? [for (var i = 0; i < members.length; i++) i];
+
+  /// The member in court slot [slot].
+  String playerIn(int slot) => members[onCourt[slot]];
+
+  /// Everyone who has played for this side.
+  List<String> get everyone => isTeam ? members : [...former, name];
+
+  Participant copyWith({
+    String? name,
+    int? color,
+    List<String>? members,
+    String? teamId,
+    List<int>? court,
+    List<String>? former,
+    bool? retired,
+  }) =>
+      Participant(
         id: id,
         name: name ?? this.name,
         color: color ?? this.color,
         members: members ?? this.members,
-        teamId: teamId,
+        teamId: teamId ?? this.teamId,
+        court: court ?? this.court,
+        former: former ?? this.former,
+        retired: retired ?? this.retired,
       );
 
+  /// What is shared live. [toLocalJson] adds what the game's events decide.
   Map<String, dynamic> toJson() => {
         'name': name,
         'color': color,
         if (members.isNotEmpty) 'members': {for (var i = 0; i < members.length; i++) 'm$i': members[i]},
         if (teamId != null) 'team': teamId,
+      };
+
+  Map<String, dynamic> toLocalJson() => {
+        'id': id,
+        ...toJson(),
+        if (court != null) 'court': court,
+        if (former.isNotEmpty) 'former': former,
+        if (retired) 'retired': true,
       };
 
   factory Participant.fromJson(String id, Map json) {
@@ -51,6 +102,9 @@ class Participant {
       color: (json['color'] as num?)?.toInt() ?? 0,
       members: members,
       teamId: json['team']?.toString(),
+      court: (json['court'] as List?)?.map((e) => (e as num).toInt()).toList(),
+      former: (json['former'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      retired: json['retired'] == true,
     );
   }
 }
@@ -133,6 +187,11 @@ class Game {
   /// The event (a [Meet]) this game counts towards, if any. Device only.
   final String? eventId;
 
+  /// The sides as the game's events left them, when they changed anything.
+  /// Kept on the device for lists and stats; [participants] stays as the game
+  /// was set up, which is what the events replay on.
+  final List<Participant> lineup;
+
   const Game({
     required this.id,
     required this.title,
@@ -149,12 +208,19 @@ class Game {
     this.isOwner = true,
     this.memberPoints = const {},
     this.eventId,
+    this.lineup = const [],
   });
 
   bool get isFinished => status == GameStatus.finished;
 
+  /// The sides as they are now.
+  List<Participant> get current => lineup.isEmpty ? participants : lineup;
+
+  /// The sides still playing.
+  List<Participant> get sides => current.where((p) => !p.retired).toList();
+
   Participant? participant(String id) {
-    for (final p in participants) {
+    for (final p in current) {
       if (p.id == id) return p;
     }
     return null;
@@ -178,6 +244,7 @@ class Game {
     bool clearShareCode = false,
     bool? isOwner,
     Map<String, int>? memberPoints,
+    List<Participant>? lineup,
   }) =>
       Game(
         id: id,
@@ -195,6 +262,7 @@ class Game {
         isOwner: isOwner ?? this.isOwner,
         memberPoints: memberPoints ?? this.memberPoints,
         eventId: eventId,
+        lineup: lineup ?? this.lineup,
       );
 
   /// The part of a game that is shared live (no device-only fields).
@@ -218,6 +286,7 @@ class Game {
         'isOwner': isOwner,
         if (memberPoints.isNotEmpty) 'memberPoints': memberPoints,
         if (eventId != null) 'eventId': eventId,
+        if (lineup.isNotEmpty) 'lineup': [for (final p in lineup) p.toLocalJson()],
       };
 
   factory Game.fromJson(Map json, {String? id}) {
@@ -250,6 +319,9 @@ class Game {
             if (value is num) key.toString(): value.toInt(),
       },
       eventId: json['eventId']?.toString(),
+      lineup: [
+        for (final p in (json['lineup'] as List? ?? const [])) Participant.fromJson((p as Map)['id'].toString(), p),
+      ],
     );
   }
 }

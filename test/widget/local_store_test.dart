@@ -6,6 +6,7 @@ import 'package:hive_ce/hive_ce.dart';
 import 'package:scoreease/data/local/local_store.dart';
 import 'package:scoreease/engine/engine.dart';
 import 'package:scoreease/engine/meet.dart';
+import 'package:scoreease/features/events/event_data.dart';
 
 void main() {
   late Directory dir;
@@ -106,5 +107,54 @@ void main() {
     expect(bare.meet('a'), isNull);
     await bare.saveMeet(meet('a'));
     expect(await bare.meetChanges.isEmpty, isTrue);
+  });
+
+  test('a game\'s lineup survives saving and a backup', () async {
+    final played = GameEngine.compute(game('g'), const [
+      ScoreEvent(id: 'e1', type: 'sub', data: {'p': 'p0', 'n': 'Eli'}, ts: 1),
+      ScoreEvent(id: 'e2', type: 'addSide', data: {'n': 'Cy', 'c': 2}, ts: 2),
+    ]).toSaved(now);
+    await store.saveGame(played);
+    expect(store.game('g')!.current.map((p) => p.name), ['Eli', 'Bob', 'Cy']);
+    expect(store.game('g')!.participants.first.name, 'Ann');
+
+    final backup = jsonDecode(jsonEncode(store.exportAll())) as Map;
+    final other = await open('b');
+    await other.importAll(backup);
+    expect(other.game('g')!.nameOf('e2'), 'Cy');
+  });
+
+  test('a rename reaches the event, its games and saved players without moving anything', () async {
+    await store.saveMeet(meet('a'));
+    await store.saveGame(game('g1', eventId: 'a'));
+    await store.saveGame(game('other'));
+    await store.savePlayer(const SavedPlayer(id: 's', name: 'Ann', color: 1, lastUsed: 5));
+    final sent = <String>[];
+
+    await renameInEvent(store, store.meet('a')!, 'Ann', 'Anna', send: (code, e) async => sent.add(code));
+
+    expect(store.meet('a')!.team('t0')!.members, ['Anna']);
+    final g = store.game('g1')!;
+    expect(g.nameOf('p0'), 'Anna');
+    expect(g.participants.first.name, 'Ann');
+    expect(g.updatedAt, now);
+    expect(store.events('g1').map((e) => e.type), ['rename']);
+    expect(store.game('other')!.nameOf('p0'), 'Ann', reason: 'games outside the event stay as they are');
+    expect(store.players().single.name, 'Anna');
+    expect(sent, isEmpty);
+  });
+
+  test('a rename goes out to games this device shares, even if sending fails', () async {
+    await store.saveMeet(meet('a'));
+    await store.saveGame(game('g1', eventId: 'a').copyWith(shareCode: 'abc234'));
+    final sent = <String>[];
+
+    await renameInEvent(store, store.meet('a')!, 'Bob', 'Bobby', send: (code, e) async {
+      sent.add(code);
+      throw Exception('offline');
+    });
+
+    expect(sent, ['abc234']);
+    expect(store.game('g1')!.nameOf('p1'), 'Bobby');
   });
 }

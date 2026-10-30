@@ -30,7 +30,7 @@ class _HistoryPageState extends State<HistoryPage> {
     if (_query.isEmpty) return true;
     final q = _query.toLowerCase();
     return g.title.toLowerCase().contains(q) ||
-        g.participants.any((p) => p.name.toLowerCase().contains(q) || p.members.any((m) => m.toLowerCase().contains(q)));
+        g.current.any((p) => p.name.toLowerCase().contains(q) || p.everyone.any((m) => m.toLowerCase().contains(q)));
   }
 
   Future<void> _delete(Game g) async {

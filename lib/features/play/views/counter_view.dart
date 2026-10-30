@@ -28,6 +28,7 @@ class CounterView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final game = snapshot.game;
+    final sideList = game.sides;
     final state = snapshot.stateAs<CounterState>();
     final rule = counterRule(game);
     final hasClock = (game.intSetting('periods') ?? 0) > 0;
@@ -49,14 +50,14 @@ class CounterView extends StatelessWidget {
         ),
     ];
 
-    if (game.participants.length == 2) {
+    if (sideList.length == 2) {
       return Column(children: [
         ...header,
         Expanded(
           child: LayoutBuilder(builder: (context, c) {
             final horizontal = c.maxWidth > c.maxHeight * 0.9;
             final sides = [
-              for (final (i, p) in game.participants.indexed)
+              for (final (i, p) in sideList.indexed)
                 Expanded(
                   child: RotatedBox(
                     quarterTurns: !horizontal && faceToFace && i == 0 ? 2 : 0,
@@ -94,9 +95,9 @@ class CounterView extends StatelessWidget {
             crossAxisSpacing: Space.sm,
           ),
           delegate: SliverChildBuilderDelegate(
-            childCount: game.participants.length,
+            childCount: sideList.length,
             (context, i) {
-              final p = game.participants[i];
+              final p = sideList[i];
               return _PlayerTile(
                 game: game,
                 participant: p,

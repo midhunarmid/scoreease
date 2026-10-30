@@ -35,6 +35,7 @@ import 'views/rounds_view.dart';
 import 'views/sets_view.dart';
 import 'widgets/game_side_panel.dart';
 import 'widgets/password_gate.dart';
+import 'widgets/players_sheet.dart';
 import 'widgets/result_banner.dart';
 
 /// The scoring screen, for local games and for co-scoring a live one.
@@ -239,8 +240,9 @@ class _PlayViewState extends State<_PlayView> {
     switch (game.mode) {
       case GameMode.counter:
         final step = CounterEngine.stepsOf(game).first;
-        for (var i = 0; i < game.participants.length && i < 9; i++) {
-          final pid = game.participants[i].id;
+        final sides = game.sides;
+        for (var i = 0; i < sides.length && i < 9; i++) {
+          final pid = sides[i].id;
           map[SingleActivator(digits[i + 1])] = () => cubit.addPoints(pid, step);
           map[SingleActivator(digits[i + 1], shift: true)] = () => cubit.addPoints(pid, -step);
         }
@@ -276,7 +278,7 @@ class _PlayViewState extends State<_PlayView> {
   }
 }
 
-enum _MenuAction { tv, history, faceToFace, addRound, endInnings, rename, end, csv, result, shortcuts, delete }
+enum _MenuAction { tv, history, players, faceToFace, addRound, endInnings, rename, end, csv, result, shortcuts, delete }
 
 class _Menu extends StatelessWidget {
   final PlayState state;
@@ -302,6 +304,8 @@ class _Menu extends StatelessWidget {
             ),
           ),
         );
+      case _MenuAction.players:
+        await showPlayersSheet(context);
       case _MenuAction.faceToFace:
         final settings = getIt<SettingsStore>();
         settings.faceToFace = !settings.faceToFace;
@@ -311,7 +315,7 @@ class _Menu extends StatelessWidget {
         if (await confirm(context, title: 'End this innings?', confirmLabel: 'End innings')) cubit.add(CricketEngine.endInnings);
       case _MenuAction.rename:
         final title = await promptText(context, title: 'Rename game', initial: game.title, confirmLabel: 'Save');
-        if (title != null && title.trim().isNotEmpty) await cubit.updateGame(game.copyWith(title: title.trim()));
+        if (title != null && title.trim().isNotEmpty) await cubit.retitle(title.trim());
       case _MenuAction.end:
         if (await confirm(context, title: 'End the game now?', message: 'Current standings decide the winner. You can undo this.', confirmLabel: 'End game')) {
           cubit.endGame();
@@ -343,7 +347,8 @@ class _Menu extends StatelessWidget {
       itemBuilder: (context) => [
         item(_MenuAction.tv, Icons.tv, 'TV mode'),
         if (!context.isExpanded) item(_MenuAction.history, Icons.history, 'History & standings'),
-        if (game.mode == GameMode.counter && game.participants.length == 2)
+        if (state.canScore) item(_MenuAction.players, Icons.group_outlined, 'Players'),
+        if (game.mode == GameMode.counter && game.sides.length == 2)
           item(_MenuAction.faceToFace, Icons.screen_rotation_alt, getIt<SettingsStore>().faceToFace ? 'Side by side' : 'Face to face'),
         if (game.mode == GameMode.rounds && canScore) item(_MenuAction.addRound, Icons.playlist_add, 'Add round'),
         if (game.mode == GameMode.cricket && canScore) item(_MenuAction.endInnings, Icons.sports_cricket, 'End innings'),

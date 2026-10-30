@@ -21,8 +21,18 @@ lib/
 - A `Game` holds the setup: mode, template, settings and participants. It never stores scores.
 - Every action is a `ScoreEvent` (`add`, `round`, `point`, `ball`, `undo`, `redo`, `end`...). Event ids use the Firebase push-id format, so events from several devices merge in time order.
 - `GameEngine.compute(game, events)` drops undone events, then replays the rest through the mode's `ScoringEngine`. The result is a `GameSnapshot` with the state, standings, winners, result text and whether undo/redo are available.
-- There are four engines: `CounterEngine` (with an optional match clock), `RoundsEngine`, `SetsEngine` and `CricketEngine`. `templates.dart` defines presets such as table tennis, badminton, rummy and cricket on top of them.
+- There are five engines: `CounterEngine` (with an optional match clock), `RoundsEngine`, `SetsEngine`, `CricketEngine` and `PlacementsEngine`. `templates.dart` defines presets such as table tennis, badminton, rummy and cricket on top of them.
 - Undo and redo are themselves events. They work the same way locally and between devices.
+
+### Lineup
+
+`Game.participants` is the setup and never changes after a game starts. Changes of player are events too (`sub`, `addSide`, `retire`, `rename`), resolved by `compute` through `engine/lineup.dart`, so they sync to co-scorers, can be undone and need no meta write.
+
+- `snapshot.game` is the lineup as it stands. `snapshot.gameAt(eventId)` is the lineup when that event happened, for log lines and tagging.
+- Member lists only grow during a game, so the member indexes in tags stay valid. `Participant.court` maps court slots to members, and badminton's `rightCourt` and serve events use slots, so a substitute takes over a player's court.
+- Before anything is played, changes are made in place and nobody counts as having played.
+- `Game.lineup` is a device-only copy of the result, for lists and stats. Use `Game.current` or `Game.sides` on stored games. Never write `snapshot.game` to storage or the cloud: `snapshot.toSaved` keeps the setup, because the events replay on it.
+- `rename` also works after a game ends. `renameInEvent` adds one to every game of an event; a local-only edit would be lost when a shared game's log mirrors from the cloud.
 
 ### State
 
@@ -67,6 +77,7 @@ Hive CE boxes hold JSON strings, so there are no type adapters or code generatio
 - `games`: game JSON keyed by id.
 - `events`: one map of events per game id.
 - `players`: remembered names, colours and when each was last used.
+- `meets`: events, with their teams and rosters. Moving people between teams changes only this, so games already played keep their results.
 - `settings`: theme, haptics, keep-awake and the board ids this device unlocked.
 
 Backup export and import is a single JSON file. CSV export and result-card images go out through the share sheet.

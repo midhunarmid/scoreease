@@ -8,8 +8,10 @@ import 'package:scoreease/data/local/local_store.dart';
 import 'package:scoreease/data/local/settings_store.dart';
 import 'package:scoreease/design/theme.dart';
 import 'package:scoreease/engine/engine.dart';
+import 'package:scoreease/engine/event_scoring.dart';
 import 'package:scoreease/engine/meet.dart';
 import 'package:scoreease/features/events/event_page.dart';
+import 'package:scoreease/features/events/event_roster_page.dart';
 
 import 'memory_store.dart';
 
@@ -86,5 +88,80 @@ void main() {
     expect(find.text('In progress · 2 still in'), findsOneWidget, reason: 'the undone game no longer counts');
     expect(find.text('No points yet'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('the roster moves, renames and removes people, and totals stay put', (tester) async {
+    tester.view.physicalSize = const Size(500, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final now = DateTime(2026);
+    await store.saveMeet(Meet(
+      id: 'm',
+      name: 'Games day',
+      teams: const [
+        MeetTeam(id: 't0', name: 'Reds', color: 1, members: ['Ann', 'Bob']),
+        MeetTeam(id: 't1', name: 'Blues', members: ['Dee']),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    ));
+    await store.saveGame(Game(
+      id: 'g',
+      title: 'Race',
+      templateId: 'race',
+      mode: GameMode.placements,
+      settings: const {'order': 'finish'},
+      participants: const [Participant(id: 'p0', name: 'Ann', teamId: 't0'), Participant(id: 'p1', name: 'Dee', teamId: 't1')],
+      createdAt: now,
+      updatedAt: now,
+      eventId: 'm',
+    ));
+    await store.saveEvents('g', const [ScoreEvent(id: 'e1', type: 'place', data: {'p': 'p0'}, ts: 1)]);
+
+    await tester.pumpWidget(MaterialApp(theme: buildTheme(Brightness.light), home: const EventRosterPage(id: 'm')));
+    await tester.pump();
+    expect(find.text('Reds'), findsOneWidget);
+    expect(find.text('Dee'), findsOneWidget);
+
+    // The only player on a team can't leave it.
+    await tester.tap(find.text('Dee'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove from event'));
+    await tester.pumpAndSettle();
+    expect(find.text('Every team needs at least one player'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+
+    await tester.tap(find.text('Ann'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move to Blues'));
+    await tester.pumpAndSettle();
+    expect(store.meet('m')!.teamOf('Ann')!.id, 't1');
+
+    final totals = scoreMeet(store.meet('m')!, [GameEngine.compute(store.game('g')!, store.events('g'))]).teamTotals;
+    expect(totals, {'t0': 3, 't1': 2}, reason: 'Ann won the race for Reds');
+
+    await tester.tap(find.text('Ann'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fix spelling'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'dee');
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    expect(find.text('dee is already in this event'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Anna');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(store.meet('m')!.teamOf('Anna')!.id, 't1');
+    expect(store.game('g')!.nameOf('p0'), 'Anna');
+
+    await tester.tap(find.text('Bob'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Swap with…'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dee').last);
+    await tester.pumpAndSettle();
+    expect(store.meet('m')!.teamOf('Dee')!.id, 't0');
+    expect(store.meet('m')!.teamOf('Bob')!.id, 't1');
   });
 }

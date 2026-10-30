@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/events/event_page.dart';
+import '../features/events/event_roster_page.dart';
 import '../features/events/event_tv_page.dart';
 import '../features/events/new_event_page.dart';
 import '../features/history/history_page.dart';
@@ -52,6 +53,7 @@ final appRouter = GoRouter(
           parentNavigatorKey: _rootKey,
           builder: (_, state) => EventTvPage(id: state.pathParameters['id']!, announce: state.uri.queryParameters['announce'] == '1'),
         ),
+        GoRoute(path: 'roster', parentNavigatorKey: _rootKey, builder: (_, state) => EventRosterPage(id: state.pathParameters['id']!)),
       ],
     ),
     GoRoute(

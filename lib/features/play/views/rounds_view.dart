@@ -31,8 +31,8 @@ class RoundsViewState extends State<RoundsView> {
     final game = snapshot.game;
     final state = snapshot.stateAs<RoundsState>();
     final cubit = context.read<PlayCubit>();
-    final players = editIndex == null ? RoundsEngine.active(state, game) : game.participants;
     final initial = editIndex == null ? const <String, int>{} : state.rounds[editIndex];
+    final players = editIndex == null ? RoundsEngine.active(state, game) : game.participants.where((p) => initial.containsKey(p.id)).toList();
     final result = await showAdaptiveSheet<Map<String, int>>(
       context,
       builder: (_) => _RoundEntry(
@@ -179,7 +179,7 @@ class _TotalChip extends StatelessWidget {
               Text(formatScore(standing.score), style: scoreStyle(context, 24)),
               const SizedBox(width: Space.xs),
               Text(
-                out ? 'OUT' : (eliminateAt != null ? '${eliminateAt! - standing.score.toInt()} left' : '#${standing.rank}'),
+                participant.retired ? 'RETIRED' : out ? 'OUT' : (eliminateAt != null ? '${eliminateAt! - standing.score.toInt()} left' : '#${standing.rank}'),
                 style: context.text.labelSmall?.copyWith(color: out ? context.scoreColors.negative : context.colors.onSurfaceVariant),
               ),
             ]),

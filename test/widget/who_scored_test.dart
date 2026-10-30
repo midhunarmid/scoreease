@@ -170,4 +170,38 @@ void main() {
     expect(scoreOf('p0'), 1, reason: 'the turned side still scores');
     await tester.pump(WhoScored.visibleFor);
   });
+
+  testWidgets('only people playing can be credited, but older points show who was on then', (tester) async {
+    await pump(tester);
+    late final String first;
+    await tester.runAsync(() async {
+      first = (await cubit.add(CounterEngine.add, {'p': 'p0', 'v': 1}))!;
+      await cubit.substitute('p0', out: 0, name: 'Eli');
+    });
+    await tester.pump();
+
+    final reds = cubit.state.game!.participant('p0')!;
+    await tester.pumpWidget(MaterialApp(
+      theme: buildTheme(Brightness.light),
+      home: Scaffold(body: MemberChips(team: reds, selected: const {}, onChanged: (_) {})),
+    ));
+    expect(find.text('Eli'), findsOneWidget);
+    expect(find.text('Ann'), findsNothing);
+
+    await tester.pumpWidget(MaterialApp(
+      theme: buildTheme(Brightness.light),
+      home: Scaffold(
+        body: BlocProvider.value(
+          value: cubit,
+          child: Builder(
+            builder: (context) => TextButton(onPressed: () => editWhoScored(context, cubit.state.snapshot!, first), child: const Text('Edit')),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ann'), findsOneWidget);
+    expect(find.text('Eli'), findsNothing);
+  });
 }
