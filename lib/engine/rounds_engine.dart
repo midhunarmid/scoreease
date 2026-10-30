@@ -9,7 +9,11 @@ class RoundsState {
   /// One map per round: participant id -> points that round.
   final List<Map<String, int>> rounds;
 
-  const RoundsState(this.rounds);
+  /// Moves the dealer along, so a player joining doesn't change whose deal
+  /// is next.
+  final int dealerShift;
+
+  const RoundsState(this.rounds, {this.dealerShift = 0});
 
   int totalOf(String pid, [int? upToRound]) {
     var total = 0;
@@ -43,18 +47,30 @@ class RoundsEngine extends ScoringEngine<RoundsState> {
   RoundsState apply(RoundsState state, ScoreEvent e, Game game) {
     switch (e.type) {
       case round:
-        return RoundsState([...state.rounds, _scores(e)]);
+        return RoundsState([...state.rounds, _scores(e)], dealerShift: state.dealerShift);
       case editRound:
         final i = e.intOf('i', -1);
         if (i < 0 || i >= state.rounds.length) return state;
         final rounds = [...state.rounds];
         rounds[i] = _scores(e);
-        return RoundsState(rounds);
+        return RoundsState(rounds, dealerShift: state.dealerShift);
     }
     return state;
   }
 
+  @override
+  bool canChangeSides(RoundsState state, Game game) => true;
+
+  @override
+  RoundsState addSide(RoundsState state, Participant side, Game game) {
+    final seats = game.participants.length - 1;
+    if (seats < 1) return state;
+    final next = (state.rounds.length + state.dealerShift) % seats;
+    return RoundsState(state.rounds, dealerShift: (next - state.rounds.length) % game.participants.length);
+  }
+
   static bool isOut(RoundsState state, Game game, String pid) {
+    if (game.participant(pid)?.retired ?? false) return true;
     final limit = game.intSetting('eliminateAt');
     return limit != null && limit > 0 && state.totalOf(pid) >= limit;
   }
@@ -68,7 +84,7 @@ class RoundsEngine extends ScoringEngine<RoundsState> {
     final players = game.participants;
     if (players.isEmpty) return null;
     for (var step = 0; step < players.length; step++) {
-      final p = players[(state.rounds.length + step) % players.length];
+      final p = players[(state.rounds.length + state.dealerShift + step) % players.length];
       if (!isOut(state, game, p.id)) return p.id;
     }
     return null;
@@ -82,7 +98,7 @@ class RoundsEngine extends ScoringEngine<RoundsState> {
               participantId: p.id,
               score: state.totalOf(p.id),
               out: isOut(state, game, p.id),
-              detail: isOut(state, game, p.id) ? 'Out' : '',
+              detail: p.retired ? 'Retired' : (isOut(state, game, p.id) ? 'Out' : ''),
             ),
         ],
         lowWins: game.flag('lowWins'),
@@ -94,7 +110,7 @@ class RoundsEngine extends ScoringEngine<RoundsState> {
     final maxRounds = game.intSetting('maxRounds');
     if (maxRounds != null && maxRounds > 0 && state.rounds.length >= maxRounds) return true;
     final target = game.intSetting('target');
-    if (target != null && target > 0 && game.participants.any((p) => state.totalOf(p.id) >= target)) return true;
+    if (target != null && target > 0 && game.sides.any((p) => state.totalOf(p.id) >= target)) return true;
     final eliminate = game.intSetting('eliminateAt');
     if (eliminate != null && eliminate > 0 && game.participants.length > 1) {
       return active(state, game).length <= 1;

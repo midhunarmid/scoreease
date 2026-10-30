@@ -140,8 +140,9 @@ class PlayCubit extends Cubit<PlayState> {
       if (meta == null) {
         if (quiet) {
           // The cloud copy is gone; carry on locally.
-          await _saveLocal(_game!.copyWith(clearShareCode: true));
+          _game = _game!.copyWith(clearShareCode: true);
           _emitSnapshot(canScore: true);
+          await _persist();
           return;
         }
         throw CloudException.notFound;
@@ -246,9 +247,10 @@ class PlayCubit extends Cubit<PlayState> {
   }
 
   /// Undoes the last score. Tags aren't undone on their own: they go with
-  /// the score they belong to, and can be changed from the log.
+  /// the score they belong to, and can be changed from the log. Spelling
+  /// fixes are undone by fixing the name again.
   Future<void> undo() async {
-    final last = state.snapshot?.effective.lastWhereOrNull((e) => e.type != EventTypes.tag);
+    final last = state.snapshot?.effective.lastWhereOrNull((e) => !EventTypes.silent.contains(e.type));
     if (last != null) await add(EventTypes.undo, {'target': last.id});
   }
 
@@ -268,13 +270,44 @@ class PlayCubit extends Cubit<PlayState> {
     await add(EventTypes.end);
   }
 
+  // ---- Lineup ----
+
+  /// Changes who plays for side [pid]. On a team, member [out] leaves and
+  /// [name] comes on; either can be left out to remove or add someone. On an
+  /// individual side, [name] takes over.
+  Future<void> substitute(String pid, {int? out, String? name}) async {
+    final color = state.game?.participant(pid)?.color ?? 0;
+    await add(EventTypes.sub, {'p': pid, if (out != null) 'o': out, if (name != null) 'n': name});
+    if (name != null) await _store.rememberPlayers([Participant(id: name, name: name, color: color)]);
+  }
+
+  /// Adds a side, which starts from 0.
+  Future<void> addSide(String name, {required int color, String? teamId, List<String> members = const []}) async {
+    await add(EventTypes.addSide, {
+      'n': name,
+      'c': color,
+      if (teamId != null) 't': teamId,
+      for (final (i, m) in members.indexed) 'm$i': m,
+    });
+    await _store.rememberPlayers([Participant(id: name, name: name, color: color, members: members)]);
+  }
+
+  Future<void> retireSide(String pid) async {
+    await add(EventTypes.retire, {'p': pid});
+  }
+
+  /// Corrects a name everywhere in the game, past events included.
+  Future<void> renameName(String from, String to) async {
+    await add(EventTypes.rename, {'f': from, 'n': to});
+  }
+
   // ---- Owner actions ----
 
-  Future<void> updateGame(Game game) async {
-    _game = game.copyWith(updatedAt: DateTime.now());
+  Future<void> retitle(String title) async {
+    _game = _game!.copyWith(title: title, updatedAt: DateTime.now());
     _emitSnapshot();
-    await _saveLocal(_game!);
-    if (state.liveCode != null && game.isOwner) await _remote.updateMeta(state.liveCode!, _game!);
+    await _persist();
+    if (state.liveCode != null && _game!.isOwner) await _remote.updateMeta(state.liveCode!, _game!);
   }
 
   Future<String> share({String readPassword = '', String writePassword = ''}) async {
@@ -282,8 +315,8 @@ class PlayCubit extends Cubit<PlayState> {
     flushBurst();
     final code = await _remote.publish(_game!, _events, readPassword: readPassword, writePassword: writePassword);
     _game = _game!.copyWith(shareCode: code);
-    await _saveLocal(_game!);
     _emitSnapshot(liveCode: code);
+    await _persist();
     await _goLive(code, AccessLevel.owner, quiet: true);
     return code;
   }
@@ -296,9 +329,9 @@ class PlayCubit extends Cubit<PlayState> {
     _liveSub = null;
     await _remote.unpublish(code);
     _game = _game!.copyWith(clearShareCode: true);
-    await _saveLocal(_game!);
     emit(state.copyWith(clearLive: true));
     _emitSnapshot();
+    await _persist();
   }
 
   Future<void> setPasswords({String? read, String? write}) => _remote.setPasswords(state.liveCode!, read: read, write: write);
@@ -314,35 +347,14 @@ class PlayCubit extends Cubit<PlayState> {
     _wasFinished = snapshot.finished;
   }
 
-  Future<void> _saveLocal(Game game) async {
-    if (_localId == null) return;
-    await _store.saveGame(game);
-  }
-
   /// Keeps the device copy (and its summary for lists) up to date.
   Future<void> _persist() async {
     final snapshot = state.snapshot;
     final localId = _localId;
     if (snapshot == null || localId == null) return;
-    final game = snapshot.game;
-    await _store.saveGame(Game(
-      id: localId,
-      title: game.title,
-      templateId: game.templateId,
-      mode: game.mode,
-      settings: game.settings,
-      participants: game.participants,
-      createdAt: game.createdAt,
-      updatedAt: DateTime.now(),
-      status: snapshot.finished ? GameStatus.finished : GameStatus.active,
-      winners: snapshot.winners,
-      summary: snapshot.summary,
-      shareCode: game.shareCode,
-      isOwner: game.isOwner,
-      memberPoints: snapshot.memberPointsByName,
-      eventId: game.eventId,
-    ));
+    // Events first: saving the game tells open lists to rebuild from them.
     await _store.saveEvents(localId, _events);
+    await _store.saveGame(snapshot.toSaved(DateTime.now(), id: localId));
   }
 
   @override

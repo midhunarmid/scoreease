@@ -17,15 +17,16 @@ class PlayerStats {
   double get winRate => played == 0 ? 0 : wins / played;
 }
 
-/// People are matched by name (case-insensitive). Team members share their
-/// team's result; points come from who was tagged as scoring.
+/// People are matched by name (case-insensitive). Team members, and anyone
+/// swapped in or out of a side, share its result; points come from who was
+/// tagged as scoring.
 Map<String, PlayerStats> computeStats(List<Game> games) {
   final stats = <String, PlayerStats>{};
   final finished = games.where((g) => g.isFinished).toList()..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
   for (final g in finished) {
-    for (final p in g.participants) {
+    for (final p in g.current) {
       final won = g.winners.contains(p.id);
-      for (final name in p.isTeam ? p.members : [p.name]) {
+      for (final name in p.everyone) {
         final s = stats.putIfAbsent(name.toLowerCase(), () => PlayerStats(name));
         s.played++;
         s.points += g.memberPoints[name] ?? 0;

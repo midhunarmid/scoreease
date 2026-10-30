@@ -79,10 +79,12 @@ class _NewGamePageState extends State<NewGamePage> {
     if (rematch != null) {
       _template = Templates.byId(rematch.templateId);
       _settings = Map.of(rematch.settings);
-      for (final p in rematch.participants) {
-        _drafts.add(_Draft(p.name, p.color, p.members));
+      // Whoever was playing at the end, not who started.
+      final sides = rematch.sides;
+      for (final p in sides) {
+        _drafts.add(_Draft(p.name, p.color, [for (final i in p.onCourt) p.members[i]]));
       }
-      _teams = rematch.participants.any((p) => p.isTeam);
+      _teams = sides.any((p) => p.isTeam);
       _title.text = rematch.title;
       _titleEdited = true;
       if (meet != null) {
@@ -90,10 +92,12 @@ class _NewGamePageState extends State<NewGamePage> {
         if (_eventTeams) {
           _pickedTeams
             ..clear()
-            ..addAll(rematch.participants.map((p) => p.teamId).whereType<String>());
+            ..addAll(sides.map((p) => p.teamId).whereType<String>());
         } else {
-          for (final p in rematch.participants) {
-            if (p.teamId != null) _picked[p.teamId]?.add(p.name);
+          // By the roster as it is now: people move and leave between games.
+          for (final p in sides) {
+            final team = meet.teamOf(p.name);
+            if (team != null) _picked[team.id]?.add(team.members.firstWhere((m) => m.toLowerCase() == p.name.toLowerCase()));
           }
         }
       }

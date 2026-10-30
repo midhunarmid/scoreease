@@ -46,6 +46,14 @@ class PlacementsEngine extends ScoringEngine<PlacementsState> {
   @override
   PlacementsState initial(Game game) => const PlacementsState([]);
 
+  /// Places depend on how many are playing, so the field is set at the first
+  /// place.
+  @override
+  bool canSub(PlacementsState state, Game game) => state.order.isEmpty;
+
+  @override
+  bool canChangeSides(PlacementsState state, Game game) => state.order.isEmpty;
+
   @override
   PlacementsState apply(PlacementsState state, ScoreEvent e, Game game) {
     if (e.type != place) return state;

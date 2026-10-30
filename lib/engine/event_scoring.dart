@@ -68,7 +68,9 @@ class MeetStandings {
 /// points by place, using the game's own points table or the event's:
 /// - a player's points go to them and to their team;
 /// - a team's points go to the team, and its roster counts as having played.
-/// Players who share a place get the same points.
+/// Players who share a place get the same points. Anyone swapped in or out of
+/// a side counts as having played, but a side's place goes to whoever
+/// finished. A side that retired gets no points.
 MeetStandings scoreMeet(Meet meet, List<GameSnapshot> snapshots) {
   final totals = {for (final t in meet.teams) t.id: 0};
   final people = <String, PersonLine>{};
@@ -89,7 +91,7 @@ MeetStandings scoreMeet(Meet meet, List<GameSnapshot> snapshots) {
         final p = snap.game.participant(s.participantId);
         if (p == null) continue;
         // Ended by hand mid-way: those still in share the win.
-        final place = s.rank > 0 ? s.rank : (snap.winners.contains(p.id) ? 1 : 0);
+        final place = p.retired ? 0 : (s.rank > 0 ? s.rank : (snap.winners.contains(p.id) ? 1 : 0));
         final points = pointsForPlace(table, place);
         final teamId = p.teamId;
         if (teamId != null && totals.containsKey(teamId)) {
@@ -100,6 +102,9 @@ MeetStandings scoreMeet(Meet meet, List<GameSnapshot> snapshots) {
             person(m).played++;
           }
         } else {
+          for (final name in p.former) {
+            person(name).played++;
+          }
           final line = person(p.name);
           line.played++;
           line.points += points;

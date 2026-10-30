@@ -54,7 +54,7 @@ String gameCsv(GameSnapshot snapshot) {
     case GameMode.counter:
       rows.add(['Rank', 'Name', 'Score']);
       for (final s in snapshot.standings) {
-        rows.add([s.rank, game.nameOf(s.participantId), s.score]);
+        rows.add([s.out ? 'Retired' : s.rank, game.nameOf(s.participantId), s.score]);
       }
   }
   final memberPoints = snapshot.memberPoints;

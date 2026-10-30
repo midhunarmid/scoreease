@@ -12,7 +12,10 @@ class TeamTotals extends StatelessWidget {
   final MeetStandings standings;
   final double scale;
 
-  const TeamTotals({super.key, required this.standings, this.scale = 1});
+  /// Makes each team's player count a button.
+  final VoidCallback? onPlayers;
+
+  const TeamTotals({super.key, required this.standings, this.scale = 1, this.onPlayers});
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +54,10 @@ class TeamTotals extends StatelessWidget {
                       ScoreDelta(score: standings.teamTotals[t.id] ?? 0, size: 20 * scale),
                     ]),
                   ),
-                  Text('${t.members.length} players', style: context.text.labelSmall?.copyWith(fontSize: 11 * scale, color: context.colors.onSurfaceVariant)),
+                  InkWell(
+                    onTap: onPlayers,
+                    child: Text('${t.members.length} players', style: context.text.labelSmall?.copyWith(fontSize: 11 * scale, color: context.colors.onSurfaceVariant)),
+                  ),
                 ]),
               ),
             ),

@@ -112,4 +112,94 @@ void main() {
     expect(again.placePoints, '3,2,1');
     expect(again.teamOf('eve')?.id, 'blue');
   });
+
+  test('subs count as having played, but a side\'s place goes to whoever finished', () {
+    final race = _play(
+      _game(GameMode.placements, const [
+        Participant(id: 'p0', name: 'Ann', teamId: 'red'),
+        Participant(id: 'p1', name: 'Dee', teamId: 'blue'),
+      ], settings: {'order': 'finish'}),
+      [('sub', {'p': 'p0', 'n': 'Bob'}), ('place', {'p': 'p0'})],
+    );
+    final tug = _play(
+      _game(GameMode.counter, const [
+        Participant(id: 'p0', name: 'Reds', teamId: 'red', members: ['Ann', 'Bob']),
+        Participant(id: 'p1', name: 'Blues', teamId: 'blue', members: ['Dee']),
+      ], settings: {'target': 2}),
+      [
+        ('add', {'p': 'p0', 'v': 1}),
+        ('sub', {'p': 'p0', 'o': 1, 'n': 'Cy'}),
+        ('add', {'p': 'p0', 'v': 1}),
+      ],
+    );
+    final doubleBack = _play(
+      _game(GameMode.counter, const [
+        Participant(id: 'p0', name: 'Eve', teamId: 'blue'),
+        Participant(id: 'p1', name: 'Fay', teamId: 'blue'),
+      ], settings: {'target': 3}),
+      [
+        ('add', {'p': 'p0', 'v': 1}),
+        ('sub', {'p': 'p0', 'n': 'Ann'}),
+        ('add', {'p': 'p0', 'v': 2}),
+      ],
+    );
+    final s = scoreMeet(_meet, [race, tug, doubleBack]);
+    final line = {for (final p in s.people) p.name: p};
+    expect(line['Bob']!.played, 2, reason: 'took over in the race, and left the tug part way');
+    expect(line['Cy']!.played, 1);
+    expect(line['Eve']!.played, 1);
+    expect(line['Eve']!.points, 0, reason: 'replaced, so the win went to Ann');
+    expect(line['Ann']!.points, 3);
+    expect(line['Ann']!.wins, 1);
+  });
+
+  test('a retired side gets no points, even if it was ahead', () {
+    final snap = _play(
+      _game(GameMode.counter, const [
+        Participant(id: 'p0', name: 'Ann', teamId: 'red'),
+        Participant(id: 'p1', name: 'Dee', teamId: 'blue'),
+        Participant(id: 'p2', name: 'Eve', teamId: 'blue'),
+      ]),
+      [
+        ('add', {'p': 'p0', 'v': 9}),
+        ('add', {'p': 'p1', 'v': 1}),
+        ('retire', {'p': 'p0'}),
+        ('end', {}),
+      ],
+    );
+    final s = scoreMeet(_meet, [snap]);
+    expect(s.teamTotals, {'red': 0, 'blue': 5});
+    final ann = s.people.firstWhere((p) => p.name == 'Ann');
+    expect(ann.points, 0);
+    expect(ann.played, 1);
+  });
+
+  test('moving someone keeps totals, and the leaderboard shows their team now', () {
+    final race = _play(
+      _game(GameMode.placements, const [
+        Participant(id: 'p0', name: 'Ann', teamId: 'red'),
+        Participant(id: 'p1', name: 'Dee', teamId: 'blue'),
+      ], settings: {'order': 'finish'}),
+      [('place', {'p': 'p0'})],
+    );
+    final before = scoreMeet(_meet, [race]);
+    final after = scoreMeet(_meet.moved('Ann', 'blue'), [race]);
+    expect(after.teamTotals, before.teamTotals);
+    expect(after.people.firstWhere((p) => p.name == 'Ann').teamId, 'blue');
+    expect(after.meet.team('blue')!.members, ['Dee', 'Eve', 'Fay', 'Ann']);
+    expect(after.meet.team('red')!.members, ['Bob', 'Cy']);
+  });
+
+  test('roster changes: rename, swap, remove', () {
+    final renamed = _meet.renamed('ann', 'Anna').renamed('Blues', 'Navy');
+    expect(renamed.team('red')!.members.first, 'Anna');
+    expect(renamed.team('blue')!.name, 'Navy');
+
+    final swapped = _meet.swapped('Ann', 'Eve');
+    expect(swapped.team('red')!.members, ['Eve', 'Bob', 'Cy']);
+    expect(swapped.team('blue')!.members, ['Dee', 'Ann', 'Fay']);
+
+    expect(_meet.without('bob').team('red')!.members, ['Ann', 'Cy']);
+    expect(_meet.withPerson('Gus', 'blue').teamOf('gus')!.id, 'blue');
+  });
 }

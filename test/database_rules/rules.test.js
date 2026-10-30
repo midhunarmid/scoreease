@@ -243,6 +243,19 @@ test('boards: scorers can tag who scored', async () => {
   await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'tag', { target: point })));
 });
 
+test('boards: scorers can change who is playing', async () => {
+  await assertSucceeds(shareBoard('alice', 'abc234'));
+  const side = eventId();
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'sub', { p: 'p0', o: 0, n: 'Bob' })));
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'sub', { p: 'p0', n: 'Bob' })));
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${side}`), event('bob', 'addSide', { n: 'Greens', c: 2, t: 't2', m0: 'Gus', m1: 'Hal' })));
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'retire', { p: 'p1' })));
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'rename', { f: 'Bbo', n: 'Bob' })));
+  await assertSucceeds(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'round', { s: { p0: 1, [side]: 2 } })));
+  await assertFails(set(ref(db('bob'), `boards/abc234/events/${eventId()}`), event('bob', 'sub', { p: 'p0', n: 'x'.repeat(41) })));
+  await assertFails(set(ref(db('alice'), `boards/abc234/meta/participants/${side}`), { name: 'Greens' }));
+});
+
 test('boards: scorers cannot change the game setup', async () => {
   await assertSucceeds(shareBoard('alice', 'abc234'));
   await assertFails(set(ref(db('bob'), 'boards/abc234/meta/title'), 'hacked'));
