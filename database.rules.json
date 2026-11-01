@@ -181,6 +181,52 @@
           ".validate": false
         }
       }
+    },
+    "eventBoards": {
+      "$id": {
+        ".read": "((auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val()))) || ((auth != null && root.child('boardMeta').child($id).exists()) && ((root.child('grants').child($id).child(auth.uid).child('write').exists() && root.child('grants').child($id).child(auth.uid).child('write').val() === root.child('secrets').child($id).child('write').val()) || (root.child('boardMeta').child($id).child('readProtected').val() !== true || (root.child('grants').child($id).child(auth.uid).child('read').exists() && root.child('grants').child($id).child(auth.uid).child('read').val() === root.child('secrets').child($id).child('read').val())))))",
+        ".write": "(auth != null && !root.child('boardMeta').child($id).exists() && newData.parent().parent().child('boardMeta').child($id).child('ownerId').val() === auth.uid) || (auth != null && root.child('boardMeta').child($id).exists() && (root.child('boardMeta').child($id).child('ownerId').val() === auth.uid || (root.child('grants').child($id).child(auth.uid).child('owner').exists() && root.child('grants').child($id).child(auth.uid).child('owner').val() === root.child('secrets').child($id).child('owner').val())))",
+        ".validate": "newData.hasChildren(['name', 'placePoints', 'createdAt', 'teams'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "placePoints": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "finished": {
+          ".validate": "newData.isBoolean()"
+        },
+        "teams": {
+          "$tid": {
+            ".validate": "$tid.length <= 20 && newData.hasChildren(['name'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "color": {
+              ".validate": "newData.isNumber()"
+            },
+            "members": {
+              "$member": {
+                ".validate": "$member.matches(/^m[0-9]{1,3}$/) && newData.isString() && newData.val().length <= 40"
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "games": {
+          "$gid": {
+            ".validate": "$gid.length <= 40 && newData.isString() && newData.val().matches(/^[a-z0-9]{4,12}$/)"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/di.dart';
+import '../../data/cloud/event_board_remote.dart';
 import '../../data/local/local_store.dart';
 import '../../design/responsive.dart';
 import '../../design/theme.dart';
@@ -26,7 +27,8 @@ class HomePage extends StatelessWidget {
         builder: (context, _) {
           final games = store.games();
           final meets = store.meets();
-          final active = games.where((g) => !g.isFinished).toList();
+          // An event's game waiting for its turn shows on the event instead.
+          final active = games.where((g) => !g.isFinished && (g.eventId == null || store.events(g.id).isNotEmpty)).toList();
           final recent = games.where((g) => g.isFinished).take(5).toList();
           final wide = context.windowSize != WindowSize.compact;
 
@@ -302,7 +304,11 @@ Future<void> showJoinDialog(BuildContext context) async {
   final code = parseJoinCode(input)!;
   if (code.startsWith('legacy:')) {
     context.push('/display?id=${code.substring(7)}');
+  } else if (code.startsWith('event:')) {
+    context.push('/follow/${code.substring(6)}');
   } else {
-    context.push('/live/$code');
+    // Games and events share codes. If this check fails the game page says why.
+    final isEvent = await getIt<EventBoardRemote>().exists(code).catchError((Object _) => false);
+    if (context.mounted) context.push(isEvent ? '/follow/$code' : '/live/$code');
   }
 }

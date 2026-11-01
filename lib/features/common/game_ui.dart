@@ -13,9 +13,15 @@ String liveLink(String code) => '$appBaseUrl/live/$code';
 /// Opens the read-only TV scoreboard directly, for a TV or a propped-up tablet.
 String tvLink(String code) => '${liveLink(code)}/tv';
 
-/// Pulls a share code out of a pasted link or plain code.
+/// Opens a shared event, for people following all of its games.
+String followLink(String code) => '$appBaseUrl/follow/$code';
+
+/// Pulls a share code out of a pasted link or plain code. Events come back
+/// as `event:code`.
 String? parseJoinCode(String input) {
   final text = input.trim().toLowerCase();
+  final event = RegExp(r'/follow/([a-z0-9]{4,12})').firstMatch(text);
+  if (event != null) return 'event:${event.group(1)}';
   final fromLink = RegExp(r'/live/([a-z0-9]{4,12})').firstMatch(text);
   if (fromLink != null) return fromLink.group(1);
   final legacy = RegExp(r'[?&]id=([a-z0-9]{3,50})').firstMatch(text);

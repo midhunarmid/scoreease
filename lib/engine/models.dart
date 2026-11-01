@@ -91,7 +91,7 @@ class Participant {
     final raw = json['members'];
     final members = <String>[];
     if (raw is Map) {
-      final keys = raw.keys.map((k) => k.toString()).toList()..sort(_naturalCompare);
+      final keys = raw.keys.map((k) => k.toString()).toList()..sort(naturalCompare);
       members.addAll(keys.map((k) => raw[k].toString()));
     } else if (raw is List) {
       members.addAll(raw.whereType<Object>().map((e) => e.toString()));
@@ -109,7 +109,8 @@ class Participant {
   }
 }
 
-int _naturalCompare(String a, String b) {
+/// Orders keys by their number, so `m10` comes after `m9`.
+int naturalCompare(String a, String b) {
   final na = int.tryParse(a.replaceAll(RegExp(r'\D'), ''));
   final nb = int.tryParse(b.replaceAll(RegExp(r'\D'), ''));
   if (na != null && nb != null && na != nb) return na.compareTo(nb);
@@ -293,7 +294,7 @@ class Game {
     final rawParticipants = json['participants'];
     final participants = <Participant>[];
     if (rawParticipants is Map) {
-      final keys = rawParticipants.keys.map((k) => k.toString()).toList()..sort(_naturalCompare);
+      final keys = rawParticipants.keys.map((k) => k.toString()).toList()..sort(naturalCompare);
       for (final k in keys) {
         participants.add(Participant.fromJson(k, rawParticipants[k] as Map));
       }

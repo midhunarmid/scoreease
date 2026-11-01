@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -38,6 +39,10 @@ class AccessMeta {
 }
 
 String hashPassword(String plain) => plain.isEmpty ? '' : sha256.convert(utf8.encode(plain)).toString();
+
+/// A password nobody is told. Set as a board's scoring password, it leaves
+/// scoring to the owner, who needs no password.
+String unknownPassword() => base64Url.encode(List.generate(32, (_) => Random.secure().nextInt(256)));
 
 /// Board passwords, enforced by database.rules.json:
 ///

@@ -16,6 +16,7 @@ import '../../engine/engine.dart';
 import '../../engine/meet.dart';
 import '../../engine/templates.dart';
 import '../common/place_points_field.dart';
+import '../events/event_sharing.dart';
 import '../home/home_page.dart';
 
 const _maxParticipants = 50;
@@ -51,6 +52,7 @@ class _NewGamePageState extends State<NewGamePage> {
   bool _teams = false;
   final _title = TextEditingController();
   bool _titleEdited = false;
+  bool _saving = false;
 
   /// Set when the game is part of an event.
   Meet? _meet;
@@ -202,7 +204,10 @@ class _NewGamePageState extends State<NewGamePage> {
     return null;
   }
 
-  Future<void> _start() async {
+  /// Creates the game and opens it, or with [later] adds it to the event's
+  /// games up next.
+  Future<void> _start({bool later = false}) async {
+    if (_saving) return;
     final meet = _meet;
     final eventParticipants = meet == null ? null : _eventParticipants(meet);
     final error = eventParticipants == null ? _validate() : _validateEvent(eventParticipants);
@@ -210,6 +215,7 @@ class _NewGamePageState extends State<NewGamePage> {
       toast(context, error);
       return;
     }
+    setState(() => _saving = true);
     final now = DateTime.now();
     final participants = eventParticipants ?? [
       for (var i = 0; i < _drafts.length; i++)
@@ -234,7 +240,20 @@ class _NewGamePageState extends State<NewGamePage> {
     await _store.saveGame(game);
     await _store.saveEvents(game.id, const []);
     await _store.rememberPlayers(participants);
-    if (mounted) context.pushReplacement('/game/${game.id}');
+    if (meet?.shareCode != null) {
+      // Before the game opens, so it goes live with its first point.
+      try {
+        await getIt<EventSharing>().sync(meet!.id).timeout(const Duration(seconds: 4));
+      } catch (_) {
+        // Offline: it joins the shared event the next time that page opens.
+      }
+    }
+    if (!mounted) return;
+    if (later) {
+      goBack(context, '/event/${meet!.id}');
+    } else {
+      context.pushReplacement('/game/${game.id}');
+    }
   }
 
   @override
@@ -284,13 +303,16 @@ class _NewGamePageState extends State<NewGamePage> {
       eventPoints: meet?.placePoints,
       onChanged: () => setState(() {}),
     );
+    final start = FilledButton.icon(onPressed: _saving ? null : _start, icon: const Icon(Icons.play_arrow), label: const Text('Start game'));
+    final schedule = OutlinedButton.icon(onPressed: _saving ? null : () => _start(later: true), icon: const Icon(Icons.schedule), label: const Text('Add to schedule'));
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.close), tooltip: 'Close', onPressed: () => goBack(context)),
         title: Text(meet != null ? 'New game · ${meet.name}' : (widget.rematchOf != null ? 'Rematch' : 'New game')),
         actions: [
-          if (wide) Padding(padding: const EdgeInsets.only(right: Space.lg), child: FilledButton.icon(onPressed: _start, icon: const Icon(Icons.play_arrow), label: const Text('Start game'))),
+          if (wide && meet != null) Padding(padding: const EdgeInsets.only(right: Space.sm), child: schedule),
+          if (wide) Padding(padding: const EdgeInsets.only(right: Space.lg), child: start),
         ],
       ),
       bottomNavigationBar: wide
@@ -298,7 +320,9 @@ class _NewGamePageState extends State<NewGamePage> {
           : SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, Space.md),
-                child: FilledButton.icon(onPressed: _start, icon: const Icon(Icons.play_arrow), label: const Text('Start game')),
+                child: meet == null
+                    ? start
+                    : Row(children: [Expanded(child: schedule), const SizedBox(width: Space.sm), Expanded(child: start)]),
               ),
             ),
       body: ListView(

@@ -6,4 +6,9 @@ void main() {
     expect(tvLink('ab12cd'), 'https://scoreease.armid.in/live/ab12cd/tv');
     expect(parseJoinCode(tvLink('ab12cd')), 'ab12cd');
   });
+
+  test('an event link parses as an event', () {
+    expect(followLink('ab12cd'), 'https://scoreease.armid.in/follow/ab12cd');
+    expect(parseJoinCode(followLink('ab12cd')), 'event:ab12cd');
+  });
 }

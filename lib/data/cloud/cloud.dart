@@ -16,6 +16,7 @@ class CloudException implements Exception {
 
   static const accessDenied = CloudException('Access denied', 'You need the password to do that.');
   static const notFound = CloudException('Not found', 'No live game with that code. Check the code and try again.');
+  static const eventNotFound = CloudException('Not found', 'This event isn\'t shared any more. Check the link and try again.');
   static const offline = CloudException('Can\'t reach the server', 'Check your internet connection and try again.');
 }
 

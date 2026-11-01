@@ -11,6 +11,9 @@ class GameAward {
 
   Game get game => snapshot.game;
   bool get counted => snapshot.finished;
+
+  /// Set up but not started: nothing has happened yet except lineup changes.
+  bool get upcoming => !snapshot.finished && snapshot.log.every((e) => EventTypes.lineup.contains(e.type));
 }
 
 /// One person's event record.

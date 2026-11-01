@@ -39,6 +39,13 @@ class Meet {
   final DateTime updatedAt;
   final bool finished;
 
+  /// Set when the event is shared for people to follow.
+  final String? shareCode;
+
+  /// Boards published only because the event is shared. Stopping sharing
+  /// removes these and leaves games shared on their own alone.
+  final List<String> sharedBoards;
+
   const Meet({
     required this.id,
     required this.name,
@@ -47,6 +54,8 @@ class Meet {
     required this.createdAt,
     required this.updatedAt,
     this.finished = false,
+    this.shareCode,
+    this.sharedBoards = const [],
   });
 
   MeetTeam? team(String? id) {
@@ -97,7 +106,17 @@ class Meet {
     return renamed(a, hold).renamed(b, a).renamed(hold, b);
   }
 
-  Meet copyWith({String? name, List<MeetTeam>? teams, String? placePoints, DateTime? updatedAt, bool? finished}) => Meet(
+  Meet copyWith({
+    String? name,
+    List<MeetTeam>? teams,
+    String? placePoints,
+    DateTime? updatedAt,
+    bool? finished,
+    String? shareCode,
+    List<String>? sharedBoards,
+    bool clearShare = false,
+  }) =>
+      Meet(
         id: id,
         name: name ?? this.name,
         teams: teams ?? this.teams,
@@ -105,6 +124,8 @@ class Meet {
         createdAt: createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         finished: finished ?? this.finished,
+        shareCode: clearShare ? null : (shareCode ?? this.shareCode),
+        sharedBoards: clearShare ? const [] : (sharedBoards ?? this.sharedBoards),
       );
 
   Map<String, dynamic> toJson() => {
@@ -115,7 +136,50 @@ class Meet {
         'createdAt': createdAt.millisecondsSinceEpoch,
         'updatedAt': updatedAt.millisecondsSinceEpoch,
         if (finished) 'finished': true,
+        if (shareCode != null) 'shareCode': shareCode,
+        if (sharedBoards.isNotEmpty) 'sharedBoards': sharedBoards,
       };
+
+  /// The part of an event that followers see (no device-only fields).
+  Map<String, dynamic> toShareJson() => {
+        'name': name,
+        'placePoints': placePoints,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+        'finished': finished,
+        'teams': {
+          for (final t in teams)
+            t.id: {
+              'name': t.name,
+              'color': t.color,
+              'members': {for (final (i, m) in t.members.indexed) 'm$i': m},
+            },
+        },
+      };
+
+  /// An event as followers get it from [toShareJson].
+  factory Meet.fromShareJson(String code, Map json) {
+    final created = DateTime.fromMillisecondsSinceEpoch((json['createdAt'] as num?)?.toInt() ?? 0);
+    final teams = json['teams'] is Map ? json['teams'] as Map : const {};
+    final ids = teams.keys.map((k) => k.toString()).toList()..sort(naturalCompare);
+    return Meet(
+      id: code,
+      name: (json['name'] ?? '').toString(),
+      teams: [
+        for (final id in ids)
+          MeetTeam(
+            id: id,
+            name: (teams[id]['name'] ?? '').toString(),
+            color: (teams[id]['color'] as num?)?.toInt() ?? 0,
+            members: Participant.fromJson(id, teams[id] as Map).members,
+          ),
+      ],
+      placePoints: (json['placePoints'] ?? '3,2,1').toString(),
+      createdAt: created,
+      updatedAt: created,
+      finished: json['finished'] == true,
+      shareCode: code,
+    );
+  }
 
   factory Meet.fromJson(Map json) {
     final created = (json['createdAt'] as num?)?.toInt() ?? 0;
@@ -127,6 +191,8 @@ class Meet {
       createdAt: DateTime.fromMillisecondsSinceEpoch(created),
       updatedAt: DateTime.fromMillisecondsSinceEpoch((json['updatedAt'] as num?)?.toInt() ?? created),
       finished: json['finished'] == true,
+      shareCode: json['shareCode']?.toString(),
+      sharedBoards: (json['sharedBoards'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 }
