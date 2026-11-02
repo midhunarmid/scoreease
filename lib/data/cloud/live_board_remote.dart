@@ -37,7 +37,7 @@ class LiveBoardRemote {
 
   static String liveGameId(String code) => 'live_$code';
 
-  static String _newCode() {
+  static String newCode() {
     final r = Random.secure();
     return List.generate(6, (_) => _alphabet[r.nextInt(_alphabet.length)]).join();
   }
@@ -49,7 +49,7 @@ class LiveBoardRemote {
     if (uid == null) throw CloudException.offline;
 
     for (var attempt = 0; attempt < 5; attempt++) {
-      final code = _newCode();
+      final code = newCode();
       final updates = <String, dynamic>{
         '${AccessRemote.meta}/$code': AccessMeta(
           ownerId: uid,

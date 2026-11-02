@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -13,19 +14,60 @@ import '../../design/tokens.dart';
 import '../../design/widgets.dart';
 import '../../engine/event_scoring.dart';
 import '../../engine/meet.dart';
-import '../../engine/templates.dart';
+import '../common/game_ui.dart';
 import '../play/export.dart';
+import '../share/event_share_sheet.dart';
 import 'event_data.dart';
+import 'event_sharing.dart';
 import 'event_widgets.dart';
 
-/// An event's home: team totals, its games, and who is doing best.
-class EventPage extends StatelessWidget {
+/// An event's home: team totals, its games, and who is doing best. Lives
+/// under the screens opened from it, so it keeps a shared event up to date
+/// while they change it.
+class EventPage extends StatefulWidget {
   final String id;
   const EventPage({super.key, required this.id});
 
   @override
+  State<EventPage> createState() => _EventPageState();
+}
+
+class _EventPageState extends State<EventPage> {
+  final store = getIt<LocalStore>();
+  late final StreamSubscription<void> _meetSub;
+  late final StreamSubscription<void> _gameSub;
+  String? _synced;
+
+  @override
+  void initState() {
+    super.initState();
+    _meetSub = store.meetChanges.listen((_) => _sync());
+    _gameSub = store.gameChanges.listen((_) => _sync());
+    _sync();
+  }
+
+  @override
+  void dispose() {
+    _meetSub.cancel();
+    _gameSub.cancel();
+    super.dispose();
+  }
+
+  /// Sends a shared event to the cloud when followers would see a difference.
+  void _sync() {
+    final meet = store.meet(widget.id);
+    if (meet?.shareCode == null) return;
+    final state = jsonEncode([meet!.toShareJson(), for (final g in store.gamesInMeet(meet.id)) g.id]);
+    if (state == _synced) return;
+    _synced = state;
+    getIt<EventSharing>().sync(meet.id).catchError((Object _) {
+      // Offline: tried again the next time this page opens.
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final store = getIt<LocalStore>();
+    final id = widget.id;
     return StreamBuilder<void>(
       stream: store.meetChanges,
       builder: (context, _) => StreamBuilder<void>(
@@ -57,7 +99,7 @@ class _EventView extends StatelessWidget {
   Future<void> _onAction(BuildContext context, _Action action) async {
     switch (action) {
       case _Action.announce:
-        final playing = standings.games.where((g) => !g.counted).length;
+        final playing = standings.games.where((g) => !g.counted && !g.upcoming).length;
         final ok = meet.finished ||
             await confirm(
               context,
@@ -97,6 +139,13 @@ class _EventView extends StatelessWidget {
           destructive: true,
         );
         if (!ok) return;
+        if (meet.shareCode != null) {
+          try {
+            await getIt<EventSharing>().stop(meet.id).timeout(const Duration(seconds: 5));
+          } catch (_) {
+            // Offline: followers keep the last copy, but the event still goes.
+          }
+        }
         await _store.deleteMeet(meet.id);
         if (context.mounted) context.go('/');
     }
@@ -111,15 +160,11 @@ class _EventView extends StatelessWidget {
     final games = SectionCard(
       title: 'Games',
       trailing: wide ? addGame : null,
-      child: standings.games.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.symmetric(vertical: Space.md),
-              child: Text('No games yet. Add the first one: musical chairs, a race, tug of war...', style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant)),
-            )
-          : Column(children: [
-              for (final g in standings.games.reversed)
-                Padding(padding: const EdgeInsets.only(bottom: Space.sm), child: _GameRow(meet: meet, award: g)),
-            ]),
+      child: EventGameList(
+        standings: standings,
+        empty: 'No games yet. Add the first one: musical chairs, a race, tug of war...',
+        onOpen: (game) => context.push('/game/${game.id}'),
+      ),
     );
     final board = SectionCard(title: 'Top performers', child: EventLeaderboard(standings: standings));
 
@@ -130,11 +175,17 @@ class _EventView extends StatelessWidget {
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(meet.name, maxLines: 1, overflow: TextOverflow.ellipsis),
           Text(
-            '🏆 Event · ${standings.games.length} game${standings.games.length == 1 ? '' : 's'} · ${_pointsLabel(meet.placePoints)}',
+            '🏆 Event · ${standings.games.length} game${standings.games.length == 1 ? '' : 's'} · ${pointsLabel(meet.placePoints)}',
             style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant),
           ),
         ]),
         actions: [
+          if (meet.shareCode != null) const Padding(padding: EdgeInsets.only(right: Space.xs), child: Center(child: LiveBadge(compact: true))),
+          IconButton(
+            tooltip: 'Share event',
+            onPressed: () => showEventShareSheet(context, meet.id),
+            icon: Icon(meet.shareCode != null ? Icons.cell_tower : Icons.ios_share),
+          ),
           IconButton(tooltip: 'TV mode', onPressed: () => context.push('/event/${meet.id}/tv'), icon: const Icon(Icons.tv)),
           PopupMenuButton<_Action>(
             tooltip: 'More',
@@ -194,30 +245,3 @@ class _EventView extends StatelessWidget {
   }
 }
 
-/// Short form of a points table for headers: "3-2-1 pts".
-String _pointsLabel(String raw) => '${raw.replaceAll(',', '-')} pts';
-
-class _GameRow extends StatelessWidget {
-  final Meet meet;
-  final GameAward award;
-  const _GameRow({required this.meet, required this.award});
-
-  @override
-  Widget build(BuildContext context) {
-    final game = award.game;
-    final template = Templates.byId(game.templateId);
-    return Card(
-      child: ListTile(
-        onTap: () => context.push('/game/${game.id}'),
-        leading: Text(template.emoji, style: const TextStyle(fontSize: 26)),
-        title: Text(game.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-        subtitle: Text(
-          award.counted ? (award.teamPoints.isEmpty ? 'No points' : awardLine(meet, award.teamPoints)) : 'In progress · ${award.snapshot.summary}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: award.counted ? Icon(Icons.check_circle, color: context.scoreColors.positive) : const Icon(Icons.play_circle_outline),
-      ),
-    );
-  }
-}

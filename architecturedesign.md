@@ -63,12 +63,23 @@ Two-sided games split the screen in half, side by side in landscape and stacked 
 | `grants/{code}/{uid}/{level}` | hash the user entered; valid only if it equals the secret | that user | that user |
 | `boards/{code}/meta` | title, mode, template, settings, participants | read level | owner |
 | `boards/{code}/events/{pushId}` | `{t, d, ts, by}` | read level | write level; append only, `by` must equal `auth.uid` |
+| `eventBoards/{code}` | a shared event: name, teams, points table, finished, `games/{gameId}` → board code | read level | owner |
 | `scoreboards/{id}` | 1.x boards: read-only in the app, can be copied into a local game | read level | unchanged 1.x rules |
 
 - Codes are 6 characters with no confusable letters, and they share the namespace with 1.x board ids. A taken code is rejected by the `boardMeta` create rule, and the app retries with a new one.
 - The rules cap sizes: participants `p0`–`p49`, and string lengths on every field.
 - Viewers listen to `boards/{code}`. The SDK sends only what changed, so each point costs a few bytes.
 - Stopping sharing deletes the board, its meta and its secrets. The local copy stays.
+
+### Shared events
+
+An event's scores are never stored, so a shared event is a list of boards, not a copy of its results. `EventSharing` gives every game in the event a board and writes `eventBoards/{code}`. Followers open `/follow/{code}`: `EventFollowCubit` listens to the event and each board, then runs the same `scoreMeet` as the owner's device.
+
+- `EventPage` stays mounted under the screens opened from it and syncs when the event or its list of games changes. `NewGamePage` syncs before opening a game, so it goes live from the first point. A game that can't be published stays local until the next sync.
+- Boards published for an event get a scoring password nobody is told, so only the owner scores. The owner can set a real one from that game's share sheet.
+- `Meet.sharedBoards` holds those boards. Stopping sharing removes them and leaves games shared on their own alone.
+- A game added with **Add to schedule** is an ordinary game with nothing played, which is what `GameAward.upcoming` means. There is no separate schedule to keep in step.
+- A game with a view password can't be read by followers. It shows as locked, outside the totals, until they enter its password.
 
 ## Data on the device
 

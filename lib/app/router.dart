@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/events/event_follow_page.dart';
 import '../features/events/event_page.dart';
 import '../features/events/event_roster_page.dart';
 import '../features/events/event_tv_page.dart';
@@ -80,6 +81,11 @@ final appRouter = GoRouter(
           builder: (_, state) => TvPage.live(code: state.pathParameters['code']!.toLowerCase()),
         ),
       ],
+    ),
+    GoRoute(
+      path: '/follow/:code',
+      parentNavigatorKey: _rootKey,
+      builder: (_, state) => EventFollowPage(code: state.pathParameters['code']!.toLowerCase()),
     ),
     // Links from ScoreEase 1.x.
     GoRoute(

@@ -82,7 +82,7 @@ String meetCsv(MeetStandings standings) {
     for (final t in standings.rankedTeams) [t.name, standings.teamTotals[t.id] ?? 0, t.members.join('; ')],
     [],
     ['Game', 'Status', for (final t in meet.teams) t.name],
-    for (final g in standings.games) [g.game.title, g.counted ? 'Finished' : 'In progress', for (final t in meet.teams) g.teamPoints[t.id] ?? 0],
+    for (final g in standings.games) [g.game.title, g.counted ? 'Finished' : (g.upcoming ? 'Up next' : 'In progress'), for (final t in meet.teams) g.teamPoints[t.id] ?? 0],
     [],
     ['Name', 'Team', 'Points', 'Played', 'Wins', 'Scored'],
     for (final p in standings.people) [p.name, meet.team(p.teamId)?.name ?? '', p.points, p.played, p.wins, p.scored],

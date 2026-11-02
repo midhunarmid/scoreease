@@ -295,6 +295,72 @@ test('boards: the owner can stop sharing', async () => {
   await assertSucceeds(update(ref(db('alice')), { 'boards/abc234': null, 'boardMeta/abc234': null, 'secrets/abc234': null }));
 });
 
+// ---- Shared events under eventBoards/{code} ----
+
+const sharedEvent = () => ({
+  name: 'Games day',
+  placePoints: '3,2,1',
+  createdAt: Date.now(),
+  finished: false,
+  teams: { t0: { name: 'Reds', color: 1, members: { m0: 'Ann', m1: 'Bob' } }, t1: { name: 'Blues', color: 0, members: { m0: 'Dee' } } },
+});
+
+function shareEvent(uid, code) {
+  return update(ref(db(uid)), {
+    [`boardMeta/${code}`]: { ownerId: uid, readProtected: false, writeProtected: false, ownerProtected: false },
+    [`eventBoards/${code}`]: sharedEvent(),
+  });
+}
+
+test('eventBoards: the owner shares an event and anyone signed in can follow it', async () => {
+  await assertSucceeds(shareEvent('alice', 'evt234'));
+  await assertFails(shareEvent('mallory', 'evt234'));
+  await assertSucceeds(get(ref(db('bob'), 'eventBoards/evt234')));
+  await assertFails(get(ref(env.unauthenticatedContext().database(), 'eventBoards/evt234')));
+  await assertFails(get(ref(db('bob'), 'eventBoards')));
+});
+
+test('eventBoards: only the owner can change an event', async () => {
+  await assertSucceeds(shareEvent('alice', 'evt234'));
+  const games = { '-Ogame0000000000001': 'abc234' };
+  await assertSucceeds(set(ref(db('alice'), 'eventBoards/evt234'), { ...sharedEvent(), finished: true, games }));
+  await assertFails(set(ref(db('bob'), 'eventBoards/evt234'), { ...sharedEvent(), games }));
+  await assertFails(set(ref(db('bob'), 'eventBoards/evt234/name'), 'hacked'));
+  await assertFails(remove(ref(db('bob'), 'eventBoards/evt234')));
+});
+
+test('eventBoards: a code can only be used once, with games and events together', async () => {
+  await assertSucceeds(shareBoard('alice', 'abc234'));
+  await assertFails(shareEvent('bob', 'abc234'));
+});
+
+test('eventBoards: malformed data is rejected', async () => {
+  await assertSucceeds(shareEvent('alice', 'evt234'));
+  await assertFails(set(ref(db('alice'), 'eventBoards/evt234/extra'), 1));
+  await assertFails(set(ref(db('alice'), 'eventBoards/evt234/name'), 'x'.repeat(101)));
+  await assertFails(set(ref(db('alice'), 'eventBoards/evt234/teams/t2'), { name: 'Greens', junk: 1 }));
+  await assertFails(set(ref(db('alice'), 'eventBoards/evt234/teams/t0/members/m0'), 'x'.repeat(41)));
+  await assertFails(set(ref(db('alice'), 'eventBoards/evt234/games/g1'), 'NOT A CODE'));
+  const { name, ...nameless } = sharedEvent();
+  await assertFails(set(ref(db('alice'), 'eventBoards/evt234'), nameless));
+});
+
+test('eventBoards: stopping removes the event and the boards it published', async () => {
+  await assertSucceeds(shareEvent('alice', 'evt234'));
+  await assertSucceeds(shareBoard('alice', 'abc234', { write: 'unknown' }));
+  await assertFails(update(ref(db('bob')), { 'eventBoards/evt234': null, 'boardMeta/evt234': null }));
+  await assertSucceeds(
+    update(ref(db('alice')), {
+      'eventBoards/evt234': null,
+      'boardMeta/evt234': null,
+      'secrets/evt234': null,
+      'boards/abc234': null,
+      'boardMeta/abc234': null,
+      'secrets/abc234': null,
+    }),
+  );
+});
+
 test('legacy team entries are validated', async () => {
   await assertSucceeds(createBoard('alice', 'b1'));
   await assertSucceeds(set(ref(db('alice'), 'scoreboards/b1/teams/t1'), { name: 'Reds', players: { ann: true } }));

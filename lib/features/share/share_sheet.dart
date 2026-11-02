@@ -101,39 +101,7 @@ class _ShareSheetState extends State<_ShareSheet> {
         style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
       ),
       const SizedBox(height: Space.md),
-      Center(
-        child: Container(
-          padding: const EdgeInsets.all(Space.md),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: Radii.mdAll),
-          child: QrImageView(data: link, size: 180, backgroundColor: Colors.white),
-        ),
-      ),
-      const SizedBox(height: Space.md),
-      Center(child: SelectableText(code.toUpperCase(), style: scoreStyle(context, 36).copyWith(letterSpacing: 6))),
-      Center(child: Text('Join code', style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant))),
-      const SizedBox(height: Space.sm),
-      Center(child: SelectableText(link.replaceFirst('https://', ''), style: context.text.bodySmall)),
-      const SizedBox(height: Space.lg),
-      Row(children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: link));
-              if (context.mounted) toast(context, _tv ? 'TV link copied' : 'Link copied');
-            },
-            icon: const Icon(Icons.link),
-            label: const Text('Copy link'),
-          ),
-        ),
-        const SizedBox(width: Space.sm),
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: () => SharePlus.instance.share(ShareParams(uri: Uri.parse(link), subject: _tv ? 'Live scoreboard for the TV' : 'Follow the score live')).ignore(),
-            icon: const Icon(Icons.share),
-            label: const Text('Share'),
-          ),
-        ),
-      ]),
+      ShareLinkPanel(code: code, link: link, subject: _tv ? 'Live scoreboard for the TV' : 'Follow the score live', copied: _tv ? 'TV link copied' : 'Link copied'),
       const SizedBox(height: Space.lg),
       const Divider(),
       if (!_editPasswords)
@@ -179,6 +147,53 @@ class _ShareSheetState extends State<_ShareSheet> {
       ),
     ]);
   }
+}
+
+/// A link's QR code and join code, with buttons to copy or share it.
+class ShareLinkPanel extends StatelessWidget {
+  final String code;
+  final String link;
+  final String subject;
+  final String copied;
+
+  const ShareLinkPanel({super.key, required this.code, required this.link, required this.subject, this.copied = 'Link copied'});
+
+  @override
+  Widget build(BuildContext context) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(Space.md),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: Radii.mdAll),
+            child: QrImageView(data: link, size: 180, backgroundColor: Colors.white),
+          ),
+        ),
+        const SizedBox(height: Space.md),
+        Center(child: SelectableText(code.toUpperCase(), style: scoreStyle(context, 36).copyWith(letterSpacing: 6))),
+        Center(child: Text('Join code', style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant))),
+        const SizedBox(height: Space.sm),
+        Center(child: SelectableText(link.replaceFirst('https://', ''), style: context.text.bodySmall)),
+        const SizedBox(height: Space.lg),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: link));
+                if (context.mounted) toast(context, copied);
+              },
+              icon: const Icon(Icons.link),
+              label: const Text('Copy link'),
+            ),
+          ),
+          const SizedBox(width: Space.sm),
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: () => SharePlus.instance.share(ShareParams(uri: Uri.parse(link), subject: subject)).ignore(),
+              icon: const Icon(Icons.share),
+              label: const Text('Share'),
+            ),
+          ),
+        ]),
+      ]);
 }
 
 class _PasswordField extends StatefulWidget {

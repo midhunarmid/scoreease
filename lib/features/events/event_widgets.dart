@@ -3,9 +3,88 @@ import 'package:flutter/material.dart';
 import '../../design/theme.dart';
 import '../../design/tokens.dart';
 import '../../design/widgets.dart';
+import '../../engine/engine.dart';
 import '../../engine/event_scoring.dart';
+import '../../engine/templates.dart';
 import '../common/game_ui.dart';
 import '../play/widgets/score_change.dart';
+import 'event_data.dart';
+
+/// Short form of a points table for headers: "3-2-1 pts".
+String pointsLabel(String raw) => '${raw.replaceAll(',', '-')} pts';
+
+/// An event's games: those being played, then those up next in the order they
+/// were added, then those played, latest first.
+class EventGameList extends StatelessWidget {
+  final MeetStandings standings;
+  final String empty;
+  final ValueChanged<Game> onOpen;
+
+  const EventGameList({super.key, required this.standings, required this.empty, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    final games = standings.games;
+    if (games.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: Space.md),
+        child: Text(empty, style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant)),
+      );
+    }
+    final sections = {
+      'Playing now': games.where((g) => !g.counted && !g.upcoming),
+      'Up next': games.where((g) => g.upcoming),
+      'Played': games.where((g) => g.counted).toList().reversed,
+    };
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (final MapEntry(key: title, value: list) in sections.entries)
+        if (list.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: Space.xs, bottom: Space.xs),
+            child: Text(title, style: context.text.labelLarge?.copyWith(color: context.colors.onSurfaceVariant)),
+          ),
+          for (final g in list)
+            Padding(padding: const EdgeInsets.only(bottom: Space.sm), child: _GameRow(standings: standings, award: g, onOpen: onOpen)),
+        ],
+    ]);
+  }
+}
+
+class _GameRow extends StatelessWidget {
+  final MeetStandings standings;
+  final GameAward award;
+  final ValueChanged<Game> onOpen;
+  const _GameRow({required this.standings, required this.award, required this.onOpen});
+
+  /// Who a game is between: "Reds vs Blues", or how many are in it.
+  String get _sides {
+    final sides = award.game.sides;
+    return sides.length == 2 ? '${sides[0].name} vs ${sides[1].name}' : '${sides.length} ${sides.any((p) => p.isTeam) ? 'teams' : 'players'}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final game = award.game;
+    final template = Templates.byId(game.templateId);
+    final String status;
+    if (award.counted) {
+      status = award.teamPoints.isEmpty ? 'No points' : awardLine(standings.meet, award.teamPoints);
+    } else {
+      status = award.upcoming ? _sides : 'In progress · ${award.snapshot.summary}';
+    }
+    return Card(
+      child: ListTile(
+        onTap: () => onOpen(game),
+        leading: Text(template.emoji, style: const TextStyle(fontSize: 26)),
+        title: Text(game.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+        subtitle: Text(status, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: award.counted
+            ? Icon(Icons.check_circle, color: context.scoreColors.positive)
+            : Icon(award.upcoming ? Icons.schedule : Icons.play_circle_outline),
+      ),
+    );
+  }
+}
 
 /// One big card per team with its event total. [scale] grows it for TV.
 class TeamTotals extends StatelessWidget {
